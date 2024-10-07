@@ -135,7 +135,8 @@ def ExampleCharacterSetup():
     inv = [FindItem("Bandage"), FindItem("Paperclip")]
     gear = Gear(FindItem("Helmet"), None, FindItem("Body Armor"), FindItem("Gloves"), None, FindItem("Pants"), FindItem("Boots"), FindItem("Warhammer"), FindItem("Shield"), inv)
     achievement = Achievement("First Kill", Bonus(BonusType.FLAT, AttributeBonus(Attribute.ALL_ATTRIBUTES, 2), None, 0), "Firstblood")
-    exampleCharacters.append(Character("Bjorn Smith", attributes, 0, "Tier I", "None", gear, achievement))
+    affinities = Affinities(0.5, 0.5, 0.5, 0.5)
+    exampleCharacters.append(Character("Bjorn Smith", attributes, 0, "Tier I", affinities, "None", gear, achievement))
 
 
 def PlayerSetup():
