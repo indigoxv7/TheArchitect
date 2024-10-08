@@ -61,6 +61,21 @@ class TitlePreference(Enum):
     Feminine = False
 
 
+def AffinityFormula(affinity: float, factor: float):
+    return affinity * (1+factor*(1-(affinity/100)))
+
+
+def AbbreviateNumber(number: float) -> str:
+    if abs(number) >= 1_000_000_000_000:
+        return f"{number / 1_000_000_000_000:.1f}T"
+    elif abs(number) >= 1_000_000_000:
+        return f"{number / 1_000_000_000:.1f}B"
+    elif abs(number) >= 1_000_000:
+        return f"{number / 1_000_000:.1f}M"
+    else:
+        return str(number)
+
+
 class ItemPower:
     def __init__(self, powerType: PowerType, power: int):
         self.powerType = powerType
@@ -103,6 +118,22 @@ class Attributes:
             self.magicStamina += value
             self.magicResistance += value
 
+    def AddAttributes(self, otherAttributes: 'Attributes'):
+        self.physicalPower += otherAttributes.physicalPower
+        self.physicalStamina += otherAttributes.physicalStamina
+        self.physicalResistance += otherAttributes.physicalResistance
+        self.magicPower += otherAttributes.magicPower
+        self.magicStamina += otherAttributes.magicStamina
+        self.magicResistance += otherAttributes.magicResistance
+
+    def MultiplyAttributes(self, otherAttributes: 'Attributes'):
+        self.physicalPower *= (1 + otherAttributes.physicalPower)
+        self.physicalStamina *= (1 + otherAttributes.physicalStamina)
+        self.physicalResistance *= (1 + otherAttributes.physicalResistance)
+        self.magicPower *= (1 + otherAttributes.magicPower)
+        self.magicStamina *= (1 + otherAttributes.magicStamina)
+        self.magicResistance *= (1 + otherAttributes.magicResistance)
+
 # each value is a percentage, from 0.01 at the lowest to 0.9 at the highest.
 class Affinities:
     def __init__(self, chi: float, mana: float, psi: float, aether: float):
@@ -117,6 +148,11 @@ class Affinities:
         self.psi += otherAffinities.psi
         self.aether += otherAffinities.aether
 
+    def MultiplyAffinities(self, otherAffinities: 'Affinities'):
+        self.chi = AffinityFormula(self.chi, otherAffinities.chi)
+        self.mana = AffinityFormula(self.mana, otherAffinities.mana)
+        self.psi = AffinityFormula(self.psi, otherAffinities.psi)
+        self.aether = AffinityFormula(self.aether, otherAffinities.aether)
 
 class BonusType(Enum):
     FLAT = 0,
@@ -138,11 +174,13 @@ class Bonus:
 
 class TotalBonus:
     def __init__(self, allBonuses: list[Bonus] = None):
-        self.flatAttributes = Attributes(0, 0, 0, 0, 0, 0)
+        self.flatInherentAttributes = Attributes(0, 0, 0, 0, 0, 0)
+        self.flatBonusAttributes = Attributes(0, 0, 0, 0, 0, 0)
         self.percentAttributes = Attributes(0, 0, 0, 0, 0, 0)
         self.flatAffinities = Affinities(0, 0, 0, 0)
         self.percentAffinities = Affinities(0, 0, 0, 0)
-        self.allStatBonusUIAmount = 0.0 # This is just so that we can keep track of the total increase for regular attributes like shown in the lore. Not to be applied again on top of stats, as they are individually correct already.
+        self.allStatBonusUIAmount = 0.0 # This is just so that we can keep track of the total increase for regular
+        # attributes like shown in the lore. Not to be applied again on top of stats, as they are individually correct already.
         self.nanoMultiplier = 0.0
         if allBonuses is not None:
             self.ApplyAllBonuses(allBonuses)
@@ -150,7 +188,10 @@ class TotalBonus:
     def ApplyBonus(self, bonus: Bonus):
         if bonus.bonusType == BonusType.FLAT:
             if bonus.attributeBonus is not None:
-                self.flatAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
+                if not bonus.permanent:
+                    self.flatInherentAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
+                else:
+                    self.flatBonusAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
             if bonus.affinities is not None:
                 self.flatAffinities.AddAffinities(bonus.affinities)
 
@@ -167,7 +208,8 @@ class TotalBonus:
 
     def ApplyAllBonuses(self, bonuses: list[Bonus]):
         for bonus in bonuses:
-            self.ApplyBonus(bonus)
+            if bonus is not None:
+                self.ApplyBonus(bonus)
 
 
 class Achievement:
@@ -175,3 +217,4 @@ class Achievement:
         self.name = name
         self.bonus = bonus
         self.title = title
+

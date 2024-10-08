@@ -1,7 +1,7 @@
 import json
 import pickle
 from faction_functions import Faction
-from Character import Character
+
 from CharacterUtil import TitlePreference
 
 
@@ -23,6 +23,12 @@ class Player:
         for character in self.characters:
             cString = "**" + character.name + "** │ LvL " + str(character.level) + " │ (" + character.GetWoundedString() + ") │ Party: " + self.partyNames[character.party] + "\n"
         return cString
+
+    def GetCharacterIndexByName(self, name: str):
+        for i in range(len(self.characters)):
+            if self.characters[i].name == name:
+                return i
+        return 0
 
     def GetCharacterName(self, characterIndex: int):
         if len(self.characters) > characterIndex:
@@ -48,6 +54,10 @@ class Player:
             return self.characters[index]
         else:
             return self.characters[len(self.characters)-1]
+
+    def GetCharacterDetailsText(self, characterIndex: int):
+        if len(self.characters) > characterIndex:
+            return self.characters[characterIndex].GetCharacterOverviewText(self.nano)
 
 
 def save_player(player: Player, filename: str):

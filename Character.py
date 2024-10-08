@@ -1,16 +1,18 @@
 import copy
-
 from attr import attributes
-
 from CharacterUtil import *
-from Items import Gear
+from Items import Gear, Item
+from GeneralSkills import GeneralSkills
+from Spells import Spell, SpellComponent
+from Globals import *
 
 class HealthState(Enum):
     HEALTHY = 0
     INJURED = 1
     HEAVILY_INJURED = 2
-    UNCONSCIOUS = 3
-    DEAD = 4
+    DYING = 3
+    UNCONSCIOUS = 4
+    DEAD = 5
 
 # A limited time bonus that the character has active.
 class Buff:
@@ -23,13 +25,17 @@ class Buff:
         self.duration -= amount
         return self.duration > 0
 
-# general skills is fake for now...
+
 class Character:
     finalAttributes: Attributes
     finalAffinities: Affinities
+    achievements: list[Achievement]
+    spells: list[Spell]
+    buffs: list[Buff]
+
     def __init__(self, name: str, attributes: Attributes, level:  int = 0, raceTier: str = "Tier I",
                  affinities: Affinities = None, combatClass: str = "None", gear: Gear = None,
-                 achievements=None, generalSkills: str = "", party: int = 0, buffs: list[Buff] = None):
+                 achievements=list[Achievement], generalSkills: list[GeneralSkills] = None, spells: list[Spell] = None, party: int = 0, buffs: list[Buff] = None):
         self.name = name
         self.attributes = attributes
         self.level = level
@@ -45,7 +51,12 @@ class Character:
 
             for achievement in achievements:
                 self.AddAchievement(achievement)
-        self.generalSkills = generalSkills
+        self.generalSkills = []
+        if generalSkills is not None:
+            self.generalSkills = generalSkills
+        self.spells = []
+        if spells is not None:
+            self.spells = spells
         self.party = party
         self.health = 100
         self.healthState = HealthState.HEALTHY
@@ -60,33 +71,52 @@ class Character:
     def ListAllItemBonuses(self):
         allItemBonuses = []
         for item in self.gear.GetAllEquipped():
-            allItemBonuses.append(item.statBonus)
+            if item is not None:
+                for statBonus in item.statBonuses:
+                    if statBonus is not None:
+                        allItemBonuses.append(statBonus)
         return allItemBonuses
+
+    def CheckIfList(self, items):
+        for item in items:
+            if isinstance(item, AttributeBonus):
+                raise ValueError("********** Invalid value provided **********")
 
     def ListAllBonuses(self):
         allBonuses = []
         for achievement in self.achievements:
-            allBonuses.append(achievement.bonus)
-        allBonuses.append(self.ListAllItemBonuses())
+            if achievement.bonus is not None:
+                allBonuses.append(achievement.bonus)
+        self.CheckIfList(allBonuses)
+        allBonuses += self.ListAllItemBonuses()
+        self.CheckIfList(allBonuses)
         for buff in self.buffs:
-            allBonuses.append(buff.bonus)
+            if buff.bonus is not None:
+                allBonuses.append(buff.bonus)
+        self.CheckIfList(allBonuses)
 
         return allBonuses
 
     # gives us our final stat block which is the base stats plus all other bonuses.
     def CalculateFinalAttributes(self):
-        self.finalAttributes.physicalPower += self.totalBonus.flatAttributes.physicalPower
-        self.finalAttributes.physicalPower *= ( 1 + self.totalBonus.percentAttributes.physicalPower )
+        self.finalAttributes = copy.deepcopy(self.attributes) # reset our values to our baseline
+        self.finalAffinities = copy.deepcopy(self.affinities)
 
-        self.finalAttributes.physicalStamina += self.totalBonus.flatAttributes.physicalStamina
-        self.finalAttributes.physicalStamina *= ( 1 + self.totalBonus.percentAttributes.physicalStamina )
+        # first we add our inherent buffs (Achievements, strength training, etc.)
+        self.finalAttributes.AddAttributes(self.totalBonus.flatInherentAttributes)
+        # then apply our power multiplier
+        self.finalAttributes.MultiplyAttributes(self.totalBonus.percentAttributes)
+        # then add any final buffs from things like items, food, magic buffs, etc.
+        self.finalAttributes.AddAttributes(self.totalBonus.flatBonusAttributes)
 
-        self.
-        # add affinities too
+        # do affinities too
+        self.finalAffinities.MultiplyAffinities(self.totalBonus.percentAffinities)
+
 
     # Updates the character's bonus object that is the combination of all the character's current bonuses (Equipment, achievements, buffs, etc.)
     def CalculateBonus(self):
         self.totalBonus.ApplyAllBonuses(self.ListAllBonuses())
+        self.CalculateFinalAttributes()
 
 
 
@@ -111,10 +141,21 @@ class Character:
         elif self.healthState == HealthState.UNCONSCIOUS:
             return "Unconscious 😵‍💫"
         elif self.healthState == HealthState.DEAD:
+            return "Dying ⌛"
+        elif self.healthState == HealthState.DEAD:
             return "Dead 💀"
 
+    def GetAttributeString(self, text: str, base: float, percent: float, bonus: float, total: float):
+        text += " - " + str(base)
+        if percent > 0:
+            text += f"(+{percent*100}%)"
+        if bonus > 0:
+            text += f"[+{bonus}]"
+        if total != base:
+            text += f" - {total}"
+        return text
+
     def GetAttributesString(self):
-        result = ""
         bonuses = self.ListAllBonuses()
 
         bonusAttributeDict = {
@@ -127,6 +168,7 @@ class Character:
         }
 
         bonusMultiplierDict = copy.deepcopy(bonusAttributeDict)
+
         baseStatDict = {
             Attribute.PHYSICAL_POWER: self.attributes.physicalPower,
             Attribute.PHYSICAL_STAMINA: self.attributes.physicalStamina,
@@ -136,57 +178,112 @@ class Character:
             Attribute.MAGIC_RESISTANCE: self.attributes.magicResistance
         }
 
-        # Now we'll loop through bonuses and apply each one to its appropriate place in the attributeBonusDict
+        # Now we'll loop through bonuses and apply each bonus to its appropriate place in the dictionaries
         for bonus in bonuses:
             if bonus.bonusType == BonusType.FLAT:
                 if bonus.attributeBonus is not None:
+                    if not bonus.permanent: # do the bonuses that are not inherent (items, magic buffs, food, etc.)
+                        if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
+                            bonusAttributeDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
+                        else:
+                            for attribute in bonusAttributeDict:
+                                bonusAttributeDict[attribute] += bonus.attributeBonus.bonus
+                    else: # do the bonuses that are considered inherent (Achievements, strength training, etc.)
+                        if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
+                            baseStatDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
+                        else:
+                            for attribute in baseStatDict:
+                                baseStatDict[attribute] += bonus.attributeBonus.bonus
+            else: # if the bonus type is multiplicative
+                if bonus.attributeBonus is not None:
                     if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
-                        bonusAttributeDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
+                        bonusMultiplierDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
                     else:
-                        for attribute in bonusAttributeDict:
-                            bonusAttributeDict[attribute] += bonus.attributeBonus.bonus
+                        for attribute in bonusMultiplierDict:
+                            bonusMultiplierDict[attribute] += bonus.attributeBonus.bonus
 
-        physBonus = ""
-        if bonusAttributeDict[Attribute.PHYSICAL_POWER] > 0:
+        # then we subtract the total bonus from the bonusMultiplierDict so that we only show stats which are not covered by the general bonus
+        for attribute in bonusAttributeDict:
+            bonusMultiplierDict[attribute] -= self.totalBonus.allStatBonusUIAmount
 
-
-        result = f"Physical Power - {self.attributes.physicalPower}{physBonus}"
-
-
-
-    def GetCharacterInfoText(self):
-        affinitySection = f"    Chi - {self.affinities.chi}\n   Mana - {self.affinities.mana}\n Psi - {self.affinities.psi}\n   Aether - {self.affinities.aether}\n"
         attributeIncrease = ""
         if self.totalBonus.allStatBonusUIAmount > 0:
             attributeIncrease += f"Increased by {self.totalBonus.allStatBonusUIAmount*100}%"
+
+
+
+        result = (f"Attributes - {attributeIncrease}\n"
+                  f"{self.GetAttributeString('　Physical Power', baseStatDict[Attribute.PHYSICAL_POWER], bonusMultiplierDict[Attribute.PHYSICAL_POWER], bonusAttributeDict[Attribute.PHYSICAL_POWER], self.finalAttributes.physicalPower)}\n"
+                  f"{self.GetAttributeString('　Physical Stamina', baseStatDict[Attribute.PHYSICAL_STAMINA], bonusMultiplierDict[Attribute.PHYSICAL_STAMINA], bonusAttributeDict[Attribute.PHYSICAL_STAMINA], self.finalAttributes.physicalStamina)}\n"
+                  f"{self.GetAttributeString('　Physical Resistance', baseStatDict[Attribute.PHYSICAL_RESISTANCE], bonusMultiplierDict[Attribute.PHYSICAL_RESISTANCE], bonusAttributeDict[Attribute.PHYSICAL_RESISTANCE], self.finalAttributes.physicalResistance)}\n"
+                  f"{self.GetAttributeString('　Magic Power', baseStatDict[Attribute.MAGIC_POWER], bonusMultiplierDict[Attribute.MAGIC_POWER], bonusAttributeDict[Attribute.MAGIC_POWER], self.finalAttributes.magicPower)}\n"
+                  f"{self.GetAttributeString('　Magic Stamina', baseStatDict[Attribute.MAGIC_STAMINA], bonusMultiplierDict[Attribute.MAGIC_STAMINA], bonusAttributeDict[Attribute.MAGIC_STAMINA], self.finalAttributes.magicStamina)}\n"
+                  f"{self.GetAttributeString('　Magic Resistance ', baseStatDict[Attribute.MAGIC_RESISTANCE], bonusMultiplierDict[Attribute.MAGIC_RESISTANCE], bonusAttributeDict[Attribute.MAGIC_RESISTANCE], self.finalAttributes.magicResistance)}\n")
+
+        return result
+
+    def GetGeneralSkillsString(self, fullDescription: bool = False):
+        result = "General Skills -\n"
+        if fullDescription:
+            for skill in self.generalSkills:
+                result += f"{skill.name} - {skill.description}\n"
+        else:
+            for skill in self.generalSkills:
+                result += f"{skill.name}\n"
+        return result
+
+    def GetSpellsString(self, fullDescription: bool = False):
+        result = ""
+        if len(self.spells) > 0:
+            result = "Spells -\n"
+
+        if fullDescription:
+            for spell in self.spells:
+                result += f"{spell}\n"
+        else:
+            for spell in self.spells:
+                result += f"{spell.name}\n"
+
+        return result
+
+    def GetCharacterOverviewText(self, nanoAmount: float):
+        affinitySection = "Combat Classification - "
+        if (self.level > 0):
+            affinitySection += f"Level {self.level}\n"
+            affinitySection += f"　Chi - {self.finalAffinities.chi}\n　Mana - {self.finalAffinities.mana}\n　Psi - {self.finalAffinities.psi}\n　Aether - {self.finalAffinities.aether}\n"
+        else:
+            affinitySection += "None\n"
+
+        attributes = self.GetAttributesString()
         achievementString = ""
         for achievement in self.achievements:
-            achievementString += f"{achievement.name}\n"
+            achievementString += f"　{achievement.name}\n"
+        nanoString = AbbreviateNumber(nanoAmount)
 
-
-
-        f"""
-Combat Classification - {self.combatClass}
-
+        result = f"""
 {affinitySection}
-
 Race - {self.raceTier}
 
-Attributes - {attributeIncrease}
-Attributes -
-    Physical Power - $physicalPower
-    Physical Stamina - $physicalStamina
-    Physical Resistance - $physicalResistance
-    Magic Power - $magicPower
-    Magic Stamina - $magicStamina
-    Magic Resistance - $magicResistance
-
+{attributes}
 Achievements -
 {achievementString}
-
-General Skills -
-$generalSkills
-
-Pooled Nano :Nano~1: - 10000
-        :return:
+{self.GetGeneralSkillsString()}{self.GetSpellsString()}
+Pooled Nano {nanoEmoji} - {nanoString}
         """
+
+        return result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

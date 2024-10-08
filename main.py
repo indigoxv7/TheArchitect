@@ -5,6 +5,8 @@ from discord.ext import commands
 from string import Template
 import re
 from player_functions import *
+from Character import *
+from Items import Item
 import os
 from dotenv import load_dotenv
 
@@ -53,7 +55,7 @@ allItems = {}  # Master list of items with no organization. Key is name value is
 errorItem = None # default item for errors
 exampleCharacters = [] # for testing
 maxNumCharacters = 4
-nanoEmoji = "<:Nano:1274243202773418024>"
+
 
 def SaveExistingPlayersRoster(filename: str):
     with open(filename, 'w') as file:
@@ -77,7 +79,8 @@ def ItemSetup():
     slashingDamage = [DamageType.SLASHING]
     standardConsumablePower = [ItemPower(PowerType.CONSUMABLE_POWER, 10)]
 
-    PhysResistBonus = [AttributeBonus(Attribute.PHYSICAL_RESISTANCE, 1)]
+    # A reason="" will automatically be filled out by the item that inherits it (using its own name as the reason).
+    PhysResistBonus = [Bonus(BonusType.FLAT, AttributeBonus(Attribute.PHYSICAL_RESISTANCE, 1), None, 0, "")]
 
     # Weapons
     newItem = Item("Dagger", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_THROWABLE, standardAttackPower, piercingDamage)
@@ -144,6 +147,7 @@ def PlayerSetup():
     testPlayer = Player(191980469670248448, 10000, 3, TitlePreference.Masculine, exampleCharacters)
     testPlayer.isNewPlayer = True
     testPlayer.playerName = "Wasabi Avenger"
+    testPlayer.isNewPlayer = False
     playerList[testPlayer.discordID] = testPlayer
 
 # gets a player object from our playerList. if the player does not exist, create it.
@@ -243,14 +247,12 @@ def MenuSetup():
 
     character0 = Menu(
         myOptionText="$character0",
-        bodyText="Combat Classification - $combatClassification\n\nChi - $chiAffinity\nMana - $manaAffinity\nPsi - $psiAffinity\nAether - $aetherAffinity"
-                 "\n\nRace - $raceTier\n\nAttributes - Increased by $attributePercentIncrease\nAttributes -\nPhysical Power - $physicalPower\n"
-                 "Physical Stamina - $physicalStamina\nPhysical Resistance - $physicalResistance\nMagic Power - $magicPower\nMagic Stamina - $magicStamina\n"
-                 "Magic Resistance - $magicResistance\n\nAchievements -\n$achievements\n\nGeneral Skills - \n$generalSkills\n\nPooled Nano " + nanoEmoji + " - $nano",
+        bodyText="$characterOverview",
         uniqueName="character0",
         myEmoji="👤",
         parent=partyMembers,
-        imageURL="https://media.discordapp.net/attachments/886469391548559372/1273163972010446849/image.png?ex=66bd9dd9&is=66bc4c59&hm=21db64e5c101376c91e04e034b17b843940b5ef930af16d016f88dbe3f586321&=&format=webp&quality=lossless"
+        imageURL="https://media.discordapp.net/attachments/886469391548559372/1273163972010446849/image.png?ex=66bd9dd9&is=66bc4c59&hm=21db64e5c101376c91e04e034b17b843940b5ef930af16d016f88dbe3f586321&=&format=webp&quality=lossless",
+        menuState=MenuState.CHARACTER
     )
     partyMembers.add_option(character0)
 
@@ -299,19 +301,20 @@ def ReplacePlaceholders(text: str, player: Player, menuState: MenuContext):
     if player.faction:
         fTitle = player.faction.title
 
+
+    characterOverview = "";
+
     data = {
         'nano': player.nano,
         'playerName': player.playerName,
         'factionTitle': fTitle,
         'achievementTitle': player.achievementTitle,
         'characters': player.GetCharacterText(),
-        # 'attributeAffinities':
-        #'character0': player.GetCharacterName(0),
-        #'character1': player.GetCharacterName(1),
-        #'character2': player.GetCharacterName(2),
-        #'character3': player.GetCharacterName(3),
         # Add more placeholders as needed
     }
+
+    if menuState.character is not None:
+        data['characterOverview'] = menuState.character.GetCharacterOverviewText(player.nano)
 
     for i in range(0, maxNumCharacters):
         data["character" + str(i)] = player.GetCharacterName(i)
@@ -358,9 +361,8 @@ async def display_menu(interaction: discord.Interaction, menu: Menu):
         menu = newPlayerMenu
         player.isNewPlayer = False
 
-    if menu.menuState == MenuState.CHARACTER:
-        index = GetNameFromID(menu.myOptionText)
-        originalMessage.menuContext.character = player.GetCharacter(index)
+    # check for updated variables
+    UpdateMenuValues(originalMessage, menu, interaction)
 
     embed = MakeMenuEmbed(interaction, menu, player, originalMessage.menuContext)
 
@@ -371,6 +373,13 @@ async def display_menu(interaction: discord.Interaction, menu: Menu):
     originalMessage.setMessageObject(await interaction.original_response())
 
 
+def UpdateMenuValues(originalMessage: OriginalMessage, menu: Menu, interaction: discord.Interaction):
+    # check for updated variables
+    originalMessage.menuContext.menuState = menu.menuState
+    if menu.menuState == MenuState.CHARACTER:
+        # print("YEAAAAAAAHHHH " + menu.myOptionText[-1])
+        originalMessage.menuContext.character = originalMessage.player.GetCharacter(int(menu.myOptionText[-1]))
+
 
 async def update_menu(interaction: discord.Interaction, menu: Menu, originalMessage: OriginalMessage):
     if interaction.user.id != originalMessage.player.discordID:
@@ -379,6 +388,9 @@ async def update_menu(interaction: discord.Interaction, menu: Menu, originalMess
 
     # Acknowledge the interaction first to prevent timeout
     await interaction.response.defer()
+
+    # check for updated variables
+    UpdateMenuValues(originalMessage, menu, interaction)
 
     # Create the embed
     embed = MakeMenuEmbed(interaction, menu, originalMessage.player, originalMessage.menuContext)

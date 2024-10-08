@@ -2,14 +2,19 @@ from CharacterUtil import *
 
 
 class Item:
+    statBonuses: list[Bonus]
+
     def __init__(self, name: str, slot: EquipSlot = EquipSlot.NOT_EQUIPABLE, tier: int = 0,
-                 durability: int = DEFAULT_DURABILITY, statBonus: list[AttributeBonus] = None,
+                 durability: int = DEFAULT_DURABILITY, statBonuses: list[Bonus] = None,
                  itemType: ItemType = ItemType.DEFAULT, itemPower: list[ItemPower] = None, damageType: list[DamageType] = None):
         self.name = name
         self.slot = slot
         self.tier = tier
         self.durability = durability
-        self.statBonus = statBonus if statBonus is not None else []
+        self.statBonuses = statBonuses if statBonuses is not None else []
+        for bonus in self.statBonuses:
+            if bonus.reason == "":
+                bonus.reason = self.name
         self.itemType = itemType
         self.itemPower = itemPower if itemType is not None else []
         self.damageType = damageType if damageType is not None else []
@@ -34,8 +39,8 @@ class Gear:
         self.offhand = offhand
         self.inventory = inventory if inventory is not None else [] # Imagine 1-4 items you can carry extra, such as back up weapons, potions, bombs, tools, etc.
 
-    def GetAllEquipped(self):
-        allItems = [self.head, self.neck, self.body, self.hands, self.ring, self.legs, self.feet, self.primaryWeapon, self.offhand]
+    def GetAllEquipped(self) -> list[Item]:
+        allItems = [item for item in [self.head, self.neck, self.body, self.hands, self.ring, self.legs, self.feet, self.primaryWeapon, self.offhand] if item is not None]
 
         return allItems
 
