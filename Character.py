@@ -32,6 +32,8 @@ class Character:
     achievements: list[Achievement]
     spells: list[Spell]
     buffs: list[Buff]
+    portraitURL: str
+    footerImageURL: str
 
     def __init__(self, name: str, attributes: Attributes, level:  int = 0, raceTier: str = "Tier I",
                  affinities: Affinities = None, combatClass: str = "None", gear: Gear = None,
@@ -274,6 +276,8 @@ Pooled Nano {nanoEmoji} - {nanoString}
         return result
 
 
+    def IncreaseAttribute(self, a: Attribute, amount: int=1):
+        self.attributes.IncreaseAttribute(a,amount)
 
 
 

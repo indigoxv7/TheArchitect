@@ -1,6 +1,7 @@
 import json
 from enum import Enum
 
+
 class MenuState (Enum):
     DEFAULT = 0
     NEW_PLAYER = 1
@@ -12,9 +13,19 @@ class MenuContext:
         self.menuState = MenuState.MAIN
         self.character = None
 
+# This class exists as an easy way for me to create a variable number of buttons based on context.
+# If count is more than 0, Each button will be named "name"+i, where 'i' starts at 0 and goes to count-1.
+# will display a warning text before going to the next menu if warningText is not "".
+class ContextButton:
+    def __init__(self, name: str, count: int, target: 'Menu' = None, warningText: str = ""): #, action):
+        self.name = name
+        self.count = count
+        self.target = target
+        self.warningText = warningText
+
 
 class Menu:
-    def __init__(self, myOptionText, bodyText, uniqueName, parent=None, myEmoji=None, imageURL=None, menuState: MenuState = MenuState.DEFAULT):
+    def __init__(self, myOptionText, bodyText, uniqueName, parent=None, myEmoji=None, imageURL=None, menuState: MenuState = MenuState.DEFAULT, contextButtons: list[ContextButton] = None):
         self.myOptionText = myOptionText
         self.myEmoji = myEmoji
         self.uniqueName = uniqueName
@@ -23,6 +34,7 @@ class Menu:
         self.Options = []  # This will be a list of Menu objects
         self.imageURL = imageURL
         self.menuState = menuState
+        self.contextButtons = contextButtons
 
     def add_option(self, menu):
         menu.parent = self  # Set the parent of the added menu

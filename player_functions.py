@@ -1,11 +1,13 @@
 import json
 import pickle
 from faction_functions import Faction
-
 from CharacterUtil import TitlePreference
 
 
+
 class Player:
+    intChoice: int # a value which should be set by player choice and then is used by the menu command system to make an action.
+
     def __init__(self, discord_id: int, nano: int = 0, chronos: int = 0, titlePreference: TitlePreference = TitlePreference.Masculine, characters=None, faction: Faction = None):
         self.discordID = discord_id  # Discord user ID
         self.playerName = "PlayerName" # will be filled in immediately after player creation/loading.
@@ -17,6 +19,8 @@ class Player:
         self.achievementTitle = ""
         self.isNewPlayer = False
         self.partyNames = ["Delta Team", "2", "3", "4"] # It would be cool to be able to name parties. "Foxtrot" "Demons" "Delta Team"
+
+        self.intChoice = 0
 
     def GetCharacterText(self):
         cString = ""

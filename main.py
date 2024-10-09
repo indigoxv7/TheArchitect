@@ -256,6 +256,20 @@ def MenuSetup():
     )
     partyMembers.add_option(character0)
 
+    # Buttons:
+    # Equipment, Stats, Skills, Spells, level up, Customize
+    Equipment = Menu(
+        myOptionText="",
+        bodyText="",
+        uniqueName="",
+        myEmoji="",
+        parent=character0,
+        imageURL="",
+    )
+    partyMembers.add_option()
+
+
+
     # create the other character menus as a copy of the one above, but with the different title variables.
     for i in range(1, maxNumCharacters): # starting at 1 up to but not including maxNumCharacters
         characterX = copy.deepcopy(character0)

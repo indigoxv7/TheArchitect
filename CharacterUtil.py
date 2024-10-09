@@ -65,7 +65,7 @@ def AffinityFormula(affinity: float, factor: float):
     return affinity * (1+factor*(1-(affinity/100)))
 
 
-def AbbreviateNumber(number: float) -> str:
+def AbbreviateNumber(number: int) -> str:
     if abs(number) >= 1_000_000_000_000:
         return f"{number / 1_000_000_000_000:.1f}T"
     elif abs(number) >= 1_000_000_000:
