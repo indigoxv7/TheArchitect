@@ -1,0 +1,12 @@
+﻿{
+    "myEmoji":  "🔁",
+    "myOptionText":  "Trade Request",
+    "uniqueName":  "tradeRequest",
+    "Options":  [
+
+                ],
+    "menuState":  "DEFAULT",
+    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1273176860305522693/image.png?ex=66bda9d9\u0026is=66bc5859\u0026hm=c9eb7caa7c2efc6b30a1575bcedddac7a65b8b9d340c968d4956efe767af9537\u0026=\u0026format=webp\u0026quality=lossless\u0026width=550\u0026height=254",
+    "bodyText":  "use /trade @username",
+    "parentName":  "mainMenu"
+}

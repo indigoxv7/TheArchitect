@@ -1,0 +1,14 @@
+﻿{
+    "myEmoji":  "🏠",
+    "myOptionText":  "Main Menu - $factionTitle $playerName $achievementTitle",
+    "uniqueName":  "mainMenu",
+    "Options":  [
+                    "partyMembers",
+                    "mainInventory",
+                    "tradeRequest"
+                ],
+    "menuState":  "DEFAULT",
+    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1273164687847985205/image.png?ex=66bd9e83\u0026is=66bc4d03\u0026hm=17098b12936cc89fca3476cc8f5888b94e21b3ba1fce5cc222000cd948b0348b\u0026=\u0026format=webp\u0026quality=lossless",
+    "bodyText":  "Nano: $nanoEmoji $nano\n\n* Faction (Not founded)\n* Party Members\n* Inventory\n\n* Make trade request\n* Pending Notifications (0)\n\n* Scavenging Mission\n* Portal Mission",
+    "parentName":  "HowToPlayMenu"
+}

@@ -1,0 +1,12 @@
+﻿{
+    "myEmoji":  "🌟",
+    "myOptionText":  "Welcome to the collective $playerName!",
+    "uniqueName":  "newPlayerMenu",
+    "Options":  [
+                    "HowToPlayMenu"
+                ],
+    "menuState":  "DEFAULT",
+    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1274236983559979050/image.png?ex=66c1852b\u0026is=66c033ab\u0026hm=82c9b63ad2903e31659408b2057e488d6a4f9f0d82c7bdb12da34e477e7af077\u0026=\u0026format=webp\u0026quality=lossless",
+    "bodyText":  "Your species has been chosen by the Architect to join countless others on a path to power. As a member of the Collective, you will use nano to enhance your body, gain access to combat classifications, and harness power previously unknown.\n\nDon\u0027t get caught up in the game-like system though. If your character dies, they\u0027re gone for good. Be careful and choose wisely, as even a small miscalculation in planning can lead to the end.",
+    "parentName":  null
+}

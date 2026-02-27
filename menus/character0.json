@@ -1,0 +1,12 @@
+﻿{
+    "myEmoji":  "👤",
+    "myOptionText":  "$character0",
+    "uniqueName":  "character0",
+    "Options":  [
+
+                ],
+    "menuState":  "CHARACTER",
+    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1273163972010446849/image.png?ex=66bd9dd9\u0026is=66bc4c59\u0026hm=21db64e5c101376c91e04e034b17b843940b5ef930af16d016f88dbe3f586321\u0026=\u0026format=webp\u0026quality=lossless",
+    "bodyText":  "$characterOverview",
+    "parentName":  "partyMembers"
+}

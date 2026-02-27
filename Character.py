@@ -142,7 +142,7 @@ class Character:
             return "Heavily Injured 🩸🩸"
         elif self.healthState == HealthState.UNCONSCIOUS:
             return "Unconscious 😵‍💫"
-        elif self.healthState == HealthState.DEAD:
+        elif self.healthState == HealthState.DYING:
             return "Dying ⌛"
         elif self.healthState == HealthState.DEAD:
             return "Dead 💀"

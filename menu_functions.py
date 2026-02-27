@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from enum import Enum
 
 
@@ -40,48 +41,90 @@ class Menu:
         menu.parent = self  # Set the parent of the added menu
         self.Options.append(menu)
 
-def save_menu(menu, directory):
-    def menu_to_dict(menu):
-        return {
-            "myOptionText": menu.myOptionText,
-            "myEmoji": menu.myEmoji,
-            "uniqueName": menu.uniqueName,
-            "bodyText": menu.bodyText,
-            "imageURL": menu.imageURL,
-            "parentName": menu.parent.uniqueName,
-            "Options": [option.uniqueName for option in menu.Options]
-        }
+def _menu_state_from_string(state_name: str | None) -> MenuState:
+    if not state_name:
+        return MenuState.DEFAULT
+    try:
+        return MenuState[state_name]
+    except KeyError:
+        return MenuState.DEFAULT
 
-    # Save the current menu as a JSON file
-    file_path = f"{directory}/{menu.uniqueName}.json"
-    with open(file_path, 'w') as f:
-        json.dump(menu_to_dict(menu), f, indent=4)
 
-    # Recursively save all child menus
+def _menu_to_dict(menu: Menu) -> dict:
+    return {
+        "myOptionText": menu.myOptionText,
+        "myEmoji": menu.myEmoji,
+        "uniqueName": menu.uniqueName,
+        "bodyText": menu.bodyText,
+        "imageURL": menu.imageURL,
+        "menuState": menu.menuState.name,
+        "parentName": menu.parent.uniqueName if menu.parent else None,
+        "Options": [option.uniqueName for option in menu.Options]
+    }
+
+
+def save_menu(menu: Menu, directory: str, saved_names: set[str] | None = None):
+    if saved_names is None:
+        saved_names = set()
+
+    if menu.uniqueName in saved_names:
+        return
+
+    Path(directory).mkdir(parents=True, exist_ok=True)
+    file_path = Path(directory) / f"{menu.uniqueName}.json"
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(_menu_to_dict(menu), f, indent=4, ensure_ascii=False)
+
+    saved_names.add(menu.uniqueName)
+
     for option in menu.Options:
-        save_menu(option, directory)
+        save_menu(option, directory, saved_names)
 
-def load_menu(file_path, directory):
-    def dict_to_menu(data, parent=None):
-        # Initialize the menu object from the dictionary
-        menu = Menu(
+
+def load_menus_from_directory(directory: str) -> dict[str, Menu]:
+    directory_path = Path(directory)
+    menu_files = sorted(directory_path.glob("*.json"))
+    if not menu_files:
+        raise FileNotFoundError(f"No menu JSON files found in '{directory}'.")
+
+    menus_by_name: dict[str, Menu] = {}
+    raw_data_by_name: dict[str, dict] = {}
+
+    for menu_file in menu_files:
+        with open(menu_file, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+
+        unique_name = data["uniqueName"]
+        if unique_name in menus_by_name:
+            raise ValueError(f"Duplicate menu uniqueName '{unique_name}' in '{menu_file}'.")
+
+        menus_by_name[unique_name] = Menu(
             myOptionText=data["myOptionText"],
             myEmoji=data.get("myEmoji"),
-            uniqueName=data["uniqueName"],
+            uniqueName=unique_name,
             bodyText=data["bodyText"],
-            imageURL=data["imageURL"],
-            parent=parent
+            imageURL=data.get("imageURL"),
+            menuState=_menu_state_from_string(data.get("menuState")),
+            parent=None
         )
+        raw_data_by_name[unique_name] = data
 
-        # Recursively load all child menus from their unique names
-        for unique_name in data["Options"]:
-            child_menu_path = f"{directory}/{unique_name}.json"
-            option_menu = load_menu(child_menu_path, directory)
-            option_menu.parent = menu
+    for unique_name, menu in menus_by_name.items():
+        data = raw_data_by_name[unique_name]
+        parent_name = data.get("parentName")
+        if parent_name is not None:
+            if parent_name not in menus_by_name:
+                raise ValueError(f"Menu '{unique_name}' parent '{parent_name}' not found.")
+            menu.parent = menus_by_name[parent_name]
+
+    for unique_name, menu in menus_by_name.items():
+        data = raw_data_by_name[unique_name]
+        menu.Options = []
+        for option_name in data.get("Options", []):
+            if option_name not in menus_by_name:
+                raise ValueError(f"Menu '{unique_name}' option '{option_name}' not found.")
+            option_menu = menus_by_name[option_name]
             menu.Options.append(option_menu)
+            option_menu.parent = menu
 
-        return menu
-
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    return dict_to_menu(data)
+    return menus_by_name

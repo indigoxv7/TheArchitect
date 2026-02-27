@@ -7,7 +7,9 @@ import re
 from player_functions import *
 from Character import *
 from Items import Item
+import Globals
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 
@@ -19,6 +21,18 @@ GUILD_ID = 288770050448424971
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 guild = None
+EMOJI_PLACEHOLDERS = {
+    key: value for key, value in vars(Globals).items()
+    if key.endswith("Emoji") and isinstance(value, str)
+}
+
+
+def ReplaceEmojiAliases(text: str):
+    for key, value in EMOJI_PLACEHOLDERS.items():
+        short_name = key[:-5]
+        text = text.replace(f":{short_name}:", value)
+        text = text.replace("{" + key + "}", value)
+    return text
 
 ################################
 #                              #
@@ -195,111 +209,127 @@ from menu_functions import *
 
 rootMenu = None
 newPlayerMenu = None
-def MenuSetup():
-    global rootMenu
-    global newPlayerMenu
+MENU_DIRECTORY = "./menus"
 
-    newPlayerMenu = Menu(
+
+def CreateDefaultMenusGraph():
+    new_player_menu = Menu(
         myOptionText="Welcome to the collective $playerName!",
         bodyText="Your species has been chosen by the Architect to join countless others on a path to power. As a member of the Collective, you will use nano to enhance your body, gain access to combat classifications, "
                  "and harness power previously unknown."
-                 "\n\nDon’t get caught up in the game-like system though. If your character dies, they’re gone for good. Be "
+                 "\n\nDon't get caught up in the game-like system though. If your character dies, they're gone for good. Be "
                  "careful and choose wisely, as even a small miscalculation in planning can lead to the end.",
         uniqueName="newPlayerMenu",
-        myEmoji="🌟",
+        myEmoji="\U0001F31F",
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1274236983559979050/image.png?ex=66c1852b&is=66c033ab&hm=82c9b63ad2903e31659408b2057e488d6a4f9f0d82c7bdb12da34e477e7af077&=&format=webp&quality=lossless"
     )
 
-    HowToPlayMenu = Menu(
+    how_to_play_menu = Menu(
         myOptionText="How to play",
-        bodyText="The apocalypse has begun. It’s a harsh place out here, and to protect yourself and those around you, you’ll need to form a **Faction.**\n\n"
-                 "Only problem is that costs " + nanoEmoji + " **Nano.** Lots of it.\n\nSo before you can do that, you’ll need to go on missions to get stronger and gather resources.\n\n"
+        bodyText="The apocalypse has begun. It's a harsh place out here, and to protect yourself and those around you, you'll need to form a **Faction.**\n\n"
+                 "Only problem is that costs $nanoEmoji **Nano.** Lots of it.\n\nSo before you can do that, you'll need to go on missions to get stronger and gather resources.\n\n"
                  "There are two types of missions. **Scavenging Missions**, in which you will face off against roaming monsters and bandits on earth, and **Portal Missions**, "
                  "in which you enter a scenario in another world and must complete the objective given to you by the architect.\n\nStart with **Scavenging Missions**. "
                  "They give fewer rewards, but you at least have a chance to run if it gets too dangerous. There is no escape if you fail a **Portal Mission**. \n\n"
-                 "Check your **Character**’s gear before you start and make sure you’re bringing your best stuff.\n\n"
+                 "Check your **Character**'s gear before you start and make sure you're bringing your best stuff.\n\n"
                  "# Good luck!",
         uniqueName="HowToPlayMenu",
-        myEmoji="🌟",
+        myEmoji="\U0001F31F",
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1274239069127180338/Portal.png?ex=66c1871c&is=66c0359c&hm=d3c39e8d6175df24827f2da43b294f65ec5f5017da0e04d8330557ceffee82cb&=&format=webp&quality=lossless&width=1920&height=555"
     )
-    newPlayerMenu.add_option(HowToPlayMenu)
+    new_player_menu.add_option(how_to_play_menu)
 
-    rootMenu = Menu(
+    main_menu = Menu(
         myOptionText="Main Menu - $factionTitle $playerName $achievementTitle",
-        bodyText="Nano: " + nanoEmoji + "$nano\n\n* Faction (Not founded)\n* Party Members\n* Inventory\n\n* Make trade request\n* Pending Notifications (0)\n\n* Scavenging Mission\n* Portal Mission",
+        bodyText="Nano: $nanoEmoji $nano\n\n* Faction (Not founded)\n* Party Members\n* Inventory\n\n* Make trade request\n* Pending Notifications (0)\n\n* Scavenging Mission\n* Portal Mission",
         uniqueName="mainMenu",
-        myEmoji="🏠",
+        myEmoji="\U0001F3E0",
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273164687847985205/image.png?ex=66bd9e83&is=66bc4d03&hm=17098b12936cc89fca3476cc8f5888b94e21b3ba1fce5cc222000cd948b0348b&=&format=webp&quality=lossless"
     )
-    HowToPlayMenu.add_option(rootMenu)
+    how_to_play_menu.add_option(main_menu)
 
-    ########### party
-    partyMembers = Menu(
+    party_members = Menu(
         myOptionText="Party Members",
         bodyText="$characters",
         uniqueName="partyMembers",
-        myEmoji="👥",
-        parent=rootMenu,
+        myEmoji="\U0001F465",
+        parent=main_menu,
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273163972010446849/image.png?ex=66bd9dd9&is=66bc4c59&hm=21db64e5c101376c91e04e034b17b843940b5ef930af16d016f88dbe3f586321&=&format=webp&quality=lossless"
     )
-    rootMenu.add_option(partyMembers)
+    main_menu.add_option(party_members)
 
     character0 = Menu(
         myOptionText="$character0",
         bodyText="$characterOverview",
         uniqueName="character0",
-        myEmoji="👤",
-        parent=partyMembers,
+        myEmoji="\U0001F464",
+        parent=party_members,
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273163972010446849/image.png?ex=66bd9dd9&is=66bc4c59&hm=21db64e5c101376c91e04e034b17b843940b5ef930af16d016f88dbe3f586321&=&format=webp&quality=lossless",
         menuState=MenuState.CHARACTER
     )
-    partyMembers.add_option(character0)
+    party_members.add_option(character0)
 
-    # Buttons:
-    # Equipment, Stats, Skills, Spells, level up, Customize
-    Equipment = Menu(
-        myOptionText="",
-        bodyText="",
-        uniqueName="",
-        myEmoji="",
-        parent=character0,
-        imageURL="",
-    )
-    partyMembers.add_option()
-
-
-
-    # create the other character menus as a copy of the one above, but with the different title variables.
-    for i in range(1, maxNumCharacters): # starting at 1 up to but not including maxNumCharacters
-        characterX = copy.deepcopy(character0)
-        characterX.myOptionText = "$character" + str(i)
-        characterX.uniqueName = "$character" + str(i)
-        partyMembers.add_option(characterX)
-
-    ###################
+    for i in range(1, maxNumCharacters):
+        character_x = copy.deepcopy(character0)
+        character_x.myOptionText = "$character" + str(i)
+        character_x.uniqueName = "character" + str(i)
+        party_members.add_option(character_x)
 
     inventory = Menu(
         myOptionText="Inventory",
         bodyText="Rusty Dagger\nbat\nwater\nfood",
         uniqueName="mainInventory",
-        myEmoji="🎒",
-        parent=rootMenu,
+        myEmoji="\U0001F392",
+        parent=main_menu,
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273177201893965907/image.png?ex=66bdaa2b&is=66bc58ab&hm=1505bd075e5edf8409110e02894652f09d4b28a6094383296a57067752661d04&=&format=webp&quality=lossless"
     )
-    rootMenu.add_option(inventory)
+    main_menu.add_option(inventory)
 
-    tradeRequest = Menu(
+    trade_request = Menu(
         myOptionText="Trade Request",
         bodyText="use /trade @username",
         uniqueName="tradeRequest",
-        myEmoji="🔁",
-        parent=rootMenu,
+        myEmoji="\U0001F501",
+        parent=main_menu,
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273176860305522693/image.png?ex=66bda9d9&is=66bc5859&hm=c9eb7caa7c2efc6b30a1575bcedddac7a65b8b9d340c968d4956efe767af9537&=&format=webp&quality=lossless&width=550&height=254"
     )
-    rootMenu.add_option(tradeRequest)
+    main_menu.add_option(trade_request)
+
+    return {
+        new_player_menu.uniqueName: new_player_menu,
+        how_to_play_menu.uniqueName: how_to_play_menu,
+        main_menu.uniqueName: main_menu,
+        party_members.uniqueName: party_members,
+        inventory.uniqueName: inventory,
+        trade_request.uniqueName: trade_request,
+        character0.uniqueName: character0
+    }
 
 
+def SeedMenuFilesIfMissing(directory: str):
+    menu_path = Path(directory)
+    menu_path.mkdir(parents=True, exist_ok=True)
+    if any(menu_path.glob("*.json")):
+        return
+
+    default_menus = CreateDefaultMenusGraph()
+    save_menu(default_menus["newPlayerMenu"], directory)
+
+
+def MenuSetup():
+    global rootMenu
+    global newPlayerMenu
+
+    SeedMenuFilesIfMissing(MENU_DIRECTORY)
+    menus_by_name = load_menus_from_directory(MENU_DIRECTORY)
+
+    if "mainMenu" not in menus_by_name:
+        raise ValueError("Missing required menu JSON: 'mainMenu'.")
+    if "newPlayerMenu" not in menus_by_name:
+        raise ValueError("Missing required menu JSON: 'newPlayerMenu'.")
+
+    rootMenu = menus_by_name["mainMenu"]
+    newPlayerMenu = menus_by_name["newPlayerMenu"]
 def Initialize():
     MenuSetup()
     ItemSetup()
@@ -326,6 +356,7 @@ def ReplacePlaceholders(text: str, player: Player, menuState: MenuContext):
         'characters': player.GetCharacterText(),
         # Add more placeholders as needed
     }
+    data.update(EMOJI_PLACEHOLDERS)
 
     if menuState.character is not None:
         data['characterOverview'] = menuState.character.GetCharacterOverviewText(player.nano)
@@ -338,6 +369,7 @@ def ReplacePlaceholders(text: str, player: Player, menuState: MenuContext):
 
     # Use safe_substitute to replace placeholders
     replaced_text = template.safe_substitute(data)
+    replaced_text = ReplaceEmojiAliases(replaced_text)
 
     # replace double spaces which might be left. Minor issue but it bothered me.
     replaced_text = replaced_text.replace("  ", " ")
@@ -504,3 +536,4 @@ async def on_ready():
 
 TOKEN = os.getenv('BOT_TOKEN')
 bot.run(TOKEN)
+
