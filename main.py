@@ -1,9 +1,9 @@
 import copy
-import discord
-from discord import app_commands
-from discord.ext import commands
+import asyncio
 from string import Template
 import re
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from player_functions import *
 from Character import *
 from Items import Item
@@ -11,6 +11,101 @@ import Globals
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
+try:
+    import discord
+    from discord import app_commands
+    from discord.ext import commands
+    DISCORD_AVAILABLE = True
+except ModuleNotFoundError:
+    DISCORD_AVAILABLE = False
+
+    class _DummyIntents:
+        @staticmethod
+        def all():
+            return None
+
+    class _DummyEmbed:
+        def __init__(self, title="", description=""):
+            self.title = title
+            self.description = description
+            self.footer = ""
+            self.image_url = None
+
+        def set_footer(self, text=""):
+            self.footer = text
+
+        def set_image(self, url=""):
+            self.image_url = url
+
+    class _DummyButtonStyle:
+        primary = 1
+        secondary = 2
+
+    class _DummyView:
+        def __init__(self, timeout=None):
+            self.timeout = timeout
+            self.items = []
+
+        def add_item(self, item):
+            self.items.append(item)
+
+    class _DummyButton:
+        def __init__(self, label=None, emoji=None, style=None):
+            self.label = label
+            self.emoji = emoji
+            self.style = style
+
+    class _DummyUI:
+        View = _DummyView
+        Button = _DummyButton
+
+    class _DummyObject:
+        def __init__(self, id=None):
+            self.id = id
+
+    class _DummyTree:
+        def add_command(self, *args, **kwargs):
+            return None
+
+        async def sync(self, *args, **kwargs):
+            return None
+
+    class _DummyBot:
+        def __init__(self, command_prefix=None, intents=None):
+            self.command_prefix = command_prefix
+            self.intents = intents
+            self.tree = _DummyTree()
+
+        def event(self, func):
+            return func
+
+        def run(self, token):
+            print("Discord package not available; bot.run skipped.")
+
+    class _DummyAppCommands:
+        @staticmethod
+        def command(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+    class _DummyDiscordModule:
+        Intents = _DummyIntents
+        Embed = _DummyEmbed
+        ui = _DummyUI
+        ButtonStyle = _DummyButtonStyle
+        Object = _DummyObject
+        Message = object
+        Interaction = object
+
+    discord = _DummyDiscordModule()
+    app_commands = _DummyAppCommands()
+
+    class _DummyCommandsModule:
+        Bot = _DummyBot
+
+    commands = _DummyCommandsModule()
 
 
 # Load the .env file
@@ -376,15 +471,159 @@ def ReplacePlaceholders(text: str, player: Player, menuState: MenuContext):
 
     return replaced_text
 
-def MakeMenuEmbed(interaction: discord.Interaction, menu: Menu, player: Player, menuState: MenuContext):
-    replacedTitle = ReplacePlaceholders(menu.myOptionText, player, menuState)
-    replacedBody = ReplacePlaceholders(menu.bodyText, player, menuState)
-    embed = discord.Embed(title=replacedTitle, description=replacedBody)
-    embed.set_footer(text=interaction.user.nick or interaction.user.display_name + "'s Menu")
-    # Add the footer image if imageURL is not None
-    if hasattr(menu, 'imageURL') and menu.imageURL:
-        embed.set_image(url=menu.imageURL)
+def GetVisibleChildMenus(menu: Menu, originalMessage: 'OriginalMessage'):
+    visibleChildren = []
+    for child_menu in menu.Options:
+        properTitle = ReplacePlaceholders(child_menu.myOptionText, originalMessage.player, originalMessage.menuContext)
+        if properTitle != "":
+            visibleChildren.append((child_menu, properTitle))
+    return visibleChildren
+
+
+@dataclass
+class RenderedButton:
+    targetMenuName: str
+    label: str
+    emoji: str
+
+
+@dataclass
+class RenderedMenu:
+    title: str
+    description: str
+    footer: str
+    imageURL: str | None
+    hasBack: bool
+    buttons: list[RenderedButton]
+
+
+class MenuInterface(ABC):
+    @property
+    @abstractmethod
+    def user_id(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def display_name(self) -> str:
+        pass
+
+    @abstractmethod
+    async def send_ephemeral(self, content: str):
+        pass
+
+    @abstractmethod
+    async def before_update(self):
+        pass
+
+    @abstractmethod
+    async def send_initial(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        pass
+
+    @abstractmethod
+    async def send_update(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        pass
+
+
+def BuildRenderedMenu(menu: Menu, originalMessage: 'OriginalMessage', displayName: str):
+    replacedTitle = ReplacePlaceholders(menu.myOptionText, originalMessage.player, originalMessage.menuContext)
+    replacedBody = ReplacePlaceholders(menu.bodyText, originalMessage.player, originalMessage.menuContext)
+    buttons = [
+        RenderedButton(targetMenuName=child.uniqueName, label=label, emoji=child.myEmoji or "")
+        for child, label in GetVisibleChildMenus(menu, originalMessage)
+    ]
+
+    return RenderedMenu(
+        title=replacedTitle,
+        description=replacedBody,
+        footer=f"{displayName}'s Menu",
+        imageURL=menu.imageURL if hasattr(menu, "imageURL") else None,
+        hasBack=menu.parent is not None,
+        buttons=buttons
+    )
+
+
+def BuildDiscordEmbed(rendered: RenderedMenu):
+    embed = discord.Embed(title=rendered.title, description=rendered.description)
+    embed.set_footer(text=rendered.footer)
+    if rendered.imageURL:
+        embed.set_image(url=rendered.imageURL)
     return embed
+
+
+class DiscordMenuInterface(MenuInterface):
+    def __init__(self, interaction: discord.Interaction):
+        self.interaction = interaction
+
+    @property
+    def user_id(self) -> int:
+        return self.interaction.user.id
+
+    @property
+    def display_name(self) -> str:
+        return self.interaction.user.nick or self.interaction.user.display_name
+
+    async def send_ephemeral(self, content: str):
+        await self.interaction.response.send_message(content=content, ephemeral=True)
+
+    async def before_update(self):
+        await self.interaction.response.defer()
+
+    async def send_initial(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        embed = BuildDiscordEmbed(rendered)
+        view = SimpleMenu(current_menu=menu, originalMessage=originalMessage)
+        await self.interaction.response.send_message(embed=embed, view=view)
+        originalMessage.setMessageObject(await self.interaction.original_response())
+
+    async def send_update(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        embed = BuildDiscordEmbed(rendered)
+        view = SimpleMenu(current_menu=menu, originalMessage=originalMessage)
+        await originalMessage.message.edit(embed=embed, view=view)
+
+
+class ConsoleMenuInterface(MenuInterface):
+    def __init__(self, user_id: int, display_name: str = "IntegrationTester"):
+        self._user_id = user_id
+        self._display_name = display_name
+
+    @property
+    def user_id(self) -> int:
+        return self._user_id
+
+    @property
+    def display_name(self) -> str:
+        return self._display_name
+
+    async def send_ephemeral(self, content: str):
+        print(f"[EPHEMERAL] {content}")
+
+    async def before_update(self):
+        return
+
+    @staticmethod
+    def _safe_text(text):
+        return str(text).encode("ascii", "backslashreplace").decode("ascii")
+
+    def _print_render(self, rendered: RenderedMenu):
+        print("[MENU]")
+        print(f"Title: {self._safe_text(rendered.title)}")
+        print(f"Body:\n{self._safe_text(rendered.description)}")
+        print(f"Footer: {self._safe_text(rendered.footer)}")
+        if rendered.imageURL:
+            print(f"Image: {self._safe_text(rendered.imageURL)}")
+        if rendered.hasBack:
+            print("Button: back")
+        for button in rendered.buttons:
+            safe_label = self._safe_text(button.label)
+            safe_emoji = self._safe_text(button.emoji)
+            print(f"Button: {button.targetMenuName} label='{safe_label}' emoji='{safe_emoji}'")
+        print("")
+
+    async def send_initial(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        self._print_render(rendered)
+
+    async def send_update(self, rendered: RenderedMenu, menu: Menu, originalMessage: 'OriginalMessage'):
+        self._print_render(rendered)
 
 class OriginalMessage:
     def __init__(self, player: Player):
@@ -397,54 +636,51 @@ class OriginalMessage:
 
 
 async def display_menu(interaction: discord.Interaction, menu: Menu):
-    # Create the embed
-    player = await GetPlayer(interaction.user.id)
+    interface = DiscordMenuInterface(interaction)
+    await display_menu_with_interface(interface, menu)
 
-    # create our save class for the original message for editing and making sure nobody but the original user messes with it.
+
+async def display_menu_with_interface(interface: MenuInterface, menu: Menu):
+    player = await GetPlayer(interface.user_id)
     originalMessage = OriginalMessage(player)
-    if player.isNewPlayer: # If they're a new player we have an intro menu for them.
+    activeMenu = menu
+    if player.isNewPlayer:
         originalMessage.menuContext.menuState = MenuState.NEW_PLAYER
-        menu = newPlayerMenu
+        activeMenu = newPlayerMenu
         player.isNewPlayer = False
 
-    # check for updated variables
-    UpdateMenuValues(originalMessage, menu, interaction)
-
-    embed = MakeMenuEmbed(interaction, menu, player, originalMessage.menuContext)
-
-    # Create an instance of SimpleMenu with the current menu
-    view = SimpleMenu(current_menu=menu, originalMessage=originalMessage)
-
-    await interaction.response.send_message(embed=embed, view=view)
-    originalMessage.setMessageObject(await interaction.original_response())
+    UpdateMenuValues(originalMessage, activeMenu)
+    rendered = BuildRenderedMenu(activeMenu, originalMessage, interface.display_name)
+    await interface.send_initial(rendered, activeMenu, originalMessage)
+    return originalMessage, activeMenu
 
 
-def UpdateMenuValues(originalMessage: OriginalMessage, menu: Menu, interaction: discord.Interaction):
+def UpdateMenuValues(originalMessage: OriginalMessage, menu: Menu):
     # check for updated variables
     originalMessage.menuContext.menuState = menu.menuState
     if menu.menuState == MenuState.CHARACTER:
-        # print("YEAAAAAAAHHHH " + menu.myOptionText[-1])
-        originalMessage.menuContext.character = originalMessage.player.GetCharacter(int(menu.myOptionText[-1]))
+        characterIndex = GetIntFromStringEnd(menu.uniqueName)
+        if characterIndex is None:
+            characterIndex = 0
+        originalMessage.menuContext.character = originalMessage.player.GetCharacter(characterIndex)
 
 
 async def update_menu(interaction: discord.Interaction, menu: Menu, originalMessage: OriginalMessage):
-    if interaction.user.id != originalMessage.player.discordID:
-        await interaction.response.send_message(content="You can only interact with your own menus. use /menu to open your menu.", ephemeral=True)
-        return
+    interface = DiscordMenuInterface(interaction)
+    await update_menu_with_interface(interface, menu, originalMessage)
 
-    # Acknowledge the interaction first to prevent timeout
-    await interaction.response.defer()
 
-    # check for updated variables
-    UpdateMenuValues(originalMessage, menu, interaction)
+async def update_menu_with_interface(interface: MenuInterface, menu: Menu, originalMessage: OriginalMessage):
+    if interface.user_id != originalMessage.player.discordID:
+        await interface.send_ephemeral(content="You can only interact with your own menus. use /menu to open your menu.")
+        return menu
 
-    # Create the embed
-    embed = MakeMenuEmbed(interaction, menu, originalMessage.player, originalMessage.menuContext)
+    await interface.before_update()
+    UpdateMenuValues(originalMessage, menu)
+    rendered = BuildRenderedMenu(menu, originalMessage, interface.display_name)
+    await interface.send_update(rendered, menu, originalMessage)
 
-    # Create an instance of SimpleMenu with the current menu
-    view = SimpleMenu(menu, originalMessage)
-
-    await originalMessage.message.edit(embed=embed, view=view)
+    return menu
 
 
 
@@ -467,10 +703,8 @@ class SimpleMenu(discord.ui.View):
             self.add_item(BackButton(menu=self.current_menu, originalMessage=originalMessage))
 
         # Add buttons for each child menu
-        for child_menu in self.current_menu.Options:
-            properTitle = ReplacePlaceholders(child_menu.myOptionText, originalMessage.player, originalMessage.menuContext)
-            if properTitle != "": # do not display menus that are intentionally hidden.
-                self.add_item(MenuButton(child_menu, originalMessage, properTitle))
+        for child_menu, properTitle in GetVisibleChildMenus(self.current_menu, originalMessage):
+            self.add_item(MenuButton(child_menu, originalMessage, properTitle))
 
 class MenuButton(discord.ui.Button):
     def __init__(self, menu: Menu, originalMessage: OriginalMessage, properTitle: str):
@@ -506,12 +740,12 @@ class BackButton(discord.ui.Button):
 
 # Create the slash command using app_commands
 @app_commands.command(name="play", description="Displays an interactive menu")
-async def menu(interaction: discord.Interaction):
+async def play_command(interaction: discord.Interaction):
     # embed = discord.Embed(title="Menu", description="Press the button below")
     await display_menu(interaction, rootMenu)
 
 @app_commands.command(name="menu", description="Displays an interactive menu")
-async def menu(interaction: discord.Interaction):
+async def menu_command(interaction: discord.Interaction):
     # embed = discord.Embed(title="Menu", description="Press the button below")
     await display_menu(interaction, rootMenu)
 
@@ -528,12 +762,14 @@ async def menu(interaction: discord.Interaction):
 async def on_ready():
     global guild
     guild = discord.Object(id=GUILD_ID)
-    bot.tree.add_command(menu, guild=guild)  # Register the command with the guild
+    bot.tree.add_command(play_command, guild=guild)  # Register the command with the guild
+    bot.tree.add_command(menu_command, guild=guild)
     await bot.tree.sync(guild=guild)  # Sync the command with the guild
     Initialize()
     print(f"Bot is ready and commands are synced with guild {GUILD_ID}")
 
 
 TOKEN = os.getenv('BOT_TOKEN')
-bot.run(TOKEN)
+if __name__ == "__main__":
+    bot.run(TOKEN)
 

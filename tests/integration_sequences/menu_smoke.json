@@ -1,0 +1,44 @@
+{
+    "start_menu": "mainMenu",
+    "actions": [
+        {
+            "type": "open",
+            "menu": "mainMenu"
+        },
+        {
+            "type": "select",
+            "target": "partyMembers"
+        },
+        {
+            "type": "back"
+        },
+        {
+            "type": "select",
+            "target": "mainInventory"
+        },
+        {
+            "type": "back"
+        },
+        {
+            "type": "select",
+            "target": "tradeRequest"
+        },
+        {
+            "type": "back"
+        },
+        {
+            "type": "select",
+            "target": "partyMembers"
+        },
+        {
+            "type": "select",
+            "target": "character0"
+        },
+        {
+            "type": "back"
+        },
+        {
+            "type": "back"
+        }
+    ]
+}
