@@ -1,9 +1,9 @@
-import json
+﻿import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from player_functions import Player, load_player
+from src.domain.player_functions import Player, load_player
 
 
 class TestPlayerSave(unittest.TestCase):

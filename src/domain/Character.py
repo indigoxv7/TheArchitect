@@ -1,10 +1,10 @@
-import copy
+﻿import copy
 from attr import attributes
-from CharacterUtil import *
-from Items import Gear, Item
-from GeneralSkills import GeneralSkills
-from Spells import Spell, SpellComponent
-from Globals import *
+from src.domain.CharacterUtil import *
+from src.domain.Items import Gear, Item
+from src.domain.GeneralSkills import GeneralSkills
+from src.domain.Spells import Spell, SpellComponent
+from src.config.Globals import *
 
 class HealthState(Enum):
     HEALTHY = 0
@@ -137,15 +137,15 @@ class Character:
         if self.healthState == HealthState.HEALTHY:
             return "Healthy"
         elif self.healthState == HealthState.INJURED:
-            return "Injured 🩸"
+            return "Injured ðŸ©¸"
         elif self.healthState == HealthState.HEAVILY_INJURED:
-            return "Heavily Injured 🩸🩸"
+            return "Heavily Injured ðŸ©¸ðŸ©¸"
         elif self.healthState == HealthState.UNCONSCIOUS:
-            return "Unconscious 😵‍💫"
+            return "Unconscious ðŸ˜µâ€ðŸ’«"
         elif self.healthState == HealthState.DYING:
-            return "Dying ⌛"
+            return "Dying âŒ›"
         elif self.healthState == HealthState.DEAD:
-            return "Dead 💀"
+            return "Dead ðŸ’€"
 
     def GetAttributeString(self, text: str, base: float, percent: float, bonus: float, total: float):
         text += " - " + str(base)
@@ -215,12 +215,12 @@ class Character:
 
 
         result = (f"Attributes - {attributeIncrease}\n"
-                  f"{self.GetAttributeString('　Physical Power', baseStatDict[Attribute.PHYSICAL_POWER], bonusMultiplierDict[Attribute.PHYSICAL_POWER], bonusAttributeDict[Attribute.PHYSICAL_POWER], self.finalAttributes.physicalPower)}\n"
-                  f"{self.GetAttributeString('　Physical Stamina', baseStatDict[Attribute.PHYSICAL_STAMINA], bonusMultiplierDict[Attribute.PHYSICAL_STAMINA], bonusAttributeDict[Attribute.PHYSICAL_STAMINA], self.finalAttributes.physicalStamina)}\n"
-                  f"{self.GetAttributeString('　Physical Resistance', baseStatDict[Attribute.PHYSICAL_RESISTANCE], bonusMultiplierDict[Attribute.PHYSICAL_RESISTANCE], bonusAttributeDict[Attribute.PHYSICAL_RESISTANCE], self.finalAttributes.physicalResistance)}\n"
-                  f"{self.GetAttributeString('　Magic Power', baseStatDict[Attribute.MAGIC_POWER], bonusMultiplierDict[Attribute.MAGIC_POWER], bonusAttributeDict[Attribute.MAGIC_POWER], self.finalAttributes.magicPower)}\n"
-                  f"{self.GetAttributeString('　Magic Stamina', baseStatDict[Attribute.MAGIC_STAMINA], bonusMultiplierDict[Attribute.MAGIC_STAMINA], bonusAttributeDict[Attribute.MAGIC_STAMINA], self.finalAttributes.magicStamina)}\n"
-                  f"{self.GetAttributeString('　Magic Resistance ', baseStatDict[Attribute.MAGIC_RESISTANCE], bonusMultiplierDict[Attribute.MAGIC_RESISTANCE], bonusAttributeDict[Attribute.MAGIC_RESISTANCE], self.finalAttributes.magicResistance)}\n")
+                  f"{self.GetAttributeString('ã€€Physical Power', baseStatDict[Attribute.PHYSICAL_POWER], bonusMultiplierDict[Attribute.PHYSICAL_POWER], bonusAttributeDict[Attribute.PHYSICAL_POWER], self.finalAttributes.physicalPower)}\n"
+                  f"{self.GetAttributeString('ã€€Physical Stamina', baseStatDict[Attribute.PHYSICAL_STAMINA], bonusMultiplierDict[Attribute.PHYSICAL_STAMINA], bonusAttributeDict[Attribute.PHYSICAL_STAMINA], self.finalAttributes.physicalStamina)}\n"
+                  f"{self.GetAttributeString('ã€€Physical Resistance', baseStatDict[Attribute.PHYSICAL_RESISTANCE], bonusMultiplierDict[Attribute.PHYSICAL_RESISTANCE], bonusAttributeDict[Attribute.PHYSICAL_RESISTANCE], self.finalAttributes.physicalResistance)}\n"
+                  f"{self.GetAttributeString('ã€€Magic Power', baseStatDict[Attribute.MAGIC_POWER], bonusMultiplierDict[Attribute.MAGIC_POWER], bonusAttributeDict[Attribute.MAGIC_POWER], self.finalAttributes.magicPower)}\n"
+                  f"{self.GetAttributeString('ã€€Magic Stamina', baseStatDict[Attribute.MAGIC_STAMINA], bonusMultiplierDict[Attribute.MAGIC_STAMINA], bonusAttributeDict[Attribute.MAGIC_STAMINA], self.finalAttributes.magicStamina)}\n"
+                  f"{self.GetAttributeString('ã€€Magic Resistance ', baseStatDict[Attribute.MAGIC_RESISTANCE], bonusMultiplierDict[Attribute.MAGIC_RESISTANCE], bonusAttributeDict[Attribute.MAGIC_RESISTANCE], self.finalAttributes.magicResistance)}\n")
 
         return result
 
@@ -252,14 +252,14 @@ class Character:
         affinitySection = "Combat Classification - "
         if (self.level > 0):
             affinitySection += f"Level {self.level}\n"
-            affinitySection += f"　Chi - {self.finalAffinities.chi}\n　Mana - {self.finalAffinities.mana}\n　Psi - {self.finalAffinities.psi}\n　Aether - {self.finalAffinities.aether}\n"
+            affinitySection += f"ã€€Chi - {self.finalAffinities.chi}\nã€€Mana - {self.finalAffinities.mana}\nã€€Psi - {self.finalAffinities.psi}\nã€€Aether - {self.finalAffinities.aether}\n"
         else:
             affinitySection += "None\n"
 
         attributes = self.GetAttributesString()
         achievementString = ""
         for achievement in self.achievements:
-            achievementString += f"　{achievement.name}\n"
+            achievementString += f"ã€€{achievement.name}\n"
         nanoString = AbbreviateNumber(nanoAmount)
 
         result = f"""
@@ -278,6 +278,8 @@ Pooled Nano {nanoEmoji} - {nanoString}
 
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
+
+
 
 
 

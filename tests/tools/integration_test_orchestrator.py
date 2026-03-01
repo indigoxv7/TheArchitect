@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import asyncio
 import json
 from pathlib import Path
@@ -16,20 +16,20 @@ def _walk_menu(menu, index: dict[str, object]):
 
 def build_menu_index() -> dict[str, object]:
     index: dict[str, object] = {}
-    _walk_menu(game.rootMenu, index)
-    _walk_menu(game.newPlayerMenu, index)
+    _walk_menu(game.context.root_menu, index)
+    _walk_menu(game.context.new_player_menu, index)
     return index
 
 
 def _find_visible_child_menu(current_menu, original_message, target_name: str):
-    for child_menu, _label in game.GetVisibleChildMenus(current_menu, original_message):
+    for child_menu, _label in game.menu_service.get_visible_child_menus(current_menu, original_message):
         if child_menu.uniqueName == target_name:
             return child_menu
     return None
 
 
 async def run_sequence_file(sequence_file: str):
-    game.Initialize()
+    game.initialize_game()
 
     with open(sequence_file, "r", encoding="utf-8-sig") as f:
         sequence = json.load(f)
@@ -55,7 +55,7 @@ async def run_sequence_file(sequence_file: str):
             menu_name = action.get("menu", start_menu_name)
             if menu_name not in menu_index:
                 raise ValueError(f"Action open references unknown menu '{menu_name}'.")
-            original_message, current_menu = await game.display_menu_with_interface(interface, menu_index[menu_name])
+            original_message, current_menu = await game.menu_runtime_service.display_menu_with_interface(interface, menu_index[menu_name])
             continue
 
         if original_message is None or current_menu is None:
@@ -65,15 +65,15 @@ async def run_sequence_file(sequence_file: str):
             target = action.get("target")
             target_menu = _find_visible_child_menu(current_menu, original_message, target)
             if target_menu is None:
-                visible = [m.uniqueName for m, _ in game.GetVisibleChildMenus(current_menu, original_message)]
+                visible = [m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(current_menu, original_message)]
                 raise ValueError(f"Menu '{target}' is not selectable from '{current_menu.uniqueName}'. Visible: {visible}")
-            current_menu = await game.update_menu_with_interface(interface, target_menu, original_message)
+            current_menu = await game.menu_runtime_service.update_menu_with_interface(interface, target_menu, original_message)
             continue
 
         if action_type == "back":
             if current_menu.parent is None:
                 raise ValueError(f"Cannot go back from root menu '{current_menu.uniqueName}'.")
-            current_menu = await game.update_menu_with_interface(interface, current_menu.parent, original_message)
+            current_menu = await game.menu_runtime_service.update_menu_with_interface(interface, current_menu.parent, original_message)
             continue
 
         if action_type == "assert_menu":

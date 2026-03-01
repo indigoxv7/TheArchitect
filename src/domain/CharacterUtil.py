@@ -55,6 +55,11 @@ class ItemType(Enum):
     RANGED_WEAPON = 4
     ARMOR = 5
 
+class ConsumableKind(Enum):
+    NONE = 0
+    POTION = 1
+    BOMB = 2
+    FOOD = 3
 
 class TitlePreference(Enum):
     Masculine = True
@@ -75,11 +80,11 @@ def AbbreviateNumber(number: int) -> str:
     else:
         return str(number)
 
-
 class ItemPower:
-    def __init__(self, powerType: PowerType, power: int):
+    def __init__(self, powerType: PowerType, power: int, spellName: str = ""):
         self.powerType = powerType
         self.power = power
+        self.spellName = spellName
 
 
 class AttributeBonus:

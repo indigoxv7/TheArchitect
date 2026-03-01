@@ -1,9 +1,11 @@
-import argparse
+﻿import argparse
 import json
 from pathlib import Path
 
 import main as game
-from integration_test_orchestrator import build_menu_index
+from tests.tools.integration_test_orchestrator import build_menu_index
+from src.domain.player_functions import Player
+from src.services.menu_runtime_service import OriginalMessage
 
 
 def _path_from_start(start_menu, target_menu):
@@ -24,16 +26,20 @@ def _path_from_start(start_menu, target_menu):
 
 
 def generate_sequence(menu_names: list[str], start_menu_name: str = "mainMenu"):
-    game.Initialize()
+    game.initialize_game()
     menu_index = build_menu_index()
     if start_menu_name not in menu_index:
         raise ValueError(f"Start menu '{start_menu_name}' does not exist.")
 
     start_menu = menu_index[start_menu_name]
-    if not game.playerList:
-        raise ValueError("No player loaded for visibility evaluation.")
-    sample_player = next(iter(game.playerList.values()))
-    original_message = game.OriginalMessage(sample_player)
+    if game.context.player_cache:
+        sample_player = next(iter(game.context.player_cache.values()))
+    else:
+        # Integration sequence generation only needs placeholder replacement context.
+        sample_player = Player(0)
+        sample_player.playerName = "IntegrationTester"
+
+    original_message = OriginalMessage(sample_player)
     actions = [{"type": "open", "menu": start_menu_name}]
 
     for menu_name in menu_names:
@@ -45,8 +51,8 @@ def generate_sequence(menu_names: list[str], start_menu_name: str = "mainMenu"):
         for step in path:
             actions.append({"type": "select", "target": step.uniqueName})
 
-        game.UpdateMenuValues(original_message, target_menu)
-        visible_children = game.GetVisibleChildMenus(target_menu, original_message)
+        game.menu_service.update_menu_values(original_message, target_menu)
+        visible_children = game.menu_service.get_visible_child_menus(target_menu, original_message)
         for child, _label in visible_children:
             actions.append({"type": "select", "target": child.uniqueName})
             actions.append({"type": "back"})
@@ -56,7 +62,7 @@ def generate_sequence(menu_names: list[str], start_menu_name: str = "mainMenu"):
 
     return {
         "start_menu": start_menu_name,
-        "actions": actions
+        "actions": actions,
     }
 
 
@@ -81,3 +87,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

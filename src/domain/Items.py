@@ -1,4 +1,4 @@
-from CharacterUtil import *
+﻿from src.domain.CharacterUtil import *
 
 
 class Item:
@@ -43,4 +43,3 @@ class Gear:
         allItems = [item for item in [self.head, self.neck, self.body, self.hands, self.ring, self.legs, self.feet, self.primaryWeapon, self.offhand] if item is not None]
 
         return allItems
-

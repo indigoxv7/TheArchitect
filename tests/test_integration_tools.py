@@ -1,11 +1,11 @@
-import asyncio
+﻿import asyncio
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from integration_sequence_writer import generate_sequence
-from integration_test_orchestrator import run_sequence_file
+from tests.tools.integration_sequence_writer import generate_sequence
+from tests.tools.integration_test_orchestrator import run_sequence_file
 
 
 class TestIntegrationTools(unittest.TestCase):
@@ -35,3 +35,4 @@ class TestIntegrationTools(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,12 +1,34 @@
-import importlib
+﻿import importlib
 import json
 import os
 import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from faction_functions import Faction
-from CharacterUtil import TitlePreference
+from src.domain.faction_functions import Faction
+from src.domain.CharacterUtil import TitlePreference
+
+LEGACY_MODULE_MAP = {
+    "player_functions": "src.domain.player_functions",
+    "menu_functions": "src.ui.menu_functions",
+    "Character": "src.domain.Character",
+    "CharacterUtil": "src.domain.CharacterUtil",
+    "Items": "src.domain.Items",
+    "Spells": "src.domain.Spells",
+    "faction_functions": "src.domain.faction_functions",
+    "GeneralSkills": "src.domain.GeneralSkills",
+    "Globals": "src.config.Globals",
+    "src.thearchitect.domain.player_functions": "src.domain.player_functions",
+    "src.thearchitect.ui.menu_functions": "src.ui.menu_functions",
+}
+
+
+def _normalize_module_name(module_name: str) -> str:
+    return LEGACY_MODULE_MAP.get(module_name, module_name)
+
+
+def _load_module(module_name: str):
+    return importlib.import_module(_normalize_module_name(module_name))
 
 
 class Player:
@@ -152,7 +174,7 @@ class Player:
 
 def _import_class(classPath: str):
     moduleName, className = classPath.rsplit(".", 1)
-    module = importlib.import_module(moduleName)
+    module = _load_module(moduleName)
     return getattr(module, className)
 
 
@@ -189,7 +211,7 @@ def _deserialize_value(value: Any):
         if "__enum__" in value:
             enumPath = value["__enum__"]
             moduleName, className, memberName = enumPath.rsplit(".", 2)
-            enumClass = getattr(importlib.import_module(moduleName), className)
+            enumClass = getattr(_load_module(moduleName), className)
             return enumClass[memberName]
         if "__tuple__" in value:
             return tuple(_deserialize_value(v) for v in value["__tuple__"])
@@ -232,3 +254,8 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
+
+
+
+
+
