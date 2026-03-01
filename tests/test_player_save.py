@@ -1,0 +1,47 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from player_functions import Player, load_player
+
+
+class TestPlayerSave(unittest.TestCase):
+    def test_energy_regen_uses_rate_and_updates_timestamp(self):
+        player = Player(
+            100,
+            energy=10,
+            energyCap=50,
+            energyLastCalculatedTime=100.0,
+            energyRegenRatePerSecond=0.5,
+        )
+
+        current_energy = player.GetCurrentEnergy(currentTime=104.0, persist=False)
+
+        self.assertEqual(current_energy, 12)
+        self.assertEqual(player.energyLastCalculatedTime, 104.0)
+
+    def test_json_save_load_and_autosave(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_path = Path(temp_dir) / "100.json"
+
+            player = Player(100, nano=5)
+            player.AttachSavePath(str(save_path), enableAutoSave=True)
+            player.nano = 42
+
+            self.assertTrue(save_path.exists())
+            with open(save_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            self.assertEqual(payload.get("format_version"), 1)
+
+            loaded = load_player(str(save_path))
+            self.assertEqual(loaded.nano, 42)
+
+            # Loaded player keeps autosave enabled and should persist changes immediately.
+            loaded.nano = 77
+            reloaded = load_player(str(save_path))
+            self.assertEqual(reloaded.nano, 77)
+
+
+if __name__ == "__main__":
+    unittest.main()

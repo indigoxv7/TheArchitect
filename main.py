@@ -1,9 +1,12 @@
-import copy
+﻿import copy
+import json
 import asyncio
+import time
 from string import Template
 import re
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from typing import Optional, List
 from player_functions import *
 from Character import *
 from Items import Item
@@ -83,9 +86,27 @@ except ModuleNotFoundError:
         def run(self, token):
             print("Discord package not available; bot.run skipped.")
 
+    class _DummyGroup:
+        def __init__(self, name=None, description=None):
+            self.name = name
+            self.description = description
+
+        def command(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
     class _DummyAppCommands:
+        Group = _DummyGroup
+
         @staticmethod
         def command(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+        @staticmethod
+        def describe(**kwargs):
             def decorator(func):
                 return func
             return decorator
@@ -98,6 +119,7 @@ except ModuleNotFoundError:
         Object = _DummyObject
         Message = object
         Interaction = object
+        Member = object
 
     discord = _DummyDiscordModule()
     app_commands = _DummyAppCommands()
@@ -112,10 +134,12 @@ except ModuleNotFoundError:
 load_dotenv()
 
 GUILD_ID = 288770050448424971
+ADMIN_WHITELIST_PATH = "./AdminWhitelist.json"
 # Create the bot with the required intents
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 guild = None
+developmentAdminWhitelist = set()
 EMOJI_PLACEHOLDERS = {
     key: value for key, value in vars(Globals).items()
     if key.endswith("Emoji") and isinstance(value, str)
@@ -128,6 +152,33 @@ def ReplaceEmojiAliases(text: str):
         text = text.replace(f":{short_name}:", value)
         text = text.replace("{" + key + "}", value)
     return text
+
+
+def EnsureAdminWhitelistExists(filename: str):
+    if os.path.exists(filename):
+        return
+
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump([191980469670248448], file, indent=4)
+
+
+def LoadAdminWhitelist(filename: str):
+    global developmentAdminWhitelist
+    EnsureAdminWhitelistExists(filename)
+
+    with open(filename, "r", encoding="utf-8-sig") as file:
+        rawList = json.load(file)
+
+    developmentAdminWhitelist = set()
+    for value in rawList:
+        try:
+            developmentAdminWhitelist.add(int(value))
+        except (TypeError, ValueError):
+            continue
+
+
+def IsDevelopmentAdmin(discordID: int):
+    return discordID in developmentAdminWhitelist
 
 ################################
 #                              #
@@ -147,8 +198,32 @@ def GetIntFromStringEnd(string: str):
     return int(match.group()) if match else None
 
 async def GetNameFromID(guildObj, discord_id):
-    member = await guildObj.fetch_member(discord_id)
-    return member.nick or member.display_name
+    # Prefer guild-specific nicknames when available.
+    candidate_guild = guildObj
+
+    if candidate_guild is None and hasattr(bot, "get_guild"):
+        candidate_guild = bot.get_guild(GUILD_ID)
+
+    if candidate_guild is not None and hasattr(candidate_guild, "fetch_member"):
+        try:
+            member = await candidate_guild.fetch_member(discord_id)
+            return member.nick or member.display_name
+        except Exception:
+            pass
+
+    if hasattr(bot, "get_user"):
+        cached_user = bot.get_user(discord_id)
+        if cached_user is not None:
+            return getattr(cached_user, "display_name", None) or cached_user.name
+
+    if hasattr(bot, "fetch_user"):
+        try:
+            user = await bot.fetch_user(discord_id)
+            return getattr(user, "display_name", None) or user.name
+        except Exception:
+            pass
+
+    return str(discord_id)
 
 ################################
 #                              #
@@ -164,6 +239,11 @@ allItems = {}  # Master list of items with no organization. Key is name value is
 errorItem = None # default item for errors
 exampleCharacters = [] # for testing
 maxNumCharacters = 4
+PLAYER_SAVE_DIRECTORY = "./PlayerSaves"
+EXISTING_PLAYERS_ROSTER_PATH = "./ExistingPlayersRoster.json"
+
+def GetPlayerSavePath(discord_id: int):
+    return os.path.join(PLAYER_SAVE_DIRECTORY, f"{discord_id}.json")
 
 
 def SaveExistingPlayersRoster(filename: str):
@@ -253,11 +333,14 @@ def ExampleCharacterSetup():
 
 def PlayerSetup():
     global playerList
-    testPlayer = Player(191980469670248448, 10000, 3, TitlePreference.Masculine, exampleCharacters)
-    testPlayer.isNewPlayer = True
-    testPlayer.playerName = "Wasabi Avenger"
-    testPlayer.isNewPlayer = False
-    playerList[testPlayer.discordID] = testPlayer
+    # testPlayer = Player(191980469670248448, 10000, 3, TitlePreference.Masculine, exampleCharacters)
+    # testPlayer.AttachSavePath(GetPlayerSavePath(testPlayer.discordID), enableAutoSave=False)
+    # testPlayer.isNewPlayer = True
+    # testPlayer.playerName = "Wasabi Avenger"
+    # testPlayer.isNewPlayer = False
+    # testPlayer.SetAutoSaveEnabled(True)
+    # testPlayer.Save()
+    # playerList[testPlayer.discordID] = testPlayer
 
 # gets a player object from our playerList. if the player does not exist, create it.
 async def GetPlayer(id: int):
@@ -265,11 +348,14 @@ async def GetPlayer(id: int):
     if id in playerList:
         return playerList[id]
 
+    playerSavePath = GetPlayerSavePath(id)
+
     # Check if the player has a save file
-    if id in existingPlayers:
+    if os.path.exists(playerSavePath):
         # Mark the player as loaded and load the player object
         existingPlayers[id] = True
-        p = load_player("./PlayerData/" + str(id) + ".pkl")
+        p = load_player(playerSavePath)
+        p.AttachSavePath(playerSavePath, enableAutoSave=True)
         nickname = await GetNameFromID(guild, id) # we refresh player nickname each time they are loaded.
         p.playerName = nickname
         playerList[id] = p
@@ -277,13 +363,15 @@ async def GetPlayer(id: int):
 
     # If the player doesn't exist, create a new player
     new_player = CreateNewPlayer(id)
+    new_player.AttachSavePath(playerSavePath, enableAutoSave=False)
     existingPlayers[id] = True
-    SaveExistingPlayersRoster("./ExistingPlayersRoster.json")
+    SaveExistingPlayersRoster(EXISTING_PLAYERS_ROSTER_PATH)
     nickname = await GetNameFromID(guild, id)
     new_player.playerName = nickname
-    playerList[id] = new_player
-    save_player(new_player, "./PlayerData/" + str(id) + ".pkl")
     new_player.isNewPlayer = True
+    new_player.SetAutoSaveEnabled(True)
+    new_player.Save()
+    playerList[id] = new_player
     return new_player
 
 def CreateNewPlayer(id: int):
@@ -336,7 +424,7 @@ def CreateDefaultMenusGraph():
 
     main_menu = Menu(
         myOptionText="Main Menu - $factionTitle $playerName $achievementTitle",
-        bodyText="Nano: $nanoEmoji $nano\n\n* Faction (Not founded)\n* Party Members\n* Inventory\n\n* Make trade request\n* Pending Notifications (0)\n\n* Scavenging Mission\n* Portal Mission",
+        bodyText="Nano: $nanoEmoji $nano\nEnergy: $energy/$energyCap\n\n* Faction (Not founded)\n* Party Members\n* Inventory\n\n* Make trade request\n* Pending Notifications (0)\n\n* Scavenging Mission\n* Portal Mission",
         uniqueName="mainMenu",
         myEmoji="\U0001F3E0",
         imageURL="https://media.discordapp.net/attachments/886469391548559372/1273164687847985205/image.png?ex=66bd9e83&is=66bc4d03&hm=17098b12936cc89fca3476cc8f5888b94e21b3ba1fce5cc222000cd948b0348b&=&format=webp&quality=lossless"
@@ -426,11 +514,22 @@ def MenuSetup():
     rootMenu = menus_by_name["mainMenu"]
     newPlayerMenu = menus_by_name["newPlayerMenu"]
 def Initialize():
+    os.makedirs(PLAYER_SAVE_DIRECTORY, exist_ok=True)
+
+    if os.path.exists(EXISTING_PLAYERS_ROSTER_PATH):
+        LoadExistingPlayersRoster(EXISTING_PLAYERS_ROSTER_PATH)
+
+    LoadAdminWhitelist(ADMIN_WHITELIST_PATH)
+
+    for savePath in Path(PLAYER_SAVE_DIRECTORY).glob("*.json"):
+        playerID = GetIntFromStringEnd(savePath.stem)
+        if playerID is not None and playerID not in existingPlayers:
+            existingPlayers[playerID] = False
+
     MenuSetup()
     ItemSetup()
     ExampleCharacterSetup()
     PlayerSetup()
-
 
 
 
@@ -448,6 +547,8 @@ def ReplacePlaceholders(text: str, player: Player, menuState: MenuContext):
         'playerName': player.playerName,
         'factionTitle': fTitle,
         'achievementTitle': player.achievementTitle,
+        'energy': int(player.energy),
+        'energyCap': int(player.energyCap),
         'characters': player.GetCharacterText(),
         # Add more placeholders as needed
     }
@@ -492,9 +593,9 @@ class RenderedMenu:
     title: str
     description: str
     footer: str
-    imageURL: str | None
+    imageURL: Optional[str]
     hasBack: bool
-    buttons: list[RenderedButton]
+    buttons: List[RenderedButton]
 
 
 class MenuInterface(ABC):
@@ -526,6 +627,7 @@ class MenuInterface(ABC):
 
 
 def BuildRenderedMenu(menu: Menu, originalMessage: 'OriginalMessage', displayName: str):
+    originalMessage.player.GetCurrentEnergy(persist=True)
     replacedTitle = ReplacePlaceholders(menu.myOptionText, originalMessage.player, originalMessage.menuContext)
     replacedBody = ReplacePlaceholders(menu.bodyText, originalMessage.player, originalMessage.menuContext)
     buttons = [
@@ -718,7 +820,7 @@ class MenuButton(discord.ui.Button):
 
 class BackButton(discord.ui.Button):
     def __init__(self, menu: Menu, originalMessage: OriginalMessage):
-        super().__init__(label="Back", emoji="🔙", style=discord.ButtonStyle.secondary)
+        super().__init__(label="Back", emoji="\U0001F519", style=discord.ButtonStyle.secondary)
         self.menu = menu
         self.originalMessage = originalMessage
 
@@ -750,6 +852,27 @@ async def menu_command(interaction: discord.Interaction):
     await display_menu(interaction, rootMenu)
 
 
+set_group = app_commands.Group(name="set", description="Admin-only set commands")
+
+@set_group.command(name="energy", description="Set a player's energy")
+@app_commands.describe(discord_user="Player to update", value="New energy value")
+async def set_energy_command(interaction: discord.Interaction, discord_user: discord.Member, value: int):
+    if not IsDevelopmentAdmin(interaction.user.id):
+        await interaction.response.send_message("You are not authorized to use this command.", ephemeral=True)
+        return
+
+    targetPlayer = await GetPlayer(discord_user.id)
+    clampedValue = max(0, min(int(targetPlayer.energyCap), int(value)))
+    targetPlayer.energy = float(clampedValue)
+    targetPlayer.energyLastCalculatedTime = time.time()
+    targetPlayer.Save()
+
+    await interaction.response.send_message(
+        f"Set energy for <@{discord_user.id}> to {int(targetPlayer.energy)}/{int(targetPlayer.energyCap)}.",
+        ephemeral=True
+    )
+
+
 ################################
 #                              #
 #          Bot Start           #
@@ -761,10 +884,17 @@ async def menu_command(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     global guild
-    guild = discord.Object(id=GUILD_ID)
-    bot.tree.add_command(play_command, guild=guild)  # Register the command with the guild
-    bot.tree.add_command(menu_command, guild=guild)
-    await bot.tree.sync(guild=guild)  # Sync the command with the guild
+    guild_ref = discord.Object(id=GUILD_ID)
+
+    # Register/sync commands against a guild reference object.
+    bot.tree.add_command(play_command, guild=guild_ref)
+    bot.tree.add_command(menu_command, guild=guild_ref)
+    bot.tree.add_command(set_group, guild=guild_ref)
+    await bot.tree.sync(guild=guild_ref)
+
+    # Keep a real Guild object (when available) for member nickname lookups.
+    guild = bot.get_guild(GUILD_ID) if hasattr(bot, "get_guild") else None
+
     Initialize()
     print(f"Bot is ready and commands are synced with guild {GUILD_ID}")
 
@@ -772,4 +902,3 @@ async def on_ready():
 TOKEN = os.getenv('BOT_TOKEN')
 if __name__ == "__main__":
     bot.run(TOKEN)
-

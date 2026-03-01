@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from enum import Enum
+from typing import Optional, Set, Dict
 
 
 class MenuState (Enum):
@@ -41,7 +42,7 @@ class Menu:
         menu.parent = self  # Set the parent of the added menu
         self.Options.append(menu)
 
-def _menu_state_from_string(state_name: str | None) -> MenuState:
+def _menu_state_from_string(state_name: Optional[str]) -> MenuState:
     if not state_name:
         return MenuState.DEFAULT
     try:
@@ -63,7 +64,7 @@ def _menu_to_dict(menu: Menu) -> dict:
     }
 
 
-def save_menu(menu: Menu, directory: str, saved_names: set[str] | None = None):
+def save_menu(menu: Menu, directory: str, saved_names: Optional[Set[str]] = None):
     if saved_names is None:
         saved_names = set()
 
@@ -81,14 +82,14 @@ def save_menu(menu: Menu, directory: str, saved_names: set[str] | None = None):
         save_menu(option, directory, saved_names)
 
 
-def load_menus_from_directory(directory: str) -> dict[str, Menu]:
+def load_menus_from_directory(directory: str) -> Dict[str, Menu]:
     directory_path = Path(directory)
     menu_files = sorted(directory_path.glob("*.json"))
     if not menu_files:
         raise FileNotFoundError(f"No menu JSON files found in '{directory}'.")
 
-    menus_by_name: dict[str, Menu] = {}
-    raw_data_by_name: dict[str, dict] = {}
+    menus_by_name: Dict[str, Menu] = {}
+    raw_data_by_name: Dict[str, dict] = {}
 
     for menu_file in menu_files:
         with open(menu_file, "r", encoding="utf-8-sig") as f:
@@ -128,3 +129,4 @@ def load_menus_from_directory(directory: str) -> dict[str, Menu]:
             option_menu.parent = menu
 
     return menus_by_name
+
