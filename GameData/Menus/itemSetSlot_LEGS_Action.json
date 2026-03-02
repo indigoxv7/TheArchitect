@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Legs",
+    "uniqueName": "itemSetSlot_LEGS_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Legs.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

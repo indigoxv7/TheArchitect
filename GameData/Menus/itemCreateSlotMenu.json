@@ -1,0 +1,21 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Slot",
+    "uniqueName": "itemCreateSlotMenu",
+    "Options": [
+        "itemSetSlot_NOT_EQUIPABLE_Action",
+        "itemSetSlot_HEAD_Action",
+        "itemSetSlot_NECK_Action",
+        "itemSetSlot_BODY_Action",
+        "itemSetSlot_HANDS_Action",
+        "itemSetSlot_RING_Action",
+        "itemSetSlot_LEGS_Action",
+        "itemSetSlot_FEET_Action",
+        "itemCreateTierMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Slot: $itemDraftSlot\n\nChoose a slot button, then Next.",
+    "parentName": "itemCreateNameMenu",
+    "developerOnly": true
+}

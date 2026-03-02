@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Consumable Power",
+    "uniqueName": "itemSetPowerType_CONSUMABLE_POWER_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Consumable Power.",
+    "parentName": "itemCreatePowerTypeMenu",
+    "developerOnly": true
+}

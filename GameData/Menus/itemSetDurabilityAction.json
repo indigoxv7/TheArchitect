@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Enter Value",
+    "uniqueName": "itemSetDurabilityAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "itemCreateDurabilityMenu",
+    "developerOnly": true
+}

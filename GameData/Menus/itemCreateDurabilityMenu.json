@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Durability",
+    "uniqueName": "itemCreateDurabilityMenu",
+    "Options": [
+        "itemSetDurabilityAction",
+        "itemCreateTypeMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Durability: $itemDraftDurability\n\nUse Enter Value, then Next.",
+    "parentName": "itemCreateTierMenu",
+    "developerOnly": true
+}

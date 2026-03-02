@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Physical Attack",
+    "uniqueName": "itemSetPowerType_PHYSICAL_ATTACK_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Physical Attack.",
+    "parentName": "itemCreatePowerTypeMenu",
+    "developerOnly": true
+}

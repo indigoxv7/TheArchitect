@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Body",
+    "uniqueName": "itemSetSlot_BODY_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Body.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

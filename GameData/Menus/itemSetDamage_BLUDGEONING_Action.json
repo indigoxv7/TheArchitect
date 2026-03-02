@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Bludgeoning",
+    "uniqueName": "itemSetDamage_BLUDGEONING_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Bludgeoning.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

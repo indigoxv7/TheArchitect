@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Ranged Weapon",
+    "uniqueName": "itemSetType_RANGED_WEAPON_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Ranged Weapon.",
+    "parentName": "itemCreateTypeMenu",
+    "developerOnly": true
+}

@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from string import Template
 from typing import List, Optional
 
@@ -77,10 +77,30 @@ class MenuService:
         ]
         return "\n".join(lines)
 
+
+    @staticmethod
+    def _item_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft item in progress."
+
+        lines = [
+            f"Name: {draft.get('name', '')}",
+            f"Slot: {draft.get('slot', '')}",
+            f"Tier: {draft.get('tier', '')}",
+            f"Durability: {draft.get('durability', '')}",
+            f"Item Type: {draft.get('item_type', '')}",
+            f"Damage Type: {draft.get('damage_type', '')}",
+            f"Power Type: {draft.get('power_type', '')}",
+            f"Power Value: {draft.get('power_value', '')}",
+            f"Power Spell Name: {draft.get('power_spell_name', '')}",
+            f"Stat Bonuses JSON: {draft.get('stat_bonuses_json', '[]')}",
+        ]
+        return "\n".join(lines)
     def replace_placeholders(self, text: str, player: Player, menu_state: MenuContext) -> str:
         faction_title = player.faction.title if player.faction else ""
 
         draft = menu_state.spellDraft if hasattr(menu_state, "spellDraft") else {}
+        item_draft = menu_state.itemDraft if hasattr(menu_state, "itemDraft") else {}
 
         data = {
             "nano": player.nano,
@@ -91,6 +111,7 @@ class MenuService:
             "energyCap": int(player.energyCap),
             "characters": player.GetCharacterText(),
             "spellbookOverview": self.context.spellbook_overview,
+            "itembookOverview": self.context.itembook_overview,
             "spellDraftName": draft.get("name", ""),
             "spellDraftLevel": draft.get("level", ""),
             "spellDraftPower": draft.get("power", ""),
@@ -104,6 +125,17 @@ class MenuService:
             "spellDraftDescription": draft.get("description", ""),
             "spellDraftHigherLevel": draft.get("higher_level", ""),
             "spellDraftSummary": self._spell_draft_summary(draft),
+            "itemDraftName": item_draft.get("name", ""),
+            "itemDraftSlot": item_draft.get("slot", ""),
+            "itemDraftTier": item_draft.get("tier", ""),
+            "itemDraftDurability": item_draft.get("durability", ""),
+            "itemDraftType": item_draft.get("item_type", ""),
+            "itemDraftDamageType": item_draft.get("damage_type", ""),
+            "itemDraftPowerType": item_draft.get("power_type", ""),
+            "itemDraftPowerValue": item_draft.get("power_value", ""),
+            "itemDraftPowerSpellName": item_draft.get("power_spell_name", ""),
+            "itemDraftStatBonuses": item_draft.get("stat_bonuses_json", "[]"),
+            "itemDraftSummary": self._item_draft_summary(item_draft),
         }
         data.update(self.emoji_placeholders)
 
@@ -169,3 +201,5 @@ class MenuService:
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
+
+

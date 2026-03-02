@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Hands",
+    "uniqueName": "itemSetSlot_HANDS_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Hands.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

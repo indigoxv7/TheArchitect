@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Cold",
+    "uniqueName": "itemSetDamage_COLD_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Cold.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

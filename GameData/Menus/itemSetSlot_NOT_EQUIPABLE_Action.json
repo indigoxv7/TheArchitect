@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Not Equipable",
+    "uniqueName": "itemSetSlot_NOT_EQUIPABLE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Not Equipable.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

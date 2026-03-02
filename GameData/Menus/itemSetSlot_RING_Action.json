@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Ring",
+    "uniqueName": "itemSetSlot_RING_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Ring.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

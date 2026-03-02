@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Piercing",
+    "uniqueName": "itemSetDamage_PIERCING_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Piercing.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Tier",
+    "uniqueName": "itemCreateTierMenu",
+    "Options": [
+        "itemSetTierAction",
+        "itemCreateDurabilityMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Tier: $itemDraftTier\n\nUse Enter Value, then Next.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2728",
+    "myOptionText": "Create New Item",
+    "uniqueName": "itemCreateAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Starts step-by-step item creation.",
+    "parentName": "itembookMenu",
+    "developerOnly": true
+}

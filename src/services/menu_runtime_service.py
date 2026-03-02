@@ -1,10 +1,12 @@
-﻿import json
+import json
 from abc import ABC, abstractmethod
 
 import discord
 
 from src.bot.views.menu_view import SimpleMenu
+from src.domain.CharacterUtil import DEFAULT_DURABILITY, DamageType, EquipSlot, ItemType, PowerType
 from src.services.game_context import GameContext
+from src.services.item_service import ItemService
 from src.services.menu_service import MenuService, RenderedMenu
 from src.services.player_service import PlayerService
 from src.services.spell_service import SpellService
@@ -19,14 +21,25 @@ SPELL_FIELD_DEFAULTS = {
     "affinity": "",
     "casting_time": "",
     "range": "",
-    "component_verbal": "",
-    "component_somatic": "",
-    "component_material": "",
+    "component_verbal": False,
+    "component_somatic": False,
+    "component_material": False,
     "duration": "",
     "description": "",
     "higher_level": "",
 }
-
+ITEM_FIELD_DEFAULTS = {
+    "name": "",
+    "slot": EquipSlot.NOT_EQUIPABLE.name,
+    "tier": 0,
+    "durability": DEFAULT_DURABILITY,
+    "item_type": ItemType.DEFAULT.name,
+    "damage_type": "NONE",
+    "power_type": "NONE",
+    "power_value": 0,
+    "power_spell_name": "",
+    "stat_bonuses_json": "[]",
+}
 
 def _parse_non_empty_text(value: str) -> str:
     text = str(value).strip()
@@ -43,6 +56,13 @@ def _parse_level(value: str) -> int:
     return level
 
 
+
+def _parse_non_negative_int(value: str) -> int:
+    text = str(value).strip()
+    parsed = int(text)
+    if parsed < 0:
+        raise ValueError("Value must be >= 0.")
+    return parsed
 def _parse_bool_yes_no(value: str) -> bool:
     text = str(value).strip().lower()
     if text in {"y", "yes", "true", "1"}:
@@ -66,7 +86,14 @@ def _parse_optional_text(value: str):
     return text if text else ""
 
 
-FIELD_EDIT_CONFIG = {
+
+def _parse_stat_bonuses_json(value: str) -> str:
+    text = str(value).strip() or "[]"
+    parsed = json.loads(text)
+    if not isinstance(parsed, list):
+        raise ValueError("Stat bonuses must be a JSON array.")
+    return json.dumps(parsed, ensure_ascii=False)
+SPELL_FIELD_EDIT_CONFIG = {
     "spellSetNameAction": ("name", "Spell Name", _parse_non_empty_text),
     "spellSetLevelAction": ("level", "Spell Level", _parse_level),
     "spellSetPowerAction": ("power", "Power", _parse_non_empty_text),
@@ -80,36 +107,90 @@ FIELD_EDIT_CONFIG = {
     "spellSetDescriptionAction": ("description", "Description", _parse_non_empty_text),
     "spellSetHigherLevelAction": ("higher_level", "Higher Level Text (optional)", _parse_optional_text),
 }
+ITEM_FIELD_EDIT_CONFIG = {
+    "itemSetNameAction": ("itemDraft", "name", "Item Name", _parse_non_empty_text),
+    "itemSetTierAction": ("itemDraft", "tier", "Item Tier", _parse_non_negative_int),
+    "itemSetDurabilityAction": ("itemDraft", "durability", "Durability", _parse_non_negative_int),
+    "itemSetPowerValueAction": ("itemDraft", "power_value", "Power Value", _parse_non_negative_int),
+    "itemSetSpellNameAction": ("itemDraft", "power_spell_name", "Power Spell Name (optional)", _parse_optional_text),
+    "itemSetStatBonusesAction": ("itemDraft", "stat_bonuses_json", "Stat Bonuses JSON", _parse_stat_bonuses_json),
+}
 
+ITEM_ENUM_ACTIONS = {
+    "itemSetSlot_NOT_EQUIPABLE_Action": ("slot", EquipSlot.NOT_EQUIPABLE.name),
+    "itemSetSlot_HEAD_Action": ("slot", EquipSlot.HEAD.name),
+    "itemSetSlot_NECK_Action": ("slot", EquipSlot.NECK.name),
+    "itemSetSlot_BODY_Action": ("slot", EquipSlot.BODY.name),
+    "itemSetSlot_HANDS_Action": ("slot", EquipSlot.HANDS.name),
+    "itemSetSlot_RING_Action": ("slot", EquipSlot.RING.name),
+    "itemSetSlot_LEGS_Action": ("slot", EquipSlot.LEGS.name),
+    "itemSetSlot_FEET_Action": ("slot", EquipSlot.FEET.name),
+    "itemSetType_DEFAULT_Action": ("item_type", ItemType.DEFAULT.name),
+    "itemSetType_CONSUMABLE_Action": ("item_type", ItemType.CONSUMABLE.name),
+    "itemSetType_MELEE_WEAPON_Action": ("item_type", ItemType.MELEE_WEAPON.name),
+    "itemSetType_MELEE_THROWABLE_Action": ("item_type", ItemType.MELEE_THROWABLE.name),
+    "itemSetType_RANGED_WEAPON_Action": ("item_type", ItemType.RANGED_WEAPON.name),
+    "itemSetType_ARMOR_Action": ("item_type", ItemType.ARMOR.name),
+    "itemSetDamage_NONE_Action": ("damage_type", "NONE"),
+    "itemSetDamage_PIERCING_Action": ("damage_type", DamageType.PIERCING.name),
+    "itemSetDamage_BLUDGEONING_Action": ("damage_type", DamageType.BLUDGEONING.name),
+    "itemSetDamage_SLASHING_Action": ("damage_type", DamageType.SLASHING.name),
+    "itemSetDamage_COLD_Action": ("damage_type", DamageType.COLD.name),
+    "itemSetDamage_FIRE_Action": ("damage_type", DamageType.FIRE.name),
+    "itemSetDamage_LIGHTNING_Action": ("damage_type", DamageType.LIGHTNING.name),
+    "itemSetDamage_THUNDER_Action": ("damage_type", DamageType.THUNDER.name),
+    "itemSetDamage_POISON_Action": ("damage_type", DamageType.POISON.name),
+    "itemSetDamage_ACID_Action": ("damage_type", DamageType.ACID.name),
+    "itemSetDamage_RADIANT_Action": ("damage_type", DamageType.RADIANT.name),
+    "itemSetDamage_NECROTIC_Action": ("damage_type", DamageType.NECROTIC.name),
+    "itemSetDamage_FORCE_Action": ("damage_type", DamageType.FORCE.name),
+    "itemSetDamage_PSYCHIC_Action": ("damage_type", DamageType.PSYCHIC.name),
+    "itemSetPowerType_NONE_Action": ("power_type", "NONE"),
+    "itemSetPowerType_PHYSICAL_ATTACK_Action": ("power_type", PowerType.PHYSICAL_ATTACK.name),
+    "itemSetPowerType_MAGIC_ATTACK_Action": ("power_type", PowerType.MAGIC_ATTACK.name),
+    "itemSetPowerType_CONSUMABLE_POWER_Action": ("power_type", PowerType.CONSUMABLE_POWER.name),
+}
 
-class FieldEditModal(discord.ui.Modal, title="Edit Spell Field"):
-    value = discord.ui.TextInput(
-        label="Value",
-        style=discord.TextStyle.paragraph,
-        required=True,
-        max_length=2000,
-    )
-
-    def __init__(self, runtime: "MenuRuntimeService", original_message: "OriginalMessage", return_menu: Menu, field_key: str, field_label: str, parser):
-        super().__init__()
+class FieldEditModal(discord.ui.Modal):
+    def __init__(
+        self,
+        runtime: "MenuRuntimeService",
+        original_message: "OriginalMessage",
+        return_menu: Menu,
+        draft_attr: str,
+        field_key: str,
+        field_label: str,
+        parser,
+        title: str,
+    ):
+        super().__init__(title=title)
         self.runtime = runtime
         self.original_message = original_message
         self.return_menu = return_menu
+        self.draft_attr = draft_attr
         self.field_key = field_key
         self.field_label = field_label
         self.parser = parser
-        self.value.label = field_label
+        self.value = discord.ui.TextInput(
+            label=field_label,
+            style=discord.TextStyle.paragraph,
+            required=True,
+            max_length=4000,
+        )
+        self.add_item(self.value)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            parsed = self.parser(str(self.value))
-            self.original_message.menuContext.spellDraft[self.field_key] = parsed
+            parsed = self.parser(self.value.value)
+            draft = getattr(self.original_message.menuContext, self.draft_attr)
+            draft[self.field_key] = parsed
         except Exception as exc:
             await interaction.response.send_message(f"Invalid value: {exc}", ephemeral=True)
             return
 
         await interaction.response.defer()
         self.runtime._refresh_spellbook_overview()
+        self.runtime._refresh_itembook_overview()
         self.runtime.menu_service.update_menu_values(self.original_message, self.return_menu)
         rendered = self.runtime.menu_service.build_rendered_menu(
             self.return_menu,
@@ -122,35 +203,93 @@ class FieldEditModal(discord.ui.Modal, title="Edit Spell Field"):
         )
 
 
-class SpellEditModal(discord.ui.Modal, title="Edit Existing Spell"):
+class SpellSelectModal(discord.ui.Modal, title="Edit Existing Spell"):
     spell_name = discord.ui.TextInput(
         label="Existing Spell Name",
         style=discord.TextStyle.short,
         required=True,
         max_length=100,
     )
-    spell_patch_json = discord.ui.TextInput(
-        label="Patch JSON",
-        style=discord.TextStyle.paragraph,
-        placeholder='{"level":2,"power":"2d8"}',
-        required=True,
-        max_length=4000,
-    )
 
-    def __init__(self, spell_service: SpellService):
+    def __init__(self, runtime: "MenuRuntimeService", original_message: "OriginalMessage"):
         super().__init__()
-        self.spell_service = spell_service
+        self.runtime = runtime
+        self.original_message = original_message
 
     async def on_submit(self, interaction: discord.Interaction):
-        try:
-            spell_name = str(self.spell_name).strip()
-            patch = json.loads(str(self.spell_patch_json))
-            self.spell_service.edit_spell_from_patch(spell_name, patch)
-            await interaction.response.send_message("Spell updated successfully.", ephemeral=True)
-        except Exception as exc:
-            await interaction.response.send_message(f"Failed to edit spell: {exc}", ephemeral=True)
+        spell_name = str(self.spell_name.value).strip()
+        spell = self.runtime.spell_service.get_spell(spell_name)
+        if spell is None:
+            await interaction.response.send_message(f"Spell '{spell_name}' does not exist.", ephemeral=True)
+            return
+
+        self.runtime._start_spell_draft(self.original_message.menuContext, source_spell_name=spell.name)
+        self.runtime._populate_spell_draft_from_spell(self.original_message.menuContext, spell)
+        self.runtime._refresh_spellbook_overview()
+
+        first_menu = self.runtime.context.menus_by_name.get("spellCreateNameMenu")
+        if first_menu is None:
+            self.runtime._clear_spell_draft(self.original_message.menuContext)
+            await interaction.response.send_message("Spell editor menu is not configured.", ephemeral=True)
+            return
+
+        self.runtime.menu_service.update_menu_values(self.original_message, first_menu)
+        rendered = self.runtime.menu_service.build_rendered_menu(
+            first_menu,
+            self.original_message,
+            getattr(interaction.user, "display_name", interaction.user.name),
+        )
+
+        await interaction.response.defer()
+        await self.original_message.message.edit(
+            embed=self.runtime.build_discord_embed(rendered),
+            view=self.runtime.build_view(first_menu, self.original_message),
+        )
 
 
+
+class ItemSelectModal(discord.ui.Modal, title="Edit Existing Item"):
+    item_name = discord.ui.TextInput(
+        label="Existing Item Name",
+        style=discord.TextStyle.short,
+        required=True,
+        max_length=100,
+    )
+
+    def __init__(self, runtime: "MenuRuntimeService", original_message: "OriginalMessage"):
+        super().__init__()
+        self.runtime = runtime
+        self.original_message = original_message
+
+    async def on_submit(self, interaction: discord.Interaction):
+        item_name = str(self.item_name.value).strip()
+        item = self.runtime.item_service.get_item(item_name)
+        if item is None:
+            await interaction.response.send_message(f"Item '{item_name}' does not exist.", ephemeral=True)
+            return
+
+        self.runtime._start_item_draft(self.original_message.menuContext, source_item_name=item.name)
+        self.runtime._populate_item_draft_from_item(self.original_message.menuContext, item)
+        self.runtime._refresh_itembook_overview()
+
+        first_menu = self.runtime.context.menus_by_name.get("itemCreateNameMenu")
+        if first_menu is None:
+            self.runtime._clear_item_draft(self.original_message.menuContext)
+            await interaction.response.send_message("Item editor menu is not configured.", ephemeral=True)
+            return
+
+        self.runtime.menu_service.update_menu_values(self.original_message, first_menu)
+        rendered = self.runtime.menu_service.build_rendered_menu(
+            first_menu,
+            self.original_message,
+            getattr(interaction.user, "display_name", interaction.user.name),
+        )
+
+        await interaction.response.defer()
+        await self.original_message.message.edit(
+            embed=self.runtime.build_discord_embed(rendered),
+            view=self.runtime.build_view(first_menu, self.original_message),
+        )
 class MenuInterface(ABC):
     @property
     @abstractmethod
@@ -197,12 +336,14 @@ class MenuRuntimeService:
         player_service: PlayerService,
         whitelist_service: AdminWhitelistService,
         spell_service: SpellService,
+        item_service: ItemService,
         context: GameContext,
     ):
         self.menu_service = menu_service
         self.player_service = player_service
         self.whitelist_service = whitelist_service
         self.spell_service = spell_service
+        self.item_service = item_service
         self.context = context
 
     def build_discord_embed(self, rendered: RenderedMenu):
@@ -240,18 +381,116 @@ class MenuRuntimeService:
             "higher_level": draft.get("higher_level", ""),
         }
 
+
+
     @staticmethod
-    def _start_spell_draft(menu_context: MenuContext):
+    def _build_item_payload_from_draft(draft: dict) -> dict:
+        damage_type = str(draft.get("damage_type", "NONE") or "NONE").strip().upper()
+        power_type = str(draft.get("power_type", "NONE") or "NONE").strip().upper()
+
+        power_spell_name = str(draft.get("power_spell_name", "")).strip()
+        power_value = int(draft.get("power_value", 0) or 0)
+
+        item_power = []
+        if power_type != "NONE":
+            item_power.append(
+                {
+                    "powerType": power_type,
+                    "power": power_value,
+                    "spellName": power_spell_name,
+                }
+            )
+
+        stat_bonuses_raw = str(draft.get("stat_bonuses_json", "[]") or "[]")
+        stat_bonuses = json.loads(stat_bonuses_raw)
+        if not isinstance(stat_bonuses, list):
+            raise ValueError("Stat bonuses must be a JSON array.")
+
+        return {
+            "name": str(draft.get("name", "")).strip(),
+            "slot": str(draft.get("slot", EquipSlot.NOT_EQUIPABLE.name)),
+            "tier": int(draft.get("tier", 0) or 0),
+            "durability": int(draft.get("durability", DEFAULT_DURABILITY) or DEFAULT_DURABILITY),
+            "itemType": str(draft.get("item_type", ItemType.DEFAULT.name)),
+            "itemPower": item_power,
+            "damageType": [] if damage_type == "NONE" else [damage_type],
+            "statBonuses": stat_bonuses,
+        }
+
+    @staticmethod
+    def _start_spell_draft(menu_context: MenuContext, source_spell_name: str | None = None):
         menu_context.spellDraft = dict(SPELL_FIELD_DEFAULTS)
         menu_context.spellDraftActive = True
+        menu_context.spellDraftSourceName = source_spell_name
+
+    @staticmethod
+    def _populate_spell_draft_from_spell(menu_context: MenuContext, spell):
+        spell_data = spell.to_dict()
+        components = spell_data.get("components", {})
+        menu_context.spellDraft.update(
+            {
+                "name": spell_data.get("name", ""),
+                "level": spell_data.get("level", 0),
+                "power": spell_data.get("power", ""),
+                "affinity": spell_data.get("affinity", ""),
+                "casting_time": spell_data.get("casting_time", ""),
+                "range": spell_data.get("range", ""),
+                "component_verbal": bool(components.get("verbal", False)),
+                "component_somatic": bool(components.get("somatic", False)),
+                "component_material": components.get("material", False),
+                "duration": spell_data.get("duration", ""),
+                "description": spell_data.get("description", ""),
+                "higher_level": spell_data.get("higher_level", ""),
+            }
+        )
 
     @staticmethod
     def _clear_spell_draft(menu_context: MenuContext):
         menu_context.spellDraft = {}
         menu_context.spellDraftActive = False
+        menu_context.spellDraftSourceName = None
+
+
+
+    @staticmethod
+    def _start_item_draft(menu_context: MenuContext, source_item_name: str | None = None):
+        menu_context.itemDraft = dict(ITEM_FIELD_DEFAULTS)
+        menu_context.itemDraftActive = True
+        menu_context.itemDraftSourceName = source_item_name
+
+    @staticmethod
+    def _populate_item_draft_from_item(menu_context: MenuContext, item):
+        item_data = item.to_dict()
+        damage_types = item_data.get("damageType", [])
+        item_power = item_data.get("itemPower", [])
+        first_power = item_power[0] if item_power else {}
+
+        menu_context.itemDraft.update(
+            {
+                "name": item_data.get("name", ""),
+                "slot": item_data.get("slot", EquipSlot.NOT_EQUIPABLE.name),
+                "tier": int(item_data.get("tier", 0) or 0),
+                "durability": int(item_data.get("durability", DEFAULT_DURABILITY) or DEFAULT_DURABILITY),
+                "item_type": item_data.get("itemType", ItemType.DEFAULT.name),
+                "damage_type": damage_types[0] if damage_types else "NONE",
+                "power_type": str(first_power.get("powerType", "NONE") or "NONE"),
+                "power_value": int(first_power.get("power", 0) or 0),
+                "power_spell_name": str(first_power.get("spellName", "") or ""),
+                "stat_bonuses_json": json.dumps(item_data.get("statBonuses", []), ensure_ascii=False),
+            }
+        )
+
+    @staticmethod
+    def _clear_item_draft(menu_context: MenuContext):
+        menu_context.itemDraft = {}
+        menu_context.itemDraftActive = False
+        menu_context.itemDraftSourceName = None
 
     def _refresh_spellbook_overview(self):
         self.context.spellbook_overview = self.spell_service.build_spellbook_overview()
+
+    def _refresh_itembook_overview(self):
+        self.context.itembook_overview = self.item_service.build_itembook_overview()
 
     async def _handle_special_menu_action(self, interface: "MenuInterface", menu: Menu, original_message: OriginalMessage):
         # returns (target_menu, should_render_menu, response_already_consumed)
@@ -265,9 +504,14 @@ class MenuRuntimeService:
                 return menu.parent if menu.parent is not None else menu, False, True
 
             payload = self._build_spell_payload_from_draft(original_message.menuContext.spellDraft)
+            source_spell_name = original_message.menuContext.spellDraftSourceName
             try:
-                self.spell_service.create_spell_from_dict(payload)
-                await interface.send_ephemeral("Spell saved.")
+                if source_spell_name:
+                    self.spell_service.edit_spell_from_patch(source_spell_name, payload)
+                    await interface.send_ephemeral("Spell updated.")
+                else:
+                    self.spell_service.create_spell_from_dict(payload)
+                    await interface.send_ephemeral("Spell saved.")
             except Exception as exc:
                 await interface.send_ephemeral(f"Failed to save spell: {exc}")
             self._clear_spell_draft(original_message.menuContext)
@@ -282,31 +526,89 @@ class MenuRuntimeService:
 
         if menu.uniqueName == "spellEditAction":
             if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit spells.")
+                await interface.send_ephemeral("You are not authorized to edit drafts.")
                 return menu.parent if menu.parent is not None else menu, False, True
             if isinstance(interface, DiscordMenuInterface):
-                await interface.interaction.response.send_modal(SpellEditModal(self.spell_service))
+                await interface.interaction.response.send_modal(SpellSelectModal(self, original_message))
             else:
                 await interface.send_ephemeral("Spell edit modal is available in Discord UI only.")
             self._refresh_spellbook_overview()
             return menu.parent if menu.parent is not None else menu, False, True
 
-        if menu.uniqueName in FIELD_EDIT_CONFIG:
+
+        if menu.uniqueName == "itemCreateAction":
+            self._start_item_draft(original_message.menuContext)
+            return self.context.menus_by_name.get("itemCreateNameMenu", menu), True, False
+
+        if menu.uniqueName == "itemCreateSaveAction":
             if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit spells.")
+                await interface.send_ephemeral("You are not authorized to save items.")
+                return menu.parent if menu.parent is not None else menu, False, True
+
+            try:
+                payload = self._build_item_payload_from_draft(original_message.menuContext.itemDraft)
+                source_item_name = original_message.menuContext.itemDraftSourceName
+                if source_item_name:
+                    self.item_service.edit_item_from_patch(source_item_name, payload)
+                    await interface.send_ephemeral("Item updated.")
+                else:
+                    self.item_service.create_item_from_dict(payload)
+                    await interface.send_ephemeral("Item saved.")
+            except Exception as exc:
+                await interface.send_ephemeral(f"Failed to save item: {exc}")
+            self._clear_item_draft(original_message.menuContext)
+            self._refresh_itembook_overview()
+            return self.context.menus_by_name.get("itembookMenu", menu), True, True
+
+        if menu.uniqueName == "itemCreateCancelAction":
+            self._clear_item_draft(original_message.menuContext)
+            self._refresh_itembook_overview()
+            await interface.send_ephemeral("Item creation cancelled.")
+            return self.context.menus_by_name.get("itembookMenu", menu), True, True
+
+        if menu.uniqueName == "itemEditAction":
+            if not original_message.is_developer_admin:
+                await interface.send_ephemeral("You are not authorized to edit items.")
+                return menu.parent if menu.parent is not None else menu, False, True
+            if isinstance(interface, DiscordMenuInterface):
+                await interface.interaction.response.send_modal(ItemSelectModal(self, original_message))
+            else:
+                await interface.send_ephemeral("Item edit modal is available in Discord UI only.")
+            self._refresh_itembook_overview()
+            return menu.parent if menu.parent is not None else menu, False, True
+
+        if menu.uniqueName in ITEM_ENUM_ACTIONS:
+            if not original_message.is_developer_admin:
+                await interface.send_ephemeral("You are not authorized to edit items.")
+                return menu.parent if menu.parent is not None else menu, False, True
+
+            field_key, value = ITEM_ENUM_ACTIONS[menu.uniqueName]
+            original_message.menuContext.itemDraft[field_key] = value
+            return menu.parent if menu.parent is not None else menu, True, False
+        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG:
+            if not original_message.is_developer_admin:
+                await interface.send_ephemeral("You are not authorized to edit drafts.")
                 return menu.parent if menu.parent is not None else menu, False, True
 
             if isinstance(interface, DiscordMenuInterface):
-                field_key, field_label, parser = FIELD_EDIT_CONFIG[menu.uniqueName]
+                if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG:
+                    draft_attr = "spellDraft"
+                    field_key, field_label, parser = SPELL_FIELD_EDIT_CONFIG[menu.uniqueName]
+                    modal_title = "Edit Spell Field"
+                else:
+                    draft_attr, field_key, field_label, parser = ITEM_FIELD_EDIT_CONFIG[menu.uniqueName]
+                    modal_title = "Edit Item Field"
                 return_menu = menu.parent if menu.parent is not None else menu
                 await interface.interaction.response.send_modal(
                     FieldEditModal(
                         runtime=self,
                         original_message=original_message,
                         return_menu=return_menu,
+                        draft_attr=draft_attr,
                         field_key=field_key,
                         field_label=field_label,
                         parser=parser,
+                        title=modal_title,
                     )
                 )
             else:
@@ -333,6 +635,7 @@ class MenuRuntimeService:
             player.isNewPlayer = False
 
         self._refresh_spellbook_overview()
+        self._refresh_itembook_overview()
         self.menu_service.update_menu_values(original_message, active_menu)
         rendered = self.menu_service.build_rendered_menu(active_menu, original_message, interface.display_name)
         await interface.send_initial(rendered, active_menu, original_message)
@@ -356,12 +659,22 @@ class MenuRuntimeService:
             if not response_consumed:
                 await interface.before_update()
         else:
+            response_consumed = False
             if menu.uniqueName == "spellbookMenu" and original_message.menuContext.spellDraftActive:
+                was_edit = bool(original_message.menuContext.spellDraftSourceName)
                 self._clear_spell_draft(original_message.menuContext)
-                await interface.send_ephemeral("Spell creation cancelled.")
-            await interface.before_update()
+                await interface.send_ephemeral("Spell edit cancelled." if was_edit else "Spell creation cancelled.")
+                response_consumed = True
+            if menu.uniqueName == "itembookMenu" and original_message.menuContext.itemDraftActive:
+                was_edit = bool(original_message.menuContext.itemDraftSourceName)
+                self._clear_item_draft(original_message.menuContext)
+                await interface.send_ephemeral("Item edit cancelled." if was_edit else "Item creation cancelled.")
+                response_consumed = True
+            if not response_consumed:
+                await interface.before_update()
 
         self._refresh_spellbook_overview()
+        self._refresh_itembook_overview()
         self.menu_service.update_menu_values(original_message, menu)
         rendered = self.menu_service.build_rendered_menu(menu, original_message, interface.display_name)
         await interface.send_update(rendered, menu, original_message)
@@ -382,10 +695,14 @@ class DiscordMenuInterface(MenuInterface):
         return self.interaction.user.nick or self.interaction.user.display_name
 
     async def send_ephemeral(self, content: str):
-        await self.interaction.response.send_message(content=content, ephemeral=True)
+        if self.interaction.response.is_done():
+            await self.interaction.followup.send(content=content, ephemeral=True)
+        else:
+            await self.interaction.response.send_message(content=content, ephemeral=True)
 
     async def before_update(self):
-        await self.interaction.response.defer()
+        if not self.interaction.response.is_done():
+            await self.interaction.response.defer()
 
     async def send_initial(self, rendered: RenderedMenu, menu: Menu, original_message: OriginalMessage):
         embed = self.runtime.build_discord_embed(rendered)
@@ -442,4 +759,25 @@ class ConsoleMenuInterface(MenuInterface):
 
     async def send_update(self, rendered: RenderedMenu, menu: Menu, original_message: OriginalMessage):
         self._print_render(rendered)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

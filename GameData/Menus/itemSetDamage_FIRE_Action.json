@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Fire",
+    "uniqueName": "itemSetDamage_FIRE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Fire.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Melee Weapon",
+    "uniqueName": "itemSetType_MELEE_WEAPON_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Melee Weapon.",
+    "parentName": "itemCreateTypeMenu",
+    "developerOnly": true
+}

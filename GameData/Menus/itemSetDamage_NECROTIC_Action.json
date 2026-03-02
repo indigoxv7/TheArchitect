@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Necrotic",
+    "uniqueName": "itemSetDamage_NECROTIC_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Necrotic.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

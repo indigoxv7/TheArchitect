@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Magic Attack",
+    "uniqueName": "itemSetPowerType_MAGIC_ATTACK_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Magic Attack.",
+    "parentName": "itemCreatePowerTypeMenu",
+    "developerOnly": true
+}

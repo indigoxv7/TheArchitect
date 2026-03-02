@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\ud83d\udcbe",
+    "myOptionText": "Save Item",
+    "uniqueName": "itemCreateSaveAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Saves the item to global itembook.",
+    "parentName": "itemCreateSummaryMenu",
+    "developerOnly": true
+}

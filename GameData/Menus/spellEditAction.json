@@ -5,7 +5,7 @@
     "Options": [],
     "menuState": "DEFAULT",
     "imageURL": null,
-    "bodyText": "Opens a modal where you provide existing spell name and a JSON patch.",
+    "bodyText": "Asks for an existing spell name, then opens the step-by-step editor with all fields pre-filled.",
     "parentName": "spellbookMenu",
     "developerOnly": true
 }

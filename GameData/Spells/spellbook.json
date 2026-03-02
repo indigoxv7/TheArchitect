@@ -6,7 +6,7 @@
             "level": 1,
             "power": "10",
             "affinity": "Mana",
-            "casting_time": "5",
+            "casting_time": "3",
             "range": "50",
             "components": {
                 "verbal": true,
@@ -16,6 +16,22 @@
             "duration": "0",
             "description": "Shoots a weak bolt of fire at the target.",
             "higher_level": ""
+        },
+        {
+            "name": "Harden Shell",
+            "level": 1,
+            "power": "20",
+            "affinity": "Chi",
+            "casting_time": "0",
+            "range": "0",
+            "components": {
+                "verbal": false,
+                "somatic": false,
+                "material": false
+            },
+            "duration": "30",
+            "description": "Harden the user's body, making it almost impervious to damage, but also slowing the user down by 20%. A faint sheen can be seen on the user's skin for the duration of the spell.",
+            "higher_level": "."
         }
     ]
 }

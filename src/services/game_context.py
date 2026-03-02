@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
@@ -17,6 +17,7 @@ class GameContext:
     # Item runtime state
     all_items: dict[str, object] = field(default_factory=dict)
     error_item: Optional[object] = None
+    itembook_overview: str = "No items in itembook yet."
     max_num_characters: int = 4
 
     # Menu runtime state
@@ -27,3 +28,5 @@ class GameContext:
     # Global spellbook runtime state
     global_spellbook: dict[str, object] = field(default_factory=dict)
     spellbook_overview: str = "No spells in spellbook yet."
+
+

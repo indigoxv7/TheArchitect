@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Consumable",
+    "uniqueName": "itemSetType_CONSUMABLE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Consumable.",
+    "parentName": "itemCreateTypeMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Slashing",
+    "uniqueName": "itemSetDamage_SLASHING_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Slashing.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

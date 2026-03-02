@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Name",
+    "uniqueName": "itemCreateNameMenu",
+    "Options": [
+        "itemSetNameAction",
+        "itemCreateSlotMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Name: $itemDraftName\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "parentName": "itembookMenu",
+    "developerOnly": true
+}

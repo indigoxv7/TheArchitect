@@ -1,0 +1,17 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Power Type",
+    "uniqueName": "itemCreatePowerTypeMenu",
+    "Options": [
+        "itemSetPowerType_NONE_Action",
+        "itemSetPowerType_PHYSICAL_ATTACK_Action",
+        "itemSetPowerType_MAGIC_ATTACK_Action",
+        "itemSetPowerType_CONSUMABLE_POWER_Action",
+        "itemCreatePowerValueMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Power Type: $itemDraftPowerType\n\nChoose a power type button, then Next.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

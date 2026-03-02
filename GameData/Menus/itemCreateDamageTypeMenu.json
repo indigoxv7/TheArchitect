@@ -1,0 +1,27 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Damage Type",
+    "uniqueName": "itemCreateDamageTypeMenu",
+    "Options": [
+        "itemSetDamage_NONE_Action",
+        "itemSetDamage_PIERCING_Action",
+        "itemSetDamage_BLUDGEONING_Action",
+        "itemSetDamage_SLASHING_Action",
+        "itemSetDamage_COLD_Action",
+        "itemSetDamage_FIRE_Action",
+        "itemSetDamage_LIGHTNING_Action",
+        "itemSetDamage_THUNDER_Action",
+        "itemSetDamage_POISON_Action",
+        "itemSetDamage_ACID_Action",
+        "itemSetDamage_RADIANT_Action",
+        "itemSetDamage_NECROTIC_Action",
+        "itemSetDamage_FORCE_Action",
+        "itemSetDamage_PSYCHIC_Action",
+        "itemCreatePowerTypeMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Damage Type: $itemDraftDamageType\n\nChoose a damage type button, then Next.",
+    "parentName": "itemCreateTypeMenu",
+    "developerOnly": true
+}

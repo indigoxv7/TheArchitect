@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Poison",
+    "uniqueName": "itemSetDamage_POISON_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Poison.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

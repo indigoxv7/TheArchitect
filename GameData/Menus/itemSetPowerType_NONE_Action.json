@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "None",
+    "uniqueName": "itemSetPowerType_NONE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to None.",
+    "parentName": "itemCreatePowerTypeMenu",
+    "developerOnly": true
+}

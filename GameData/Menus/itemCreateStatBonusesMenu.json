@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Stat Bonuses",
+    "uniqueName": "itemCreateStatBonusesMenu",
+    "Options": [
+        "itemSetStatBonusesAction",
+        "itemCreateSummaryMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Stat Bonuses JSON: $itemDraftStatBonuses\n\nUse Enter Value, then Next.",
+    "parentName": "itemCreateSpellNameMenu",
+    "developerOnly": true
+}

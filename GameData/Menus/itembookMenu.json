@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83d\udce6",
+    "myOptionText": "Item Editor",
+    "uniqueName": "itembookMenu",
+    "Options": [
+        "itemCreateAction",
+        "itemEditAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Global Itembook\n$itembookOverview\n\nUse Create Item to add new items and Edit Item to modify existing ones.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

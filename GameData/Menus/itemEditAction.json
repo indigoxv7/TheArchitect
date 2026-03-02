@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\ud83d\udee0",
+    "myOptionText": "Edit Item",
+    "uniqueName": "itemEditAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Asks for an existing item name, then opens the step-by-step editor with all fields pre-filled.",
+    "parentName": "itembookMenu",
+    "developerOnly": true
+}

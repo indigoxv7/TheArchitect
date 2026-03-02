@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Melee Throwable",
+    "uniqueName": "itemSetType_MELEE_THROWABLE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Melee Throwable.",
+    "parentName": "itemCreateTypeMenu",
+    "developerOnly": true
+}

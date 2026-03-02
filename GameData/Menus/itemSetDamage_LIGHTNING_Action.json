@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Lightning",
+    "uniqueName": "itemSetDamage_LIGHTNING_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Lightning.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

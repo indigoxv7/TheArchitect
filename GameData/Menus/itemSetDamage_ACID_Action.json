@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Acid",
+    "uniqueName": "itemSetDamage_ACID_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Acid.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

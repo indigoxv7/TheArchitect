@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Psychic",
+    "uniqueName": "itemSetDamage_PSYCHIC_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Psychic.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

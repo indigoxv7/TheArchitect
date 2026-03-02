@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from src.config import Globals
 import main as game
@@ -63,7 +63,10 @@ class TestMenuRuntime(unittest.TestCase):
             m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(game.context.root_menu, admin_message)
         ]
         self.assertIn("spellbookMenu", admin_visible)
+        self.assertNotIn("itembookMenu", non_admin_visible)
+        self.assertIn("itembookMenu", admin_visible)
 
 
 if __name__ == "__main__":
     unittest.main()
+

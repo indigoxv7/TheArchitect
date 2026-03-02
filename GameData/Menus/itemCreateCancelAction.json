@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u274c",
+    "myOptionText": "Cancel Creation",
+    "uniqueName": "itemCreateCancelAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Cancels item creation without saving.",
+    "parentName": "itemCreateSummaryMenu",
+    "developerOnly": true
+}

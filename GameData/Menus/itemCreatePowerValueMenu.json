@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Power Value",
+    "uniqueName": "itemCreatePowerValueMenu",
+    "Options": [
+        "itemSetPowerValueAction",
+        "itemCreateSpellNameMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Power Value: $itemDraftPowerValue\n\nUse Enter Value, then Next.",
+    "parentName": "itemCreatePowerTypeMenu",
+    "developerOnly": true
+}

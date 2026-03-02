@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Radiant",
+    "uniqueName": "itemSetDamage_RADIANT_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Radiant.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

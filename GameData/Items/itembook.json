@@ -1,0 +1,315 @@
+{
+    "format_version": 1,
+    "items": [
+        {
+            "name": "Bandage",
+            "slot": "NOT_EQUIPABLE",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "CONSUMABLE",
+            "itemPower": [
+                {
+                    "powerType": "CONSUMABLE_POWER",
+                    "power": 10,
+                    "spellName": ""
+                }
+            ],
+            "damageType": []
+        },
+        {
+            "name": "Body Armor",
+            "slot": "BODY",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Boots",
+            "slot": "FEET",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Bow",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "RANGED_WEAPON",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 12,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "PIERCING"
+            ]
+        },
+        {
+            "name": "Butcher Knife",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 9,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "SLASHING"
+            ]
+        },
+        {
+            "name": "Dagger",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_THROWABLE",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 12,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "PIERCING"
+            ]
+        },
+        {
+            "name": "Gloves",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Helmet",
+            "slot": "HEAD",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Necklace",
+            "slot": "NECK",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Pants",
+            "slot": "LEGS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Paperclip",
+            "slot": "NOT_EQUIPABLE",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "DEFAULT",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Ring",
+            "slot": "RING",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "ARMOR",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Shield",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 1
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "Shield",
+                    "permanent": false
+                }
+            ],
+            "itemType": "MELEE_WEAPON",
+            "itemPower": [],
+            "damageType": []
+        },
+        {
+            "name": "Spear",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 12,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "PIERCING"
+            ]
+        },
+        {
+            "name": "Sword",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 12,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "SLASHING"
+            ]
+        },
+        {
+            "name": "Warhammer",
+            "slot": "HANDS",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 12,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "BLUDGEONING"
+            ]
+        }
+    ]
+}

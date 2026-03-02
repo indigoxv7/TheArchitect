@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from enum import Enum
 from typing import Optional, Set, Dict
@@ -17,6 +17,10 @@ class MenuContext:
         self.character = None
         self.spellDraft = {}
         self.spellDraftActive = False
+        self.spellDraftSourceName = None
+        self.itemDraft = {}
+        self.itemDraftActive = False
+        self.itemDraftSourceName = None
 
 
 class ContextButton:
@@ -145,3 +149,5 @@ def load_menus_from_directory(directory: str) -> Dict[str, Menu]:
             option_menu.parent = menu
 
     return menus_by_name
+
+

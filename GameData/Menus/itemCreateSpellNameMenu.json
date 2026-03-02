@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Power Spell Name",
+    "uniqueName": "itemCreateSpellNameMenu",
+    "Options": [
+        "itemSetSpellNameAction",
+        "itemCreateStatBonusesMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Power Spell Name: $itemDraftPowerSpellName\n\nUse Enter Value, then Next.",
+    "parentName": "itemCreatePowerValueMenu",
+    "developerOnly": true
+}

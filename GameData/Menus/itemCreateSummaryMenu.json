@@ -1,0 +1,14 @@
+{
+    "myEmoji": "\ud83e\uddfe",
+    "myOptionText": "Create Item: Summary",
+    "uniqueName": "itemCreateSummaryMenu",
+    "Options": [
+        "itemCreateSaveAction",
+        "itemCreateCancelAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Review item draft:\n$itemDraftSummary\n\nSave to finish or Cancel to quit without saving.",
+    "parentName": "itemCreateStatBonusesMenu",
+    "developerOnly": true
+}

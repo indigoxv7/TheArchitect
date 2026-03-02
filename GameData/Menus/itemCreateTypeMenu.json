@@ -1,0 +1,19 @@
+{
+    "myEmoji": "\ud83e\udde9",
+    "myOptionText": "Create Item: Item Type",
+    "uniqueName": "itemCreateTypeMenu",
+    "Options": [
+        "itemSetType_DEFAULT_Action",
+        "itemSetType_CONSUMABLE_Action",
+        "itemSetType_MELEE_WEAPON_Action",
+        "itemSetType_MELEE_THROWABLE_Action",
+        "itemSetType_RANGED_WEAPON_Action",
+        "itemSetType_ARMOR_Action",
+        "itemCreateDamageTypeMenu"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Current Item Type: $itemDraftType\n\nChoose an item type button, then Next.",
+    "parentName": "itemCreateDurabilityMenu",
+    "developerOnly": true
+}

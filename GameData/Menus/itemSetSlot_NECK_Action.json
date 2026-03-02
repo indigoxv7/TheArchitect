@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Neck",
+    "uniqueName": "itemSetSlot_NECK_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Neck.",
+    "parentName": "itemCreateSlotMenu",
+    "developerOnly": true
+}

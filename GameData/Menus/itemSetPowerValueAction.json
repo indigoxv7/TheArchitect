@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Enter Value",
+    "uniqueName": "itemSetPowerValueAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "itemCreatePowerValueMenu",
+    "developerOnly": true
+}

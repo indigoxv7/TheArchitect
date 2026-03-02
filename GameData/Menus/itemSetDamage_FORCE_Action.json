@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Force",
+    "uniqueName": "itemSetDamage_FORCE_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Force.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Thunder",
+    "uniqueName": "itemSetDamage_THUNDER_Action",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Sets this value to Thunder.",
+    "parentName": "itemCreateDamageTypeMenu",
+    "developerOnly": true
+}
