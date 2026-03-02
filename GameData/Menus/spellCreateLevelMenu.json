@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetLevelAction",
+                    "spellCreatePowerMenu"
+                ],
+    "parentName":  "spellCreateNameMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Level",
+    "bodyText":  "Current Level: $spellDraftLevel\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateLevelMenu",
+    "menuState":  "DEFAULT"
+}

@@ -23,3 +23,7 @@ class GameContext:
     menus_by_name: dict[str, object] = field(default_factory=dict)
     root_menu: Optional[object] = None
     new_player_menu: Optional[object] = None
+
+    # Global spellbook runtime state
+    global_spellbook: dict[str, object] = field(default_factory=dict)
+    spellbook_overview: str = "No spells in spellbook yet."

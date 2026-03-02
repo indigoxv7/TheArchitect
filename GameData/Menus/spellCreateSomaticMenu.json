@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetSomaticAction",
+                    "spellCreateMaterialMenu"
+                ],
+    "parentName":  "spellCreateVerbalMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Somatic Component",
+    "bodyText":  "Current Somatic: $spellDraftSomatic\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateSomaticMenu",
+    "menuState":  "DEFAULT"
+}

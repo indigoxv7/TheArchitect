@@ -1,0 +1,11 @@
+﻿{
+  "myEmoji": "✨",
+  "myOptionText": "Create New Spell",
+  "uniqueName": "spellCreateAction",
+  "Options": [],
+  "menuState": "DEFAULT",
+  "imageURL": null,
+  "bodyText": "Starts step-by-step spell creation.",
+  "parentName": "spellbookMenu",
+  "developerOnly": true
+}

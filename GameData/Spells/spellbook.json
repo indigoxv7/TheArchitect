@@ -1,0 +1,21 @@
+{
+    "format_version": 1,
+    "spells": [
+        {
+            "name": "Fire Bolt",
+            "level": 1,
+            "power": "10",
+            "affinity": "Mana",
+            "casting_time": "5",
+            "range": "50",
+            "components": {
+                "verbal": true,
+                "somatic": false,
+                "material": false
+            },
+            "duration": "0",
+            "description": "Shoots a weak bolt of fire at the target.",
+            "higher_level": ""
+        }
+    ]
+}

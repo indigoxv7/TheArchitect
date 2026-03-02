@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from enum import Enum
 from typing import Optional, Set, Dict
@@ -10,16 +10,17 @@ class MenuState (Enum):
     MAIN = 2
     CHARACTER = 3
 
+
 class MenuContext:
     def __init__(self):
         self.menuState = MenuState.MAIN
         self.character = None
+        self.spellDraft = {}
+        self.spellDraftActive = False
 
-# This class exists as an easy way for me to create a variable number of buttons based on context.
-# If count is more than 0, Each button will be named "name"+i, where 'i' starts at 0 and goes to count-1.
-# will display a warning text before going to the next menu if warningText is not "".
+
 class ContextButton:
-    def __init__(self, name: str, count: int, target: 'Menu' = None, warningText: str = ""): #, action):
+    def __init__(self, name: str, count: int, target: 'Menu' = None, warningText: str = ""):
         self.name = name
         self.count = count
         self.target = target
@@ -27,20 +28,33 @@ class ContextButton:
 
 
 class Menu:
-    def __init__(self, myOptionText, bodyText, uniqueName, parent=None, myEmoji=None, imageURL=None, menuState: MenuState = MenuState.DEFAULT, contextButtons: list[ContextButton] = None):
+    def __init__(
+        self,
+        myOptionText,
+        bodyText,
+        uniqueName,
+        parent=None,
+        myEmoji=None,
+        imageURL=None,
+        menuState: MenuState = MenuState.DEFAULT,
+        contextButtons: list[ContextButton] = None,
+        developerOnly: bool = False,
+    ):
         self.myOptionText = myOptionText
         self.myEmoji = myEmoji
         self.uniqueName = uniqueName
         self.bodyText = bodyText
-        self.parent = parent  # This will hold a reference to the parent Menu object
-        self.Options = []  # This will be a list of Menu objects
+        self.parent = parent
+        self.Options = []
         self.imageURL = imageURL
         self.menuState = menuState
         self.contextButtons = contextButtons
+        self.developerOnly = developerOnly
 
     def add_option(self, menu):
-        menu.parent = self  # Set the parent of the added menu
+        menu.parent = self
         self.Options.append(menu)
+
 
 def _menu_state_from_string(state_name: Optional[str]) -> MenuState:
     if not state_name:
@@ -60,7 +74,8 @@ def _menu_to_dict(menu: Menu) -> dict:
         "imageURL": menu.imageURL,
         "menuState": menu.menuState.name,
         "parentName": menu.parent.uniqueName if menu.parent else None,
-        "Options": [option.uniqueName for option in menu.Options]
+        "developerOnly": menu.developerOnly,
+        "Options": [option.uniqueName for option in menu.Options],
     }
 
 
@@ -106,7 +121,8 @@ def load_menus_from_directory(directory: str) -> Dict[str, Menu]:
             bodyText=data["bodyText"],
             imageURL=data.get("imageURL"),
             menuState=_menu_state_from_string(data.get("menuState")),
-            parent=None
+            parent=None,
+            developerOnly=bool(data.get("developerOnly", False)),
         )
         raw_data_by_name[unique_name] = data
 
@@ -129,4 +145,3 @@ def load_menus_from_directory(directory: str) -> Dict[str, Menu]:
             option_menu.parent = menu
 
     return menus_by_name
-

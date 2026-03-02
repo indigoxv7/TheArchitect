@@ -1,0 +1,11 @@
+﻿{
+    "myEmoji": "🛠️",
+    "myOptionText": "Edit Spell",
+    "uniqueName": "spellEditAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a modal where you provide existing spell name and a JSON patch.",
+    "parentName": "spellbookMenu",
+    "developerOnly": true
+}

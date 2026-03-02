@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetPowerAction",
+                    "spellCreateAffinityMenu"
+                ],
+    "parentName":  "spellCreateLevelMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Power",
+    "bodyText":  "Current Power: $spellDraftPower\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreatePowerMenu",
+    "menuState":  "DEFAULT"
+}

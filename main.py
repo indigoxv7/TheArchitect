@@ -12,6 +12,7 @@ from src.services.game_context import GameContext
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.player_service import PlayerService
+from src.services.spell_service import SpellService
 from src.services.whitelist_service import AdminWhitelistService
 
 
@@ -23,6 +24,7 @@ ADMIN_WHITELIST_PATH = os.path.join(GAME_DATA_DIRECTORY, "AdminWhitelist.json")
 PLAYER_SAVE_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerSaves")
 EXISTING_PLAYERS_ROSTER_PATH = os.path.join(GAME_DATA_DIRECTORY, "ExistingPlayersRoster.json")
 MENU_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Menus")
+SPELLBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Spells", "spellbook.json")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -40,6 +42,7 @@ player_service = PlayerService(
     player_save_directory=PLAYER_SAVE_DIRECTORY,
     existing_players_roster_path=EXISTING_PLAYERS_ROSTER_PATH,
 )
+spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
     emoji_placeholders=EMOJI_PLACEHOLDERS,
@@ -48,6 +51,8 @@ menu_service = MenuService(
 menu_runtime_service = MenuRuntimeService(
     menu_service=menu_service,
     player_service=player_service,
+    whitelist_service=whitelist_service,
+    spell_service=spell_service,
     context=context,
 )
 
@@ -55,6 +60,7 @@ menu_runtime_service = MenuRuntimeService(
 def initialize_game():
     whitelist_service.load()
     player_service.initialize_storage()
+    spell_service.load_spellbook()
     menu_service.load_menus()
 
 
@@ -108,5 +114,3 @@ async def on_ready():
 TOKEN = os.getenv("BOT_TOKEN")
 if __name__ == "__main__":
     bot.run(TOKEN)
-
-

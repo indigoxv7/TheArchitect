@@ -1,0 +1,13 @@
+﻿{
+    "Options":  [
+
+                ],
+    "parentName":  "spellCreateCastingTimeMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Enter Value",
+    "bodyText":  "Opens a prompt to enter this field value.",
+    "myEmoji":  "✍️",
+    "uniqueName":  "spellSetCastingTimeAction",
+    "menuState":  "DEFAULT"
+}

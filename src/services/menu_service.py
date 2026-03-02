@@ -56,8 +56,31 @@ class MenuService:
             text = text.replace("{" + key + "}", value)
         return text
 
+    @staticmethod
+    def _spell_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft spell in progress."
+
+        lines = [
+            f"Name: {draft.get('name', '')}",
+            f"Level: {draft.get('level', '')}",
+            f"Power: {draft.get('power', '')}",
+            f"Affinity: {draft.get('affinity', '')}",
+            f"Casting Time: {draft.get('casting_time', '')}",
+            f"Range: {draft.get('range', '')}",
+            f"Verbal: {draft.get('component_verbal', '')}",
+            f"Somatic: {draft.get('component_somatic', '')}",
+            f"Material: {draft.get('component_material', '')}",
+            f"Duration: {draft.get('duration', '')}",
+            f"Description: {draft.get('description', '')}",
+            f"Higher Level: {draft.get('higher_level', '')}",
+        ]
+        return "\n".join(lines)
+
     def replace_placeholders(self, text: str, player: Player, menu_state: MenuContext) -> str:
         faction_title = player.faction.title if player.faction else ""
+
+        draft = menu_state.spellDraft if hasattr(menu_state, "spellDraft") else {}
 
         data = {
             "nano": player.nano,
@@ -67,6 +90,20 @@ class MenuService:
             "energy": int(player.energy),
             "energyCap": int(player.energyCap),
             "characters": player.GetCharacterText(),
+            "spellbookOverview": self.context.spellbook_overview,
+            "spellDraftName": draft.get("name", ""),
+            "spellDraftLevel": draft.get("level", ""),
+            "spellDraftPower": draft.get("power", ""),
+            "spellDraftAffinity": draft.get("affinity", ""),
+            "spellDraftCastingTime": draft.get("casting_time", ""),
+            "spellDraftRange": draft.get("range", ""),
+            "spellDraftVerbal": draft.get("component_verbal", ""),
+            "spellDraftSomatic": draft.get("component_somatic", ""),
+            "spellDraftMaterial": draft.get("component_material", ""),
+            "spellDraftDuration": draft.get("duration", ""),
+            "spellDraftDescription": draft.get("description", ""),
+            "spellDraftHigherLevel": draft.get("higher_level", ""),
+            "spellDraftSummary": self._spell_draft_summary(draft),
         }
         data.update(self.emoji_placeholders)
 
@@ -85,6 +122,9 @@ class MenuService:
     def get_visible_child_menus(self, menu: Menu, original_message: "OriginalMessage"):
         visible_children = []
         for child_menu in menu.Options:
+            if child_menu.developerOnly and not getattr(original_message, "is_developer_admin", False):
+                continue
+
             proper_title = self.replace_placeholders(
                 child_menu.myOptionText,
                 original_message.player,

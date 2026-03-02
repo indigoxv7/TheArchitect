@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetNameAction",
+                    "spellCreateLevelMenu"
+                ],
+    "parentName":  "spellbookMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Name",
+    "bodyText":  "Current Name: $spellDraftName\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateNameMenu",
+    "menuState":  "DEFAULT"
+}

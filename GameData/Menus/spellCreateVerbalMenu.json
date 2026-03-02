@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetVerbalAction",
+                    "spellCreateSomaticMenu"
+                ],
+    "parentName":  "spellCreateRangeMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Verbal Component",
+    "bodyText":  "Current Verbal: $spellDraftVerbal\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateVerbalMenu",
+    "menuState":  "DEFAULT"
+}

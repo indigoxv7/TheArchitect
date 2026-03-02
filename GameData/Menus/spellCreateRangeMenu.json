@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetRangeAction",
+                    "spellCreateVerbalMenu"
+                ],
+    "parentName":  "spellCreateCastingTimeMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Range",
+    "bodyText":  "Current Range: $spellDraftRange\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateRangeMenu",
+    "menuState":  "DEFAULT"
+}

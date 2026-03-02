@@ -1,0 +1,13 @@
+﻿{
+    "Options":  [
+
+                ],
+    "parentName":  "spellCreateSomaticMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Enter Value",
+    "bodyText":  "Opens a prompt to enter this field value.",
+    "myEmoji":  "✍️",
+    "uniqueName":  "spellSetSomaticAction",
+    "menuState":  "DEFAULT"
+}

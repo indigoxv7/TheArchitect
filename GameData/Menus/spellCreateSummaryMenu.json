@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellCreateSaveAction",
+                    "spellCreateCancelAction"
+                ],
+    "parentName":  "spellCreateHigherLevelMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Summary",
+    "bodyText":  "Review spell draft:`n$spellDraftSummary`n`nSave to finish or Cancel to quit without saving.",
+    "myEmoji":  "🧾",
+    "uniqueName":  "spellCreateSummaryMenu",
+    "menuState":  "DEFAULT"
+}

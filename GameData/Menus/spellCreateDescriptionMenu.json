@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetDescriptionAction",
+                    "spellCreateHigherLevelMenu"
+                ],
+    "parentName":  "spellCreateDurationMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Description",
+    "bodyText":  "Current Description: $spellDraftDescription\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateDescriptionMenu",
+    "menuState":  "DEFAULT"
+}

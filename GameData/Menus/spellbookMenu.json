@@ -1,0 +1,14 @@
+﻿{
+    "myEmoji": "📘",
+    "myOptionText": "Spell Editor",
+    "uniqueName": "spellbookMenu",
+    "Options": [
+        "spellCreateAction",
+        "spellEditAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Global Spellbook\n$spellbookOverview\n\nUse Create Spell to add new spells and Edit Spell to patch existing spells.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

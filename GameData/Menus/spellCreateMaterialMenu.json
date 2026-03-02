@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetMaterialAction",
+                    "spellCreateDurationMenu"
+                ],
+    "parentName":  "spellCreateSomaticMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Material Component",
+    "bodyText":  "Current Material: $spellDraftMaterial\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateMaterialMenu",
+    "menuState":  "DEFAULT"
+}

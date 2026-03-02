@@ -1,0 +1,13 @@
+﻿{
+    "Options":  [
+
+                ],
+    "parentName":  "spellCreateSummaryMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Save Spell",
+    "bodyText":  "Saves the spell to global spellbook.",
+    "myEmoji":  "💾",
+    "uniqueName":  "spellCreateSaveAction",
+    "menuState":  "DEFAULT"
+}

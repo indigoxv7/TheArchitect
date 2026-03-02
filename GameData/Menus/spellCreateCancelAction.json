@@ -1,0 +1,13 @@
+﻿{
+    "Options":  [
+
+                ],
+    "parentName":  "spellCreateSummaryMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Cancel Creation",
+    "bodyText":  "Cancels spell creation without saving.",
+    "myEmoji":  "❌",
+    "uniqueName":  "spellCreateCancelAction",
+    "menuState":  "DEFAULT"
+}

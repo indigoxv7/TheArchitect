@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetDurationAction",
+                    "spellCreateDescriptionMenu"
+                ],
+    "parentName":  "spellCreateMaterialMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Duration",
+    "bodyText":  "Current Duration: $spellDraftDuration\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateDurationMenu",
+    "menuState":  "DEFAULT"
+}

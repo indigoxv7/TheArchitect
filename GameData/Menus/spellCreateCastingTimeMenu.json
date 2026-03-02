@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetCastingTimeAction",
+                    "spellCreateRangeMenu"
+                ],
+    "parentName":  "spellCreateAffinityMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Casting Time",
+    "bodyText":  "Current Casting Time: $spellDraftCastingTime\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateCastingTimeMenu",
+    "menuState":  "DEFAULT"
+}

@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetAffinityAction",
+                    "spellCreateCastingTimeMenu"
+                ],
+    "parentName":  "spellCreatePowerMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Affinity",
+    "bodyText":  "Current Affinity: $spellDraftAffinity\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateAffinityMenu",
+    "menuState":  "DEFAULT"
+}

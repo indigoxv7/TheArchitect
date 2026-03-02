@@ -1,0 +1,14 @@
+﻿{
+    "Options":  [
+                    "spellSetHigherLevelAction",
+                    "spellCreateSummaryMenu"
+                ],
+    "parentName":  "spellCreateDescriptionMenu",
+    "imageURL":  null,
+    "developerOnly":  true,
+    "myOptionText":  "Create Spell: Higher-Level Text",
+    "bodyText":  "Current Higher-Level: $spellDraftHigherLevel\n\nUse Enter Value, then Next. Back returns to previous field.",
+    "myEmoji":  "🧩",
+    "uniqueName":  "spellCreateHigherLevelMenu",
+    "menuState":  "DEFAULT"
+}
