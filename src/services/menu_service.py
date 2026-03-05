@@ -96,11 +96,74 @@ class MenuService:
             f"Stat Bonuses JSON: {draft.get('stat_bonuses_json', '[]')}",
         ]
         return "\n".join(lines)
+
+
+    @staticmethod
+    def _attributes_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft attributes in progress."
+        lines = [
+            f"Physical Power: {draft.get('physical_power', 0)}",
+            f"Physical Stamina: {draft.get('physical_stamina', 0)}",
+            f"Physical Resistance: {draft.get('physical_resistance', 0)}",
+            f"Magic Power: {draft.get('magic_power', 0)}",
+            f"Magic Stamina: {draft.get('magic_stamina', 0)}",
+            f"Magic Resistance: {draft.get('magic_resistance', 0)}",
+        ]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _gear_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft gear in progress."
+        lines = [
+            f"Head: {draft.get('head', '')}",
+            f"Neck: {draft.get('neck', '')}",
+            f"Body: {draft.get('body', '')}",
+            f"Hands: {draft.get('hands', '')}",
+            f"Ring: {draft.get('ring', '')}",
+            f"Legs: {draft.get('legs', '')}",
+            f"Feet: {draft.get('feet', '')}",
+            f"Primary Weapon: {draft.get('primary_weapon', '')}",
+            f"Offhand: {draft.get('offhand', '')}",
+            f"Inventory JSON: {draft.get('inventory_json', '[]')}",
+        ]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _bonus_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft bonus in progress."
+        lines = [
+            f"Bonus Type: {draft.get('bonus_type', '')}",
+            f"Attribute Bonus JSON: {draft.get('attribute_bonus_json', '{}')}",
+            f"Affinities JSON: {draft.get('affinities_json', '{}')}",
+            f"Nano Multiplier: {draft.get('nano_multiplier', 0)}",
+            f"Reason: {draft.get('reason', '')}",
+            f"Permanent: {draft.get('permanent', False)}",
+        ]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _achievement_draft_summary(draft: dict) -> str:
+        if not draft:
+            return "No draft achievement in progress."
+        lines = [
+            f"Name: {draft.get('name', '')}",
+            f"Title: {draft.get('title', '')}",
+            f"Bonus JSON: {draft.get('bonus_json', '{}')}",
+        ]
+        return "\n".join(lines)
+
     def replace_placeholders(self, text: str, player: Player, menu_state: MenuContext) -> str:
         faction_title = player.faction.title if player.faction else ""
 
         draft = menu_state.spellDraft if hasattr(menu_state, "spellDraft") else {}
         item_draft = menu_state.itemDraft if hasattr(menu_state, "itemDraft") else {}
+        attributes_draft = menu_state.attributesDraft if hasattr(menu_state, "attributesDraft") else {}
+        gear_draft = menu_state.gearDraft if hasattr(menu_state, "gearDraft") else {}
+        bonus_draft = menu_state.bonusDraft if hasattr(menu_state, "bonusDraft") else {}
+        achievement_draft = menu_state.achievementDraft if hasattr(menu_state, "achievementDraft") else {}
 
         data = {
             "nano": player.nano,
@@ -136,6 +199,10 @@ class MenuService:
             "itemDraftPowerSpellName": item_draft.get("power_spell_name", ""),
             "itemDraftStatBonuses": item_draft.get("stat_bonuses_json", "[]"),
             "itemDraftSummary": self._item_draft_summary(item_draft),
+            "attributesDraftSummary": self._attributes_draft_summary(attributes_draft),
+            "gearDraftSummary": self._gear_draft_summary(gear_draft),
+            "bonusDraftSummary": self._bonus_draft_summary(bonus_draft),
+            "achievementDraftSummary": self._achievement_draft_summary(achievement_draft),
         }
         data.update(self.emoji_placeholders)
 

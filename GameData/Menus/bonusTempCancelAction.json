@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u274c",
+    "myOptionText": "Cancel",
+    "uniqueName": "bonusTempCancelAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "bonusEditorMenu",
+    "developerOnly": true
+}

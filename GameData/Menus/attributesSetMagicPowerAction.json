@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Set Magic Power",
+    "uniqueName": "attributesSetMagicPowerAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "attributesEditorMenu",
+    "developerOnly": true
+}

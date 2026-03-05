@@ -4,34 +4,50 @@
         {
             "name": "Fire Bolt",
             "level": 1,
-            "power": "10",
+            "power": 10.0,
             "affinity": "Mana",
-            "casting_time": "3",
-            "range": "50",
+            "casting_time": 3.0,
+            "range": 50.0,
             "components": {
                 "verbal": true,
                 "somatic": false,
                 "material": false
             },
-            "duration": "0",
+            "duration": 0.0,
             "description": "Shoots a weak bolt of fire at the target.",
             "higher_level": ""
         },
         {
             "name": "Harden Shell",
             "level": 1,
-            "power": "20",
+            "power": 20.0,
             "affinity": "Chi",
-            "casting_time": "0",
-            "range": "0",
+            "casting_time": 0.0,
+            "range": 0.0,
             "components": {
                 "verbal": false,
                 "somatic": false,
                 "material": false
             },
-            "duration": "30",
+            "duration": 30.0,
             "description": "Harden the user's body, making it almost impervious to damage, but also slowing the user down by 20%. A faint sheen can be seen on the user's skin for the duration of the spell.",
             "higher_level": "."
+        },
+        {
+            "name": "Mind Blast",
+            "level": 1,
+            "power": "10.0",
+            "affinity": "Psi",
+            "casting_time": 0.0,
+            "range": 10.0,
+            "components": {
+                "verbal": false,
+                "somatic": false,
+                "material": "False"
+            },
+            "duration": 10.0,
+            "description": "A blast of mental energy that causes pain and disorientation to the target.",
+            "higher_level": ""
         }
     ]
 }

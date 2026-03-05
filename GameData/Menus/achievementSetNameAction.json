@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Set Name",
+    "uniqueName": "achievementSetNameAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "achievementEditorMenu",
+    "developerOnly": true
+}

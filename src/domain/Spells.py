@@ -1,4 +1,4 @@
-﻿from enum import Enum
+from enum import Enum
 from typing import Any
 
 
@@ -8,19 +8,26 @@ class SpellComponent(Enum):
     MATERIAL = "material"
 
 
+class AffinityTypes(Enum):
+    CHI = "Chi"
+    MANA = "Mana"
+    PSI = "Psi"
+    AETHER = "Aether"
+
+
 class Spell:
     def __init__(
         self,
-        name,
-        level,
-        power,
-        affinity,
-        casting_time,
-        range,
-        components,
-        duration,
-        description,
-        higher_level=None,
+        name: str,
+        level: int,
+        power: float,
+        affinity: AffinityTypes,
+        casting_time: float = 0,
+        range: float = 0,
+        components: dict[str, Any] = None,
+        duration: float = 0,
+        description: str = "",
+        higher_level: str = None,
     ):
         self.name = name
         self.level = level
@@ -28,7 +35,7 @@ class Spell:
         self.affinity = affinity
         self.casting_time = casting_time
         self.range = range
-        self.components = components  # dict keys: verbal, somatic, material
+        self.components = components if components is not None else {}
         self.duration = duration
         self.description = description
         self.higher_level = higher_level
@@ -52,16 +59,44 @@ class Spell:
 
         return normalized
 
+    @staticmethod
+    def _normalize_affinity(value: Any) -> AffinityTypes:
+        if isinstance(value, AffinityTypes):
+            return value
+
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return AffinityTypes.MANA
+
+            upper = text.upper()
+            if upper in AffinityTypes.__members__:
+                return AffinityTypes[upper]
+
+            for affinity in AffinityTypes:
+                if affinity.value.lower() == text.lower():
+                    return affinity
+
+        return AffinityTypes.MANA
+
+    @staticmethod
+    def _coerce_float(value: Any, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
     def to_dict(self) -> dict[str, Any]:
+        affinity_value = self.affinity.value if isinstance(self.affinity, AffinityTypes) else str(self.affinity)
         return {
             "name": self.name,
-            "level": self.level,
+            "level": int(self.level),
             "power": self.power,
-            "affinity": self.affinity,
-            "casting_time": self.casting_time,
-            "range": self.range,
+            "affinity": affinity_value,
+            "casting_time": self._coerce_float(self.casting_time),
+            "range": self._coerce_float(self.range),
             "components": self._normalize_components(self.components),
-            "duration": self.duration,
+            "duration": self._coerce_float(self.duration),
             "description": self.description,
             "higher_level": self.higher_level,
         }
@@ -74,14 +109,14 @@ class Spell:
 
         return cls(
             name=name,
-            level=int(data.get("level", 0)),
+            level=int(data.get("level", 0) or 0),
             power=data.get("power", ""),
-            affinity=data.get("affinity", ""),
-            casting_time=data.get("casting_time", ""),
-            range=data.get("range", ""),
+            affinity=cls._normalize_affinity(data.get("affinity", AffinityTypes.MANA.value)),
+            casting_time=cls._coerce_float(data.get("casting_time", 0.0), 0.0),
+            range=cls._coerce_float(data.get("range", 0.0), 0.0),
             components=cls._normalize_components(data.get("components", {})),
-            duration=data.get("duration", ""),
-            description=data.get("description", ""),
+            duration=cls._coerce_float(data.get("duration", 0.0), 0.0),
+            description=str(data.get("description", "")),
             higher_level=data.get("higher_level"),
         )
 
@@ -116,10 +151,11 @@ class Spell:
             ]
         ).strip(", ")
 
+        affinity_value = self.affinity.value if isinstance(self.affinity, AffinityTypes) else str(self.affinity)
         spell_info = (
             f"Name: {self.name}\n"
             f"Level: {self.level}\n"
-            f"affinity: {self.affinity}\n"
+            f"Affinity: {affinity_value}\n"
             f"Casting Time: {self.casting_time}\n"
             f"Range: {self.range}\n"
             f"Components: {components}\n"

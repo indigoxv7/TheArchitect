@@ -28,12 +28,8 @@ class Item:
         self.itemType = itemType
         self.itemPower = itemPower if itemPower is not None else []
         self.damageType = damageType if damageType is not None else []
-        damageTypeTags = ","
-        if damageType and len(damageType) > 0:
-            damageTypeTags += ",".join([e.name for e in damageType])
-        else:
-            damageTypeTags = ""
-        self.tags = name + "," + itemType.name + "," + slot.name + damageTypeTags
+        self.tags = [self.name, self.itemType.name, self.slot.name]
+        self.tags.extend([damage_type.name for damage_type in self.damageType])
 
     @staticmethod
     def _enum_from_name(enum_type, value: Any, default):

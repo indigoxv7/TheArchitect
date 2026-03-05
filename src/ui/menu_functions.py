@@ -21,6 +21,14 @@ class MenuContext:
         self.itemDraft = {}
         self.itemDraftActive = False
         self.itemDraftSourceName = None
+        self.attributesDraft = {}
+        self.attributesDraftActive = False
+        self.gearDraft = {}
+        self.gearDraftActive = False
+        self.bonusDraft = {}
+        self.bonusDraftActive = False
+        self.achievementDraft = {}
+        self.achievementDraftActive = False
 
 
 class ContextButton:

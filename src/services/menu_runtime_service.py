@@ -41,6 +41,44 @@ ITEM_FIELD_DEFAULTS = {
     "stat_bonuses_json": "[]",
 }
 
+
+ATTRIBUTES_DRAFT_DEFAULTS = {
+    "physical_power": 5,
+    "physical_stamina": 5,
+    "physical_resistance": 5,
+    "magic_power": 5,
+    "magic_stamina": 5,
+    "magic_resistance": 5,
+}
+
+GEAR_DRAFT_DEFAULTS = {
+    "head": "",
+    "neck": "",
+    "body": "",
+    "hands": "",
+    "ring": "",
+    "legs": "",
+    "feet": "",
+    "primary_weapon": "",
+    "offhand": "",
+    "inventory_json": "[]",
+}
+
+BONUS_DRAFT_DEFAULTS = {
+    "bonus_type": "FLAT",
+    "attribute_bonus_json": "{}",
+    "affinities_json": "{}",
+    "nano_multiplier": 0.0,
+    "reason": "",
+    "permanent": False,
+}
+
+ACHIEVEMENT_DRAFT_DEFAULTS = {
+    "name": "",
+    "title": "",
+    "bonus_json": "{}",
+}
+
 def _parse_non_empty_text(value: str) -> str:
     text = str(value).strip()
     if not text:
@@ -86,6 +124,27 @@ def _parse_optional_text(value: str):
     return text if text else ""
 
 
+def _parse_float(value: str) -> float:
+    text = str(value).strip()
+    return float(text)
+
+
+def _parse_json_object(value: str) -> str:
+    text = str(value).strip() or "{}"
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("Value must be a JSON object.")
+    return json.dumps(parsed, ensure_ascii=False)
+
+
+def _parse_json_list(value: str) -> str:
+    text = str(value).strip() or "[]"
+    parsed = json.loads(text)
+    if not isinstance(parsed, list):
+        raise ValueError("Value must be a JSON array.")
+    return json.dumps(parsed, ensure_ascii=False)
+
+
 
 def _parse_stat_bonuses_json(value: str) -> str:
     text = str(value).strip() or "[]"
@@ -114,6 +173,36 @@ ITEM_FIELD_EDIT_CONFIG = {
     "itemSetPowerValueAction": ("itemDraft", "power_value", "Power Value", _parse_non_negative_int),
     "itemSetSpellNameAction": ("itemDraft", "power_spell_name", "Power Spell Name (optional)", _parse_optional_text),
     "itemSetStatBonusesAction": ("itemDraft", "stat_bonuses_json", "Stat Bonuses JSON", _parse_stat_bonuses_json),
+}
+
+
+
+COMPONENT_FIELD_EDIT_CONFIG = {
+    "attributesSetPhysicalPowerAction": ("attributesDraft", "physical_power", "Physical Power", _parse_non_negative_int),
+    "attributesSetPhysicalStaminaAction": ("attributesDraft", "physical_stamina", "Physical Stamina", _parse_non_negative_int),
+    "attributesSetPhysicalResistanceAction": ("attributesDraft", "physical_resistance", "Physical Resistance", _parse_non_negative_int),
+    "attributesSetMagicPowerAction": ("attributesDraft", "magic_power", "Magic Power", _parse_non_negative_int),
+    "attributesSetMagicStaminaAction": ("attributesDraft", "magic_stamina", "Magic Stamina", _parse_non_negative_int),
+    "attributesSetMagicResistanceAction": ("attributesDraft", "magic_resistance", "Magic Resistance", _parse_non_negative_int),
+    "gearSetHeadAction": ("gearDraft", "head", "Head Item Name", _parse_optional_text),
+    "gearSetNeckAction": ("gearDraft", "neck", "Neck Item Name", _parse_optional_text),
+    "gearSetBodyAction": ("gearDraft", "body", "Body Item Name", _parse_optional_text),
+    "gearSetHandsAction": ("gearDraft", "hands", "Hands Item Name", _parse_optional_text),
+    "gearSetRingAction": ("gearDraft", "ring", "Ring Item Name", _parse_optional_text),
+    "gearSetLegsAction": ("gearDraft", "legs", "Legs Item Name", _parse_optional_text),
+    "gearSetFeetAction": ("gearDraft", "feet", "Feet Item Name", _parse_optional_text),
+    "gearSetPrimaryWeaponAction": ("gearDraft", "primary_weapon", "Primary Weapon Name", _parse_optional_text),
+    "gearSetOffhandAction": ("gearDraft", "offhand", "Offhand Item Name", _parse_optional_text),
+    "gearSetInventoryAction": ("gearDraft", "inventory_json", "Inventory JSON", _parse_json_list),
+    "bonusSetBonusTypeAction": ("bonusDraft", "bonus_type", "Bonus Type", _parse_non_empty_text),
+    "bonusSetAttributeBonusAction": ("bonusDraft", "attribute_bonus_json", "Attribute Bonus JSON", _parse_json_object),
+    "bonusSetAffinitiesAction": ("bonusDraft", "affinities_json", "Affinities JSON", _parse_json_object),
+    "bonusSetNanoMultiplierAction": ("bonusDraft", "nano_multiplier", "Nano Multiplier", _parse_float),
+    "bonusSetReasonAction": ("bonusDraft", "reason", "Reason", _parse_optional_text),
+    "bonusSetPermanentAction": ("bonusDraft", "permanent", "Permanent (yes/no)", _parse_bool_yes_no),
+    "achievementSetNameAction": ("achievementDraft", "name", "Achievement Name", _parse_non_empty_text),
+    "achievementSetTitleAction": ("achievementDraft", "title", "Achievement Title", _parse_optional_text),
+    "achievementSetBonusAction": ("achievementDraft", "bonus_json", "Bonus JSON", _parse_json_object),
 }
 
 ITEM_ENUM_ACTIONS = {
@@ -486,6 +575,48 @@ class MenuRuntimeService:
         menu_context.itemDraftActive = False
         menu_context.itemDraftSourceName = None
 
+
+
+    @staticmethod
+    def _start_attributes_draft(menu_context: MenuContext):
+        menu_context.attributesDraft = dict(ATTRIBUTES_DRAFT_DEFAULTS)
+        menu_context.attributesDraftActive = True
+
+    @staticmethod
+    def _clear_attributes_draft(menu_context: MenuContext):
+        menu_context.attributesDraft = {}
+        menu_context.attributesDraftActive = False
+
+    @staticmethod
+    def _start_gear_draft(menu_context: MenuContext):
+        menu_context.gearDraft = dict(GEAR_DRAFT_DEFAULTS)
+        menu_context.gearDraftActive = True
+
+    @staticmethod
+    def _clear_gear_draft(menu_context: MenuContext):
+        menu_context.gearDraft = {}
+        menu_context.gearDraftActive = False
+
+    @staticmethod
+    def _start_bonus_draft(menu_context: MenuContext):
+        menu_context.bonusDraft = dict(BONUS_DRAFT_DEFAULTS)
+        menu_context.bonusDraftActive = True
+
+    @staticmethod
+    def _clear_bonus_draft(menu_context: MenuContext):
+        menu_context.bonusDraft = {}
+        menu_context.bonusDraftActive = False
+
+    @staticmethod
+    def _start_achievement_draft(menu_context: MenuContext):
+        menu_context.achievementDraft = dict(ACHIEVEMENT_DRAFT_DEFAULTS)
+        menu_context.achievementDraftActive = True
+
+    @staticmethod
+    def _clear_achievement_draft(menu_context: MenuContext):
+        menu_context.achievementDraft = {}
+        menu_context.achievementDraftActive = False
+
     def _refresh_spellbook_overview(self):
         self.context.spellbook_overview = self.spell_service.build_spellbook_overview()
 
@@ -577,6 +708,68 @@ class MenuRuntimeService:
             self._refresh_itembook_overview()
             return menu.parent if menu.parent is not None else menu, False, True
 
+
+
+        if menu.uniqueName == "attributesEditorMenu":
+            if not original_message.menuContext.attributesDraftActive:
+                self._start_attributes_draft(original_message.menuContext)
+            return menu, True, False
+
+        if menu.uniqueName == "gearEditorMenu":
+            if not original_message.menuContext.gearDraftActive:
+                self._start_gear_draft(original_message.menuContext)
+            return menu, True, False
+
+        if menu.uniqueName == "bonusEditorMenu":
+            if not original_message.menuContext.bonusDraftActive:
+                self._start_bonus_draft(original_message.menuContext)
+            return menu, True, False
+
+        if menu.uniqueName == "achievementEditorMenu":
+            if not original_message.menuContext.achievementDraftActive:
+                self._start_achievement_draft(original_message.menuContext)
+            return menu, True, False
+
+        if menu.uniqueName == "attributesTempSaveAction":
+            self._clear_attributes_draft(original_message.menuContext)
+            await interface.send_ephemeral("Attributes saved for this session only (not persisted).")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "attributesTempCancelAction":
+            self._clear_attributes_draft(original_message.menuContext)
+            await interface.send_ephemeral("Attributes editor cancelled.")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "gearTempSaveAction":
+            self._clear_gear_draft(original_message.menuContext)
+            await interface.send_ephemeral("Gear saved for this session only (not persisted).")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "gearTempCancelAction":
+            self._clear_gear_draft(original_message.menuContext)
+            await interface.send_ephemeral("Gear editor cancelled.")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "bonusTempSaveAction":
+            self._clear_bonus_draft(original_message.menuContext)
+            await interface.send_ephemeral("Bonus saved for this session only (not persisted).")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "bonusTempCancelAction":
+            self._clear_bonus_draft(original_message.menuContext)
+            await interface.send_ephemeral("Bonus editor cancelled.")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "achievementTempSaveAction":
+            self._clear_achievement_draft(original_message.menuContext)
+            await interface.send_ephemeral("Achievement saved for this session only (not persisted).")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
+        if menu.uniqueName == "achievementTempCancelAction":
+            self._clear_achievement_draft(original_message.menuContext)
+            await interface.send_ephemeral("Achievement editor cancelled.")
+            return self.context.menus_by_name.get("mainMenu", menu), True, True
+
         if menu.uniqueName in ITEM_ENUM_ACTIONS:
             if not original_message.is_developer_admin:
                 await interface.send_ephemeral("You are not authorized to edit items.")
@@ -585,7 +778,7 @@ class MenuRuntimeService:
             field_key, value = ITEM_ENUM_ACTIONS[menu.uniqueName]
             original_message.menuContext.itemDraft[field_key] = value
             return menu.parent if menu.parent is not None else menu, True, False
-        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG:
+        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG or menu.uniqueName in COMPONENT_FIELD_EDIT_CONFIG:
             if not original_message.is_developer_admin:
                 await interface.send_ephemeral("You are not authorized to edit drafts.")
                 return menu.parent if menu.parent is not None else menu, False, True
@@ -595,9 +788,12 @@ class MenuRuntimeService:
                     draft_attr = "spellDraft"
                     field_key, field_label, parser = SPELL_FIELD_EDIT_CONFIG[menu.uniqueName]
                     modal_title = "Edit Spell Field"
-                else:
+                elif menu.uniqueName in ITEM_FIELD_EDIT_CONFIG:
                     draft_attr, field_key, field_label, parser = ITEM_FIELD_EDIT_CONFIG[menu.uniqueName]
                     modal_title = "Edit Item Field"
+                else:
+                    draft_attr, field_key, field_label, parser = COMPONENT_FIELD_EDIT_CONFIG[menu.uniqueName]
+                    modal_title = "Edit Field"
                 return_menu = menu.parent if menu.parent is not None else menu
                 await interface.interaction.response.send_modal(
                     FieldEditModal(
@@ -669,6 +865,22 @@ class MenuRuntimeService:
                 was_edit = bool(original_message.menuContext.itemDraftSourceName)
                 self._clear_item_draft(original_message.menuContext)
                 await interface.send_ephemeral("Item edit cancelled." if was_edit else "Item creation cancelled.")
+                response_consumed = True
+            if menu.uniqueName == "mainMenu" and original_message.menuContext.attributesDraftActive:
+                self._clear_attributes_draft(original_message.menuContext)
+                await interface.send_ephemeral("Attributes editor cancelled.")
+                response_consumed = True
+            if menu.uniqueName == "mainMenu" and original_message.menuContext.gearDraftActive:
+                self._clear_gear_draft(original_message.menuContext)
+                await interface.send_ephemeral("Gear editor cancelled.")
+                response_consumed = True
+            if menu.uniqueName == "mainMenu" and original_message.menuContext.bonusDraftActive:
+                self._clear_bonus_draft(original_message.menuContext)
+                await interface.send_ephemeral("Bonus editor cancelled.")
+                response_consumed = True
+            if menu.uniqueName == "mainMenu" and original_message.menuContext.achievementDraftActive:
+                self._clear_achievement_draft(original_message.menuContext)
+                await interface.send_ephemeral("Achievement editor cancelled.")
                 response_consumed = True
             if not response_consumed:
                 await interface.before_update()

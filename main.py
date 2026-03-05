@@ -15,6 +15,7 @@ from src.services.menu_service import MenuService
 from src.services.player_service import PlayerService
 from src.services.spell_service import SpellService
 from src.services.whitelist_service import AdminWhitelistService
+from src.tools.admin_gui import start_admin_gui_thread
 
 
 load_dotenv()
@@ -51,6 +52,8 @@ menu_service = MenuService(
     emoji_placeholders=EMOJI_PLACEHOLDERS,
     context=context,
 )
+_is_initialized = False
+
 menu_runtime_service = MenuRuntimeService(
     menu_service=menu_service,
     player_service=player_service,
@@ -62,11 +65,16 @@ menu_runtime_service = MenuRuntimeService(
 
 
 def initialize_game():
+    global _is_initialized
+    if _is_initialized:
+        return
+
     whitelist_service.load()
     player_service.initialize_storage()
     spell_service.load_spellbook()
     item_service.load_itembook(default_items=dict(context.all_items))
     menu_service.load_menus()
+    _is_initialized = True
 
 
 @app_commands.command(name="play", description="Displays an interactive menu")
@@ -118,5 +126,7 @@ async def on_ready():
 
 TOKEN = os.getenv("BOT_TOKEN")
 if __name__ == "__main__":
+    initialize_game()
+    start_admin_gui_thread(spell_service=spell_service, item_service=item_service)
     bot.run(TOKEN)
 

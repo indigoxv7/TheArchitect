@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Set Neck",
+    "uniqueName": "gearSetNeckAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "gearEditorMenu",
+    "developerOnly": true
+}

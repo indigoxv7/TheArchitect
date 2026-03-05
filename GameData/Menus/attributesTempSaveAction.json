@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Done",
+    "uniqueName": "attributesTempSaveAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "attributesEditorMenu",
+    "developerOnly": true
+}

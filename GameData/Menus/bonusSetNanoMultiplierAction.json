@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u270d",
+    "myOptionText": "Set Nano Multiplier",
+    "uniqueName": "bonusSetNanoMultiplierAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Opens a prompt to enter this field value.",
+    "parentName": "bonusEditorMenu",
+    "developerOnly": true
+}

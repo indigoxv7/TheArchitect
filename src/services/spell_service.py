@@ -1,4 +1,4 @@
-﻿from src.domain.Spells import Spell
+from src.domain.Spells import Spell
 from src.persistence.spellbook_store import SpellbookStore
 from src.services.game_context import GameContext
 
@@ -65,7 +65,8 @@ class SpellService:
 
         lines = []
         for spell in spells[:max_lines]:
-            lines.append(f"- {spell.name} (Lv {spell.level}, {spell.affinity})")
+            affinity_value = spell.affinity.value if hasattr(spell.affinity, "value") else spell.affinity
+            lines.append(f"- {spell.name} (Lv {spell.level}, {affinity_value})")
 
         if len(spells) > max_lines:
             lines.append(f"... and {len(spells) - max_lines} more")

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Done",
+    "uniqueName": "bonusTempSaveAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "bonusEditorMenu",
+    "developerOnly": true
+}

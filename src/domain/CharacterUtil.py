@@ -94,7 +94,7 @@ class AttributeBonus:
 
 
 class Attributes:
-    def __init__(self, physicalPower: float, physicalStamina: float, physicalResistance: float, magicPower: float, magicStamina: float, magicResistance: float):
+    def __init__(self, physicalPower: float = 5, physicalStamina: float = 5, physicalResistance: float = 5, magicPower: float = 5, magicStamina: float = 5, magicResistance: float = 5):
         self.physicalPower = physicalPower
         self.physicalStamina = physicalStamina
         self.physicalResistance = physicalResistance
@@ -141,7 +141,7 @@ class Attributes:
 
 # each value is a percentage, from 0.01 at the lowest to 0.9 at the highest.
 class Affinities:
-    def __init__(self, chi: float, mana: float, psi: float, aether: float):
+    def __init__(self, chi: float = 0.5, mana: float = 0.5, psi: float = 0.5, aether: float = 0.5):
         self.chi = chi
         self.mana = mana
         self.psi = psi
@@ -222,4 +222,11 @@ class Achievement:
         self.name = name
         self.bonus = bonus
         self.title = title
+
+
+class CharacterStatistics:
+    def __init__(self, kills: int = 0, damageTaken: int = 0,  missionCount: int = 0):
+        self.kills = kills
+        self.damageTaken = damageTaken
+        self.missionCount = missionCount
 

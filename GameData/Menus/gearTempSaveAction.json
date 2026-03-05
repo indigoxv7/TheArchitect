@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u2705",
+    "myOptionText": "Done",
+    "uniqueName": "gearTempSaveAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "gearEditorMenu",
+    "developerOnly": true
+}

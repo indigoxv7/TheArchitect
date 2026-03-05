@@ -36,14 +36,13 @@ class Character:
     footerImageURL: str
 
     def __init__(self, name: str, attributes: Attributes, level:  int = 0, raceTier: str = "Tier I",
-                 affinities: Affinities = None, combatClass: str = "None", gear: Gear = None,
-                 achievements=list[Achievement], generalSkills: list[GeneralSkills] = None, spells: list[Spell] = None, party: int = 0, buffs: list[Buff] = None):
+                 affinities: Affinities = None, gear: Gear = None,
+                 achievements=list[Achievement], generalSkills: list[GeneralSkills] = None, spells: list[Spell] = None, party: int = 0, buffs: list[Buff] = None, stats: CharacterStatistics = None):
         self.name = name
         self.attributes = attributes
         self.level = level
         self.raceTier = raceTier
         self.affinities = affinities
-        self.combatClass = combatClass
         self.gear = gear
         self.activeAchievementTitle = ""
         self.achievements = []
@@ -66,6 +65,7 @@ class Character:
         if buffs is not None:
             self.buffs = buffs
         self.totalBonus = TotalBonus(None)
+        self.stats = stats
         self.finalAttributes = copy.deepcopy(attributes)
         self.finalAffinities = copy.deepcopy(affinities)
         self.CalculateBonus()

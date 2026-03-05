@@ -1,0 +1,20 @@
+{
+    "myEmoji": "\ud83e\uddee",
+    "myOptionText": "Attributes Editor",
+    "uniqueName": "attributesEditorMenu",
+    "Options": [
+        "attributesSetPhysicalPowerAction",
+        "attributesSetPhysicalStaminaAction",
+        "attributesSetPhysicalResistanceAction",
+        "attributesSetMagicPowerAction",
+        "attributesSetMagicStaminaAction",
+        "attributesSetMagicResistanceAction",
+        "attributesTempSaveAction",
+        "attributesTempCancelAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Edit temporary Attributes draft:\n$attributesDraftSummary\n\nThis editor is temporary and does not persist yet.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

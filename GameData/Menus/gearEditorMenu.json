@@ -1,0 +1,24 @@
+{
+    "myEmoji": "\ud83e\udde5",
+    "myOptionText": "Gear Editor",
+    "uniqueName": "gearEditorMenu",
+    "Options": [
+        "gearSetHeadAction",
+        "gearSetNeckAction",
+        "gearSetBodyAction",
+        "gearSetHandsAction",
+        "gearSetRingAction",
+        "gearSetLegsAction",
+        "gearSetFeetAction",
+        "gearSetPrimaryWeaponAction",
+        "gearSetOffhandAction",
+        "gearSetInventoryAction",
+        "gearTempSaveAction",
+        "gearTempCancelAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Edit temporary Gear draft:\n$gearDraftSummary\n\nThis editor is temporary and does not persist yet.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

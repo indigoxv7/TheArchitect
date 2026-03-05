@@ -81,7 +81,7 @@
         },
         {
             "name": "Butcher Knife",
-            "slot": "HANDS",
+            "slot": "FEET",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],

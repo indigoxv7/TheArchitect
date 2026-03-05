@@ -1,0 +1,20 @@
+{
+    "myEmoji": "\ud83d\udca0",
+    "myOptionText": "Bonus Editor",
+    "uniqueName": "bonusEditorMenu",
+    "Options": [
+        "bonusSetBonusTypeAction",
+        "bonusSetAttributeBonusAction",
+        "bonusSetAffinitiesAction",
+        "bonusSetNanoMultiplierAction",
+        "bonusSetReasonAction",
+        "bonusSetPermanentAction",
+        "bonusTempSaveAction",
+        "bonusTempCancelAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Edit temporary Bonus draft:\n$bonusDraftSummary\n\nThis editor is temporary and does not persist yet.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u274c",
+    "myOptionText": "Cancel",
+    "uniqueName": "gearTempCancelAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "gearEditorMenu",
+    "developerOnly": true
+}

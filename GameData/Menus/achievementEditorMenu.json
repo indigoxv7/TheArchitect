@@ -1,0 +1,17 @@
+{
+    "myEmoji": "\ud83c\udfc6",
+    "myOptionText": "Achievement Editor",
+    "uniqueName": "achievementEditorMenu",
+    "Options": [
+        "achievementSetNameAction",
+        "achievementSetTitleAction",
+        "achievementSetBonusAction",
+        "achievementTempSaveAction",
+        "achievementTempCancelAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Edit temporary Achievement draft:\n$achievementDraftSummary\n\nThis editor is temporary and does not persist yet.",
+    "parentName": "mainMenu",
+    "developerOnly": true
+}

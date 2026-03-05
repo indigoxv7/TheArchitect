@@ -1,0 +1,11 @@
+{
+    "myEmoji": "\u274c",
+    "myOptionText": "Cancel",
+    "uniqueName": "achievementTempCancelAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": null,
+    "bodyText": "Temporary action for editor testing.",
+    "parentName": "achievementEditorMenu",
+    "developerOnly": true
+}
