@@ -62,6 +62,14 @@ class SpellEditorFrame(ttk.Frame):
         ttk.Button(top, text="Back", command=self.app.show_home).pack(side=tk.LEFT)
         ttk.Label(top, text="Spell Editor", font=("Segoe UI", 13, "bold")).pack(side=tk.LEFT, padx=10)
 
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, pady=4)
+        ttk.Label(search_row, text="Search", width=18).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self.refresh_spell_list(reset_form=False))
+
         filter_row = ttk.Frame(self)
         filter_row.pack(fill=tk.X, pady=4)
         ttk.Label(filter_row, text="Filter Affinity", width=18).pack(side=tk.LEFT)
@@ -78,15 +86,11 @@ class SpellEditorFrame(ttk.Frame):
 
         pick_row = ttk.Frame(self)
         pick_row.pack(fill=tk.X, pady=4)
-        ttk.Label(pick_row, text="Select/Search Spell", width=18).pack(side=tk.LEFT)
+        ttk.Label(pick_row, text="Select Spell", width=18).pack(side=tk.LEFT)
         self.pick_var = tk.StringVar(value="<New Spell>")
-        self.pick = ttk.Combobox(pick_row, state="normal", textvariable=self.pick_var)
+        self.pick = ttk.Combobox(pick_row, state="readonly", textvariable=self.pick_var)
         self.pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.pick.bind("<<ComboboxSelected>>", self._on_pick)
-        self.pick.bind("<FocusIn>", self._on_pick_focus)
-        self.pick.bind("<Button-1>", self._on_pick_click)
-        self.pick.bind("<KeyRelease>", self._on_pick_text_changed)
-        self.pick.bind("<Return>", self._on_pick_enter)
 
         self.vars = {
             "name": tk.StringVar(),
@@ -134,6 +138,7 @@ class SpellEditorFrame(ttk.Frame):
         ttk.Button(self, text="Save Spell", command=self._save).pack(fill=tk.X, pady=8)
 
     def _clear_filters(self):
+        self.search_var.set("")
         self.affinity_filter_var.set("All")
         self.pick_var.set("<New Spell>")
         self.refresh_spell_list(reset_form=False)
@@ -149,9 +154,7 @@ class SpellEditorFrame(ttk.Frame):
         self.vars["somatic"].set("False")
 
     def _filtered_spells(self):
-        query = self.pick_var.get().strip().lower()
-        if query == "<new spell>":
-            query = ""
+        query = self.search_var.get().strip().lower()
         affinity_filter = self.affinity_filter_var.get().strip()
 
         spells = self.app.spell_service.list_spells()
@@ -171,44 +174,8 @@ class SpellEditorFrame(ttk.Frame):
         if reset_form:
             self.pick_var.set("<New Spell>")
             self._clear_form()
-
-    def _show_dropdown(self):
-        try:
-            self.pick.tk.call("ttk::combobox::Post", self.pick)
-        except tk.TclError:
-            return
-        self.after_idle(self._restore_pick_focus)
-    def _restore_pick_focus(self):
-        try:
-            cursor_pos = self.pick.index(tk.INSERT)
-        except tk.TclError:
-            cursor_pos = len(self.pick_var.get())
-        try:
-            self.pick.focus_set()
-            self.pick.icursor(cursor_pos)
-        except tk.TclError:
-            pass
-
-    def _on_pick_focus(self, _evt=None):
-        self.after_idle(lambda: self.pick.selection_range(0, tk.END))
-
-    def _on_pick_click(self, _evt=None):
-        self.after_idle(lambda: self.pick.selection_range(0, tk.END))
-        self.after_idle(self._show_dropdown)
-
-
-    def _on_pick_text_changed(self, _evt=None):
-        self.refresh_spell_list(reset_form=False)
-        if self.focus_get() == self.pick:
-            self._show_dropdown()
-
-    def _on_pick_enter(self, _evt=None):
-        values = list(self.pick.cget("values"))
-        top_existing = next((name for name in values if name != "<New Spell>"), None)
-        if top_existing:
-            self.pick_var.set(top_existing)
-            self._on_pick()
-        return "break"
+        elif self.pick_var.get() not in names:
+            self.pick_var.set("<New Spell>")
 
     def _on_pick(self, _evt=None):
         name = self.pick.get().strip()
@@ -218,17 +185,11 @@ class SpellEditorFrame(ttk.Frame):
 
         spell = self.app.spell_service.get_spell(name)
         if spell is None:
-            for candidate in self.app.spell_service.list_spells():
-                if candidate.name.lower() == name.lower():
-                    spell = candidate
-                    break
-        if spell is None:
             return
 
         d = spell.to_dict()
         c = d.get("components", {})
-        self.current_name = spell.name
-        self.pick_var.set(spell.name)
+        self.current_name = name
         self.vars["name"].set(d.get("name", ""))
         self.vars["level"].set(str(d.get("level", 0)))
         self.vars["power"].set(str(d.get("power", "")))
@@ -281,6 +242,14 @@ class ItemEditorFrame(ttk.Frame):
         ttk.Button(top, text="Back", command=self.app.show_home).pack(side=tk.LEFT)
         ttk.Label(top, text="Item Editor", font=("Segoe UI", 13, "bold")).pack(side=tk.LEFT, padx=10)
 
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, pady=4)
+        ttk.Label(search_row, text="Search", width=18).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self.refresh_item_list(reset_form=False))
+
         filter_row = ttk.Frame(self)
         filter_row.pack(fill=tk.X, pady=4)
         ttk.Label(filter_row, text="Filter Slot", width=18).pack(side=tk.LEFT)
@@ -297,15 +266,11 @@ class ItemEditorFrame(ttk.Frame):
 
         pick_row = ttk.Frame(self)
         pick_row.pack(fill=tk.X, pady=4)
-        ttk.Label(pick_row, text="Select/Search Item", width=18).pack(side=tk.LEFT)
+        ttk.Label(pick_row, text="Select Item", width=18).pack(side=tk.LEFT)
         self.pick_var = tk.StringVar(value="<New Item>")
-        self.pick = ttk.Combobox(pick_row, state="normal", textvariable=self.pick_var)
+        self.pick = ttk.Combobox(pick_row, state="readonly", textvariable=self.pick_var)
         self.pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.pick.bind("<<ComboboxSelected>>", self._on_pick)
-        self.pick.bind("<FocusIn>", self._on_pick_focus)
-        self.pick.bind("<Button-1>", self._on_pick_click)
-        self.pick.bind("<KeyRelease>", self._on_pick_text_changed)
-        self.pick.bind("<Return>", self._on_pick_enter)
 
         self.vars = {
             "name": tk.StringVar(),
@@ -344,6 +309,7 @@ class ItemEditorFrame(ttk.Frame):
         ttk.Combobox(row, state="readonly", values=values, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
     def _clear_filters(self):
+        self.search_var.set("")
         self.slot_filter_var.set("All")
         self.pick_var.set("<New Item>")
         self.refresh_item_list(reset_form=False)
@@ -362,9 +328,7 @@ class ItemEditorFrame(ttk.Frame):
         self.vars["statBonuses"].set("[]")
 
     def _filtered_items(self):
-        query = self.pick_var.get().strip().lower()
-        if query == "<new item>":
-            query = ""
+        query = self.search_var.get().strip().lower()
         slot_filter = self.slot_filter_var.get().strip()
 
         items = self.app.item_service.list_items()
@@ -384,44 +348,8 @@ class ItemEditorFrame(ttk.Frame):
         if reset_form:
             self.pick_var.set("<New Item>")
             self._clear_form()
-
-    def _show_dropdown(self):
-        try:
-            self.pick.tk.call("ttk::combobox::Post", self.pick)
-        except tk.TclError:
-            return
-        self.after_idle(self._restore_pick_focus)
-    def _restore_pick_focus(self):
-        try:
-            cursor_pos = self.pick.index(tk.INSERT)
-        except tk.TclError:
-            cursor_pos = len(self.pick_var.get())
-        try:
-            self.pick.focus_set()
-            self.pick.icursor(cursor_pos)
-        except tk.TclError:
-            pass
-
-    def _on_pick_focus(self, _evt=None):
-        self.after_idle(lambda: self.pick.selection_range(0, tk.END))
-
-    def _on_pick_click(self, _evt=None):
-        self.after_idle(lambda: self.pick.selection_range(0, tk.END))
-        self.after_idle(self._show_dropdown)
-
-
-    def _on_pick_text_changed(self, _evt=None):
-        self.refresh_item_list(reset_form=False)
-        if self.focus_get() == self.pick:
-            self._show_dropdown()
-
-    def _on_pick_enter(self, _evt=None):
-        values = list(self.pick.cget("values"))
-        top_existing = next((name for name in values if name != "<New Item>"), None)
-        if top_existing:
-            self.pick_var.set(top_existing)
-            self._on_pick()
-        return "break"
+        elif self.pick_var.get() not in names:
+            self.pick_var.set("<New Item>")
 
     def _on_pick(self, _evt=None):
         selected = self.pick.get().strip()
@@ -431,17 +359,11 @@ class ItemEditorFrame(ttk.Frame):
 
         item = self.app.item_service.get_item(selected)
         if item is None:
-            for candidate in self.app.item_service.list_items():
-                if candidate.name.lower() == selected.lower():
-                    item = candidate
-                    break
-        if item is None:
             return
 
         data = item.to_dict()
         power = data.get("itemPower", [{}])[0] if data.get("itemPower") else {}
-        self.current_name = item.name
-        self.pick_var.set(item.name)
+        self.current_name = selected
         self.vars["name"].set(data.get("name", ""))
         self.vars["slot"].set(data.get("slot", EquipSlot.NOT_EQUIPABLE.name))
         self.vars["tier"].set(str(data.get("tier", 0)))
@@ -500,6 +422,3 @@ def start_admin_gui_thread(spell_service, item_service):
     thread = threading.Thread(target=_run_gui, name="AdminEditorGUI", daemon=True)
     thread.start()
     return thread
-
-
-
