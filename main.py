@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 
 from dotenv import load_dotenv
@@ -140,5 +140,7 @@ if __name__ == "__main__":
         item_service=item_service,
         character_service=character_service,
         achievement_service=achievement_service,
+        player_service=player_service,
     )
     bot.run(TOKEN)
+

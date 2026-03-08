@@ -12,6 +12,7 @@ from src.domain.CharacterUtil import (
     EquipSlot,
     ItemType,
     PowerType,
+    TitlePreference,
 )
 from src.domain.Spells import AffinityTypes
 from src.domain.character_io import character_to_state
@@ -191,11 +192,12 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
         self.achievement_service = achievement_service
+        self.player_service = player_service
 
         self.root = tk.Tk()
         self.root.title("TheArchitect Admin Editor")
@@ -208,6 +210,7 @@ class AdminEditorApp:
         self.spell_frame = SpellEditorFrame(self.container, self)
         self.item_frame = ItemEditorFrame(self.container, self)
         self.character_frame = CharacterEditorFrame(self.container, self)
+        self.player_frame = PlayerEditorFrame(self.container, self)
         self.achievement_frame = AchievementBookFrame(self.container, self)
 
         self._build_home()
@@ -218,10 +221,18 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Spells", command=self.show_spell_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Items", command=self.show_item_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Characters", command=self.show_character_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Edit Players", command=self.show_player_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Achievements", command=self.show_achievement_editor).pack(fill=tk.X, pady=6)
 
     def _show(self, frame):
-        for child in (self.home_frame, self.spell_frame, self.item_frame, self.character_frame, self.achievement_frame):
+        for child in (
+            self.home_frame,
+            self.spell_frame,
+            self.item_frame,
+            self.character_frame,
+            self.player_frame,
+            self.achievement_frame,
+        ):
             child.pack_forget()
         frame.pack(fill=tk.BOTH, expand=True)
 
@@ -240,12 +251,17 @@ class AdminEditorApp:
         self.character_frame.refresh_character_list(reset_form=True)
         self._show(self.character_frame)
 
+    def show_player_editor(self):
+        self.player_frame.refresh_player_list(reset_form=True)
+        self._show(self.player_frame)
+
     def show_achievement_editor(self):
         self.achievement_frame.refresh_achievement_list(reset_form=True)
         self._show(self.achievement_frame)
 
     def run(self):
         self.root.mainloop()
+
 
 class SpellEditorFrame(ttk.Frame):
     def __init__(self, parent, app):
@@ -1701,10 +1717,472 @@ class CharacterEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Character Editor", f"Failed to save character: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service):
+class CharacterPickerDialog(tk.Toplevel):
+    def __init__(self, parent, character_service, on_select):
+        super().__init__(parent)
+        self.title("Add Character")
+        self.geometry("760x500")
+        self.character_service = character_service
+        self.on_select = on_select
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Add Selected", command=self._add_selected).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for character_id, character in self.character_service.list_characters():
+            name = str(getattr(character, "name", "") or "")
+            level = int(_safe_int(getattr(character, "level", 0), 0))
+            display = f"{name} [{character_id}] (Lv {level})"
+            if query and query not in display.lower():
+                continue
+            self.filtered.append((character_id, character))
+            self.listbox.insert(tk.END, display)
+
+    def _add_selected(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Add Character", "Select a character to add.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        character_id, _ = self.filtered[index]
+        self.on_select(character_id)
+        self.destroy()
+
+
+class ItemPickerDialog(tk.Toplevel):
+    def __init__(self, parent, item_service, on_select):
+        super().__init__(parent)
+        self.title("Add Inventory Item")
+        self.geometry("760x500")
+        self.item_service = item_service
+        self.on_select = on_select
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Add Selected", command=self._add_selected).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for item in self.item_service.list_items():
+            label = self.item_service.get_item_label(item)
+            if query and query not in label.lower():
+                continue
+            self.filtered.append(item)
+            self.listbox.insert(tk.END, label)
+
+    def _add_selected(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Add Inventory Item", "Select an item to add.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        item = self.filtered[index]
+        self.on_select(item.itemId)
+        self.destroy()
+
+
+class PlayerEditorFrame(ttk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self.current_player_id = None
+        self.current_player = None
+        self.characters_draft = []
+        self.inventory_draft = []
+
+        top = ttk.Frame(self)
+        top.pack(fill=tk.X, pady=(0, 8))
+        ttk.Button(top, text="Back", command=self.app.show_home).pack(side=tk.LEFT)
+        ttk.Label(top, text="Player Editor", font=("Segoe UI", 13, "bold")).pack(side=tk.LEFT, padx=10)
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, pady=4)
+        ttk.Label(search_row, text="Search", width=18).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self.refresh_player_list(reset_form=False))
+
+        pick_row = ttk.Frame(self)
+        pick_row.pack(fill=tk.X, pady=4)
+        ttk.Label(pick_row, text="Select Player", width=18).pack(side=tk.LEFT)
+        self.pick_var = tk.StringVar(value="<Select Player>")
+        self.pick = ttk.Combobox(pick_row, state="readonly", textvariable=self.pick_var)
+        self.pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.pick.bind("<<ComboboxSelected>>", self._on_pick)
+
+        self.discord_id_var = tk.StringVar(value="")
+        self._row_entry("Discord ID", self.discord_id_var, state="readonly")
+
+        self.vars = {
+            "playerName": tk.StringVar(),
+            "nano": tk.StringVar(value="0"),
+            "energy": tk.StringVar(value="100"),
+            "energyCap": tk.StringVar(value="100"),
+            "energyLastCalculatedTime": tk.StringVar(value="0"),
+            "energyRegenRatePerSecond": tk.StringVar(value=str(1.0 / 60.0)),
+            "titlePreference": tk.StringVar(value=TitlePreference.Masculine.name),
+            "achievementTitle": tk.StringVar(),
+            "isNewPlayer": tk.StringVar(value="False"),
+            "intChoice": tk.StringVar(value="0"),
+            "partyNames": tk.StringVar(value='["Delta Team", "2", "3", "4"]'),
+        }
+
+        self._row_entry("Player Name", self.vars["playerName"])
+        self._row_entry("Nano", self.vars["nano"])
+        self._row_entry("Energy", self.vars["energy"])
+        self._row_entry("Energy Cap", self.vars["energyCap"])
+        self._row_entry("Energy Last Time", self.vars["energyLastCalculatedTime"])
+        self._row_entry("Energy Regen / Sec", self.vars["energyRegenRatePerSecond"])
+        self._row_combo("Title Preference", self.vars["titlePreference"], [e.name for e in TitlePreference])
+        self._row_entry("Achievement Title", self.vars["achievementTitle"])
+        self._row_combo("Is New Player", self.vars["isNewPlayer"], ["True", "False"])
+        self._row_entry("Int Choice", self.vars["intChoice"])
+        self._row_entry("Party Names JSON", self.vars["partyNames"])
+
+        character_panel = ttk.LabelFrame(self, text="Owned Characters")
+        character_panel.pack(fill=tk.BOTH, expand=False, pady=6)
+        self.character_listbox = tk.Listbox(character_panel, height=6)
+        self.character_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        character_actions = ttk.Frame(character_panel)
+        character_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
+        ttk.Button(character_actions, text="Add Character", command=self._add_character).pack(side=tk.LEFT)
+        ttk.Button(character_actions, text="Remove Selected", command=self._remove_selected_character).pack(side=tk.LEFT, padx=6)
+
+        inventory_panel = ttk.LabelFrame(self, text="Inventory Items")
+        inventory_panel.pack(fill=tk.BOTH, expand=False, pady=6)
+        self.inventory_listbox = tk.Listbox(inventory_panel, height=8)
+        self.inventory_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        inventory_actions = ttk.Frame(inventory_panel)
+        inventory_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
+        ttk.Button(inventory_actions, text="Add Item", command=self._add_inventory_item).pack(side=tk.LEFT)
+        ttk.Button(inventory_actions, text="Remove Selected", command=self._remove_selected_inventory_item).pack(side=tk.LEFT, padx=6)
+
+        self.summary_var = tk.StringVar(value="No player selected.")
+        ttk.Label(self, textvariable=self.summary_var, justify=tk.LEFT, anchor="w").pack(fill=tk.X, pady=(2, 8))
+
+        ttk.Button(self, text="Save Player", command=self._save).pack(fill=tk.X, pady=8)
+        self._clear_form()
+
+    def _row_entry(self, label, var, state="normal"):
+        row = ttk.Frame(self)
+        row.pack(fill=tk.X, pady=2)
+        ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
+        ttk.Entry(row, textvariable=var, state=state).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def _row_combo(self, label, var, values):
+        row = ttk.Frame(self)
+        row.pack(fill=tk.X, pady=2)
+        ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
+        ttk.Combobox(row, state="readonly", values=values, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def _clear_form(self):
+        self.current_player_id = None
+        self.current_player = None
+        self.discord_id_var.set("")
+        self.vars["playerName"].set("")
+        self.vars["nano"].set("0")
+        self.vars["energy"].set("100")
+        self.vars["energyCap"].set("100")
+        self.vars["energyLastCalculatedTime"].set("0")
+        self.vars["energyRegenRatePerSecond"].set(str(1.0 / 60.0))
+        self.vars["titlePreference"].set(TitlePreference.Masculine.name)
+        self.vars["achievementTitle"].set("")
+        self.vars["isNewPlayer"].set("False")
+        self.vars["intChoice"].set("0")
+        self.vars["partyNames"].set('["Delta Team", "2", "3", "4"]')
+        self.characters_draft = []
+        self.inventory_draft = []
+        self._refresh_lists()
+
+    def _filtered_players(self):
+        query = self.search_var.get().strip().lower()
+        result = []
+        for player_id in self.app.player_service.list_known_player_ids():
+            player = self.app.player_service.get_player_sync(player_id)
+            if player is None:
+                continue
+            name = str(getattr(player, "playerName", "") or "").strip() or f"Player {player_id}"
+            label = f"{name} [{player_id}]"
+            if query and query not in label.lower():
+                continue
+            result.append((player_id, label))
+        return result
+
+    def refresh_player_list(self, reset_form: bool):
+        labels = ["<Select Player>"] + [label for _, label in self._filtered_players()]
+        self.pick["values"] = labels
+        if reset_form:
+            self.pick_var.set("<Select Player>")
+            self._clear_form()
+        elif self.pick_var.get() not in labels:
+            self.pick_var.set("<Select Player>")
+
+    def _normalize_character_entry(self, entry):
+        if entry is None:
+            return None
+        if hasattr(entry, "name") and hasattr(entry, "level"):
+            return entry
+        if isinstance(entry, str):
+            resolved = self.app.character_service.get_character(entry)
+            if resolved is not None:
+                return resolved
+        return None
+
+    def _normalize_inventory_entry(self, entry):
+        if entry is None:
+            return None
+        if hasattr(entry, "itemId") and hasattr(entry, "name"):
+            return entry
+        resolved = self.app.item_service.get_item(str(entry))
+        if resolved is not None:
+            return resolved
+        if isinstance(entry, (str, int, float)):
+            return str(entry)
+        return None
+
+    def _on_pick(self, _evt=None):
+        selected = self.pick.get().strip()
+        if selected == "<Select Player>":
+            self._clear_form()
+            return
+
+        try:
+            player_id = int(_parse_label_id(selected))
+        except Exception:
+            return
+
+        player = self.app.player_service.get_player_sync(player_id)
+        if player is None:
+            messagebox.showerror("Player Editor", f"Could not load player {player_id}.")
+            return
+
+        self.current_player_id = player_id
+        self.current_player = player
+        self.discord_id_var.set(str(player_id))
+        self.vars["playerName"].set(str(getattr(player, "playerName", "") or ""))
+        self.vars["nano"].set(str(_safe_int(getattr(player, "nano", 0), 0)))
+        self.vars["energy"].set(str(_safe_float(getattr(player, "energy", 0.0), 0.0)))
+        self.vars["energyCap"].set(str(_safe_float(getattr(player, "energyCap", 100.0), 100.0)))
+        self.vars["energyLastCalculatedTime"].set(str(_safe_float(getattr(player, "energyLastCalculatedTime", 0.0), 0.0)))
+        self.vars["energyRegenRatePerSecond"].set(str(_safe_float(getattr(player, "energyRegenRatePerSecond", 1.0 / 60.0), 1.0 / 60.0)))
+
+        title_pref = getattr(player, "titlePreference", TitlePreference.Masculine)
+        title_pref_name = getattr(title_pref, "name", TitlePreference.Masculine.name)
+        if title_pref_name not in TitlePreference.__members__:
+            title_pref_name = TitlePreference.Masculine.name
+        self.vars["titlePreference"].set(title_pref_name)
+
+        self.vars["achievementTitle"].set(str(getattr(player, "achievementTitle", "") or ""))
+        self.vars["isNewPlayer"].set("True" if bool(getattr(player, "isNewPlayer", False)) else "False")
+        self.vars["intChoice"].set(str(_safe_int(getattr(player, "intChoice", 0), 0)))
+
+        party_names = getattr(player, "partyNames", ["Delta Team", "2", "3", "4"])
+        if not isinstance(party_names, list):
+            party_names = ["Delta Team", "2", "3", "4"]
+        self.vars["partyNames"].set(json.dumps([str(name) for name in party_names], ensure_ascii=False))
+
+        self.characters_draft = []
+        for entry in getattr(player, "characters", []) or []:
+            normalized = self._normalize_character_entry(entry)
+            if normalized is not None:
+                self.characters_draft.append(normalized)
+
+        self.inventory_draft = []
+        for entry in getattr(player, "inventory", []) or []:
+            normalized = self._normalize_inventory_entry(entry)
+            if normalized is not None:
+                self.inventory_draft.append(normalized)
+
+        self._refresh_lists()
+
+    def _resolve_character_id(self, character_obj):
+        for character_id, character in self.app.character_service.list_characters():
+            if character is character_obj:
+                return character_id
+
+        target_name = str(getattr(character_obj, "name", "") or "").strip().lower()
+        if not target_name:
+            return None
+
+        matches = []
+        for character_id, character in self.app.character_service.list_characters():
+            candidate_name = str(getattr(character, "name", "") or "").strip().lower()
+            if candidate_name == target_name:
+                matches.append(character_id)
+        if len(matches) == 1:
+            return matches[0]
+        return None
+
+    def _character_label(self, character_obj) -> str:
+        character_id = self._resolve_character_id(character_obj)
+        name = str(getattr(character_obj, "name", "") or "").strip() or "<Unnamed>"
+        if character_id:
+            return f"{name} [{character_id}]"
+        return f"{name} [Unlinked]"
+
+    def _item_label(self, item_entry) -> str:
+        if hasattr(item_entry, "itemId") and hasattr(item_entry, "name"):
+            return self.app.item_service.get_item_label(item_entry)
+
+        resolved = self.app.item_service.get_item(str(item_entry))
+        if resolved is not None:
+            return self.app.item_service.get_item_label(resolved)
+
+        text = str(item_entry or "").strip() or "Unknown"
+        return f"{text} [Unlinked]"
+
+    def _refresh_lists(self):
+        self.character_listbox.delete(0, tk.END)
+        for character in self.characters_draft:
+            self.character_listbox.insert(tk.END, self._character_label(character))
+
+        self.inventory_listbox.delete(0, tk.END)
+        for item in self.inventory_draft:
+            self.inventory_listbox.insert(tk.END, self._item_label(item))
+
+        self.summary_var.set(
+            f"Characters: {len(self.characters_draft)} | Inventory Items: {len(self.inventory_draft)}"
+        )
+
+    def _add_character(self):
+        def _on_select(character_id: str):
+            character = self.app.character_service.get_character(character_id)
+            if character is None:
+                return
+            for existing in self.characters_draft:
+                if self._resolve_character_id(existing) == character_id:
+                    messagebox.showinfo("Player Editor", f"Character '{character.name}' is already assigned.")
+                    return
+            self.characters_draft.append(character)
+            self._refresh_lists()
+
+        CharacterPickerDialog(self, self.app.character_service, _on_select)
+
+    def _remove_selected_character(self):
+        selection = self.character_listbox.curselection()
+        if not selection:
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.characters_draft):
+            return
+        self.characters_draft.pop(index)
+        self._refresh_lists()
+
+    def _add_inventory_item(self):
+        def _on_select(item_id: str):
+            item = self.app.item_service.get_item(item_id)
+            if item is None:
+                return
+            self.inventory_draft.append(item)
+            self._refresh_lists()
+
+        ItemPickerDialog(self, self.app.item_service, _on_select)
+
+    def _remove_selected_inventory_item(self):
+        selection = self.inventory_listbox.curselection()
+        if not selection:
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.inventory_draft):
+            return
+        self.inventory_draft.pop(index)
+        self._refresh_lists()
+
+    def _save(self):
+        if self.current_player is None or self.current_player_id is None:
+            messagebox.showerror("Player Editor", "Select a player before saving.")
+            return
+
+        try:
+            party_names = json.loads(self.vars["partyNames"].get() or "[]")
+            if not isinstance(party_names, list):
+                raise ValueError("Party names must be a JSON list.")
+            party_names = [str(entry) for entry in party_names]
+        except Exception as exc:
+            messagebox.showerror("Player Editor", f"Invalid Party Names JSON: {exc}")
+            return
+
+        player = self.current_player
+        previous_autosave = bool(getattr(player, "_auto_save_enabled", False))
+        try:
+            player.SetAutoSaveEnabled(False)
+            player.playerName = str(self.vars["playerName"].get() or "").strip()
+            player.nano = _safe_int(self.vars["nano"].get(), 0)
+            player.energy = _safe_float(self.vars["energy"].get(), 0.0)
+            player.energyCap = max(0.0, _safe_float(self.vars["energyCap"].get(), 100.0))
+            player.energyLastCalculatedTime = _safe_float(self.vars["energyLastCalculatedTime"].get(), 0.0)
+            player.energyRegenRatePerSecond = _safe_float(self.vars["energyRegenRatePerSecond"].get(), 1.0 / 60.0)
+
+            title_preference_name = str(self.vars["titlePreference"].get() or TitlePreference.Masculine.name).strip()
+            if title_preference_name not in TitlePreference.__members__:
+                title_preference_name = TitlePreference.Masculine.name
+            player.titlePreference = TitlePreference[title_preference_name]
+
+            player.achievementTitle = str(self.vars["achievementTitle"].get() or "").strip()
+            player.isNewPlayer = self.vars["isNewPlayer"].get() == "True"
+            player.intChoice = _safe_int(self.vars["intChoice"].get(), 0)
+            player.partyNames = party_names
+            player.characters = list(self.characters_draft)
+            player.inventory = list(self.inventory_draft)
+        except Exception as exc:
+            messagebox.showerror("Player Editor", f"Failed to update player fields: {exc}")
+            player.SetAutoSaveEnabled(previous_autosave)
+            return
+
+        player.SetAutoSaveEnabled(previous_autosave)
+        try:
+            self.app.player_service.persist_player(player)
+            messagebox.showinfo("Player Editor", "Player saved.")
+            self.refresh_player_list(reset_form=False)
+            self.pick_var.set(f"{player.playerName} [{self.current_player_id}]")
+        except Exception as exc:
+            messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
+
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")
@@ -1712,10 +2190,4 @@ def start_admin_gui_thread(spell_service, item_service, character_service, achie
     thread = threading.Thread(target=_run_gui, name="AdminEditorGUI", daemon=True)
     thread.start()
     return thread
-
-
-
-
-
-
 

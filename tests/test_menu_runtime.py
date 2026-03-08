@@ -46,7 +46,7 @@ class TestMenuRuntime(unittest.TestCase):
 
         self.assertGreater(len(visible), 0)
 
-    def test_developer_only_menu_hidden_for_non_admin(self):
+    def test_editor_menus_hidden_from_main_menu_for_all_users(self):
         sample_player = Player(1)
         sample_player.playerName = "Tester"
 
@@ -55,18 +55,24 @@ class TestMenuRuntime(unittest.TestCase):
         non_admin_visible = [
             m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(game.context.root_menu, non_admin_message)
         ]
-        self.assertNotIn("spellbookMenu", non_admin_visible)
 
         admin_message = OriginalMessage(sample_player, is_developer_admin=True)
         game.menu_service.update_menu_values(admin_message, game.context.root_menu)
         admin_visible = [
             m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(game.context.root_menu, admin_message)
         ]
-        self.assertIn("spellbookMenu", admin_visible)
-        self.assertNotIn("itembookMenu", non_admin_visible)
-        self.assertIn("itembookMenu", admin_visible)
+
+        for hidden_editor_menu in (
+            "spellbookMenu",
+            "itembookMenu",
+            "attributesEditorMenu",
+            "gearEditorMenu",
+            "bonusEditorMenu",
+            "achievementEditorMenu",
+        ):
+            self.assertNotIn(hidden_editor_menu, non_admin_visible)
+            self.assertNotIn(hidden_editor_menu, admin_visible)
 
 
 if __name__ == "__main__":
     unittest.main()
-

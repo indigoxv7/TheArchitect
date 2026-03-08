@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 from typing import Optional
 
@@ -188,3 +188,41 @@ class PlayerService:
         new_player.Save()
         self.context.player_cache[discord_id] = new_player
         return new_player
+
+    def list_known_player_ids(self) -> list[int]:
+        ids: set[int] = set()
+        ids.update(int(player_id) for player_id in self.context.existing_players.keys())
+        ids.update(int(player_id) for player_id in self.context.player_cache.keys())
+        ids.update(self.roster_store.discover_save_ids())
+        return sorted(ids)
+
+    def get_player_sync(self, discord_id: int) -> Player | None:
+        if discord_id in self.context.player_cache:
+            return self.context.player_cache[discord_id]
+
+        player_save_path = self.get_player_save_path(discord_id)
+        if not os.path.exists(player_save_path):
+            return None
+
+        try:
+            player = load_player(player_save_path)
+        except Exception:
+            return None
+
+        player.AttachSavePath(player_save_path, enableAutoSave=True)
+        self.context.existing_players[discord_id] = True
+        self.context.player_cache[discord_id] = player
+        return player
+
+    def persist_player(self, player: Player):
+        discord_id = int(getattr(player, "discordID", 0))
+        if discord_id <= 0:
+            raise ValueError("Player must have a valid discordID before saving.")
+
+        player_save_path = self.get_player_save_path(discord_id)
+        player.AttachSavePath(player_save_path, enableAutoSave=getattr(player, "_auto_save_enabled", True))
+        player.Save()
+        self.context.existing_players[discord_id] = True
+        self.context.player_cache[discord_id] = player
+        self.save_existing_players_roster(self.existing_players_roster_path)
+
