@@ -1,12 +1,10 @@
-﻿{
-    "myEmoji":  "🎒",
-    "myOptionText":  "Inventory",
-    "uniqueName":  "mainInventory",
-    "Options":  [
-
-                ],
-    "menuState":  "DEFAULT",
-    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1273177201893965907/image.png?ex=66bdaa2b\u0026is=66bc58ab\u0026hm=1505bd075e5edf8409110e02894652f09d4b28a6094383296a57067752661d04\u0026=\u0026format=webp\u0026quality=lossless",
-    "bodyText":  "Rusty Dagger\nbat\nwater\nfood",
-    "parentName":  "mainMenu"
+{
+    "myEmoji": "\ud83c\udf92",
+    "myOptionText": "Inventory",
+    "uniqueName": "mainInventory",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "imageURL": "https://media.discordapp.net/attachments/886469391548559372/1273177201893965907/image.png?ex=66bdaa2b\u0026is=66bc58ab\u0026hm=1505bd075e5edf8409110e02894652f09d4b28a6094383296a57067752661d04\u0026=\u0026format=webp\u0026quality=lossless",
+    "bodyText": "Inventory ($inventoryCount items)\n$inventoryList",
+    "parentName": "mainMenu"
 }

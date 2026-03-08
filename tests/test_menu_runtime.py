@@ -3,6 +3,8 @@ import unittest
 from src.config import Globals
 import main as game
 from src.domain.player_functions import Player
+from src.domain.Items import Item
+from src.domain.CharacterUtil import EquipSlot
 from src.services.menu_runtime_service import OriginalMessage
 from src.ui.menu_functions import MenuContext, MenuState, load_menus_from_directory
 
@@ -24,6 +26,24 @@ class TestMenuRuntime(unittest.TestCase):
         self.assertNotIn("$nanoEmoji", replaced)
         self.assertNotIn(":nano:", replaced)
         self.assertNotIn("{nanoEmoji}", replaced)
+
+    def test_inventory_placeholder_uses_player_inventory(self):
+        sample_player = Player(2)
+        sample_player.playerName = "Tester"
+        sample_player.inventory = [
+            Item(name="Rusty Dagger", slot=EquipSlot.HANDS, itemId="RustyDagger0"),
+            "Mysterious Rock",
+        ]
+
+        rendered = game.menu_service.replace_placeholders(
+            "Inventory ($inventoryCount items)\n$inventoryList",
+            sample_player,
+            MenuContext(),
+        )
+
+        self.assertIn("Inventory (2 items)", rendered)
+        self.assertIn("1. Rusty Dagger [RustyDagger0]", rendered)
+        self.assertIn("2. Mysterious Rock", rendered)
 
     def test_menu_loader_builds_links_and_menu_state(self):
         menus = load_menus_from_directory("GameData/Menus")

@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from string import Template
 from typing import List, Optional
 
@@ -155,6 +155,60 @@ class MenuService:
         ]
         return "\n".join(lines)
 
+    def _resolve_inventory_entry_label(self, entry) -> str:
+        if entry is None:
+            return ""
+
+        if hasattr(entry, "name"):
+            name = str(getattr(entry, "name", "") or "").strip()
+            item_id = str(getattr(entry, "itemId", "") or "").strip()
+            if name and item_id:
+                return f"{name} [{item_id}]"
+            if name:
+                return name
+
+        raw = str(entry).strip()
+        if not raw:
+            return ""
+
+        by_id = self.context.all_items.get(raw)
+        if by_id is not None and hasattr(by_id, "name"):
+            name = str(getattr(by_id, "name", "") or "").strip()
+            item_id = str(getattr(by_id, "itemId", "") or "").strip()
+            if name and item_id:
+                return f"{name} [{item_id}]"
+            if name:
+                return name
+
+        item_ids = self.context.all_items_by_name.get(raw.lower(), [])
+        if len(item_ids) == 1:
+            resolved = self.context.all_items.get(item_ids[0])
+            if resolved is not None and hasattr(resolved, "name"):
+                name = str(getattr(resolved, "name", "") or "").strip()
+                item_id = str(getattr(resolved, "itemId", "") or "").strip()
+                if name and item_id:
+                    return f"{name} [{item_id}]"
+                if name:
+                    return name
+
+        return raw
+
+    def _inventory_summary(self, player: Player, max_items: int = 40) -> str:
+        inventory = getattr(player, "inventory", None)
+        if not isinstance(inventory, list) or not inventory:
+            return "Inventory is empty."
+
+        lines = []
+        visible_entries = inventory[:max_items]
+        for index, entry in enumerate(visible_entries, start=1):
+            label = self._resolve_inventory_entry_label(entry) or "<Unknown Item>"
+            lines.append(f"{index}. {label}")
+
+        if len(inventory) > max_items:
+            lines.append(f"... and {len(inventory) - max_items} more")
+
+        return "\n".join(lines)
+
     def replace_placeholders(self, text: str, player: Player, menu_state: MenuContext) -> str:
         faction_title = player.faction.title if player.faction else ""
 
@@ -173,6 +227,8 @@ class MenuService:
             "energy": int(player.energy),
             "energyCap": int(player.energyCap),
             "characters": player.GetCharacterText(),
+            "inventoryCount": len(player.inventory) if isinstance(player.inventory, list) else 0,
+            "inventoryList": self._inventory_summary(player),
             "spellbookOverview": self.context.spellbook_overview,
             "itembookOverview": self.context.itembook_overview,
             "characterbookOverview": self.context.characterbook_overview,
@@ -269,6 +325,5 @@ class MenuService:
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
-
 
 
