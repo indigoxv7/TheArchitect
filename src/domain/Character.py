@@ -1,4 +1,4 @@
-import copy
+﻿import copy
 from src.domain.CharacterUtil import *
 from src.domain.Items import Gear, Item
 from src.domain.GeneralSkills import GeneralSkills
@@ -92,8 +92,9 @@ class Character:
     def ListAllBonuses(self):
         allBonuses = []
         for achievement in self.achievements:
-            if achievement.bonus is not None:
-                allBonuses.append(achievement.bonus)
+            for achievement_bonus in getattr(achievement, "bonuses", []):
+                if achievement_bonus is not None:
+                    allBonuses.append(achievement_bonus)
         self.CheckIfList(allBonuses)
         allBonuses += self.ListAllItemBonuses()
         self.CheckIfList(allBonuses)
@@ -133,7 +134,10 @@ class Character:
         if self.activeAchievementTitle == "" and achievement.title != "": # set up the title if they have none.
             self.activeAchievementTitle = achievement.title
 
-        if achievement.bonus.bonusType == BonusType.PERCENTAGE: # percentages go at the end of the list for calculation
+        bonuses = [entry for entry in getattr(achievement, "bonuses", []) if entry is not None]
+        has_percentage = any(entry.bonusType == BonusType.PERCENTAGE for entry in bonuses)
+
+        if has_percentage: # percentages go at the end of the list for calculation
             self.achievements.append(achievement)
         else:
             self.achievements.insert(0, achievement) # flat bonuses go at the start of the list.
@@ -142,15 +146,15 @@ class Character:
         if self.healthState == HealthState.HEALTHY:
             return "Healthy"
         elif self.healthState == HealthState.INJURED:
-            return "Injured 🩸"
+            return "Injured ðŸ©¸"
         elif self.healthState == HealthState.HEAVILY_INJURED:
-            return "Heavily Injured 🩸🩸"
+            return "Heavily Injured ðŸ©¸ðŸ©¸"
         elif self.healthState == HealthState.UNCONSCIOUS:
-            return "Unconscious 😵‍💫"
+            return "Unconscious ðŸ˜µâ€ðŸ’«"
         elif self.healthState == HealthState.DYING:
-            return "Dying ⌛"
+            return "Dying âŒ›"
         elif self.healthState == HealthState.DEAD:
-            return "Dead 💀"
+            return "Dead ðŸ’€"
 
     def GetAttributeString(self, text: str, base: float, percent: float, bonus: float, total: float):
         text += " - " + str(base)
@@ -283,6 +287,7 @@ Pooled Nano {nanoEmoji} - {nanoString}
 
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
+
 
 
 

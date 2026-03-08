@@ -150,6 +150,66 @@ class TestCharacterService(unittest.TestCase):
 
             self.assertIn(character_id, reloaded_context.characterbook_overview)
 
+    def test_achievement_with_multiple_bonuses_round_trip(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, item_service, character_service, characters_dir = self._build_services(temp_dir)
+            sword = self._create_item(item_service, "Multi Bonus Sword", slot="HANDS")
+            self.assertIsNotNone(sword)
+
+            payload = {
+                "name": "Multi Bonus Hero",
+                "gear": {
+                    "head_item_id": "",
+                    "neck_item_id": "",
+                    "body_item_id": "",
+                    "hands_item_id": "",
+                    "ring_item_id": "",
+                    "legs_item_id": "",
+                    "feet_item_id": "",
+                    "primary_weapon_item_id": sword.itemId,
+                    "offhand_item_id": "",
+                    "inventory_item_ids": [],
+                },
+                "achievements": [
+                    {
+                        "name": "Dual Blessing",
+                        "title": "Favored",
+                        "bonuses": [
+                            {
+                                "bonusType": "FLAT",
+                                "attributeBonus": {"attribute": "PHYSICAL_POWER", "bonus": 2},
+                                "affinities": None,
+                                "nanoMultiplier": 0.0,
+                                "reason": "Blessing A",
+                                "permanent": True,
+                            },
+                            {
+                                "bonusType": "PERCENTAGE",
+                                "attributeBonus": {"attribute": "MAGIC_POWER", "bonus": 1},
+                                "affinities": None,
+                                "nanoMultiplier": 0.1,
+                                "reason": "Blessing B",
+                                "permanent": False,
+                            },
+                        ],
+                    }
+                ],
+                "buffs": [],
+            }
+
+            character_id, _ = character_service.create_character_from_dict(payload)
+            character_path = characters_dir / f"{character_id}.json"
+            raw = json.loads(character_path.read_text(encoding="utf-8"))
+            achievements = raw.get("character_state", {}).get("achievements", [])
+            self.assertEqual(len(achievements), 1)
+            self.assertEqual(len(achievements[0].get("bonuses", [])), 2)
+
+            character_service.load_characters()
+            loaded = character_service.get_character(character_id)
+            self.assertIsNotNone(loaded)
+            self.assertEqual(len(loaded.achievements), 1)
+            self.assertEqual(len(getattr(loaded.achievements[0], "bonuses", [])), 2)
+            self.assertGreaterEqual(len(loaded.ListAllBonuses()), 2)
     def test_missing_gear_item_ids_fallback_without_crash(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, character_service, _characters_dir = self._build_services(temp_dir)
@@ -190,3 +250,4 @@ class TestCharacterService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

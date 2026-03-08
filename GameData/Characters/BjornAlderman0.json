@@ -35,8 +35,50 @@
             "offhand_item_id": null,
             "inventory_item_ids": []
         },
-        "achievements": [],
-        "buffs": [],
+        "achievements": [
+            {
+                "name": "Solo Warrior",
+                "title": "",
+                "description": "For clearing an equal level combat scenario by yourself, you have gained an achievement. - [Solo Warrior]",
+                "bonuses": [
+                    {
+                        "bonusType": "PERCENTAGE",
+                        "attributeBonus": {
+                            "attribute": "ALL_ATTRIBUTES",
+                            "bonus": 10
+                        },
+                        "affinities": null,
+                        "nanoMultiplier": 0.0,
+                        "reason": "",
+                        "permanent": true
+                    }
+                ],
+                "bonus": {
+                    "bonusType": "PERCENTAGE",
+                    "attributeBonus": {
+                        "attribute": "ALL_ATTRIBUTES",
+                        "bonus": 10
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                }
+            }
+        ],
+        "buffs": [
+            {
+                "duration": 0,
+                "bonus": {
+                    "bonusType": "FLAT",
+                    "attributeBonus": null,
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": false
+                }
+            }
+        ],
         "spells": [],
         "generalSkills": [],
         "stats": {

@@ -1,4 +1,4 @@
-
+﻿
 
 from enum import Enum
 DEFAULT_DURABILITY = 100
@@ -218,11 +218,24 @@ class TotalBonus:
 
 
 class Achievement:
-    def __init__(self, name: str, bonus: Bonus = None, title: str = ""):
+    def __init__(self, name: str, bonus: Bonus = None, title: str = "", description:str = "", bonuses: list[Bonus] = None):
         self.name = name
-        self.bonus = bonus
         self.title = title
+        self.description = description
+        if bonuses is not None:
+            self.bonuses = [entry for entry in bonuses if entry is not None]
+        elif bonus is not None:
+            self.bonuses = [bonus]
+        else:
+            self.bonuses = []
 
+    @property
+    def bonus(self) -> Bonus | None:
+        return self.bonuses[0] if self.bonuses else None
+
+    @bonus.setter
+    def bonus(self, value: Bonus | None):
+        self.bonuses = [value] if value is not None else []
 
 class CharacterStatistics:
     def __init__(self, kills: int = 0, damageTaken: int = 0,  missionCount: int = 0):

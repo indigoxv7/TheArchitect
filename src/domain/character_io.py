@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -152,10 +152,15 @@ def _bonus_from_dict(data: Any) -> Bonus | None:
 
 
 def _achievement_to_dict(achievement: Achievement) -> dict[str, Any]:
+    bonuses = [_bonus_to_dict(entry) for entry in getattr(achievement, "bonuses", []) if entry is not None]
+    first_bonus = bonuses[0] if bonuses else None
     return {
         "name": str(achievement.name or ""),
         "title": str(achievement.title or ""),
-        "bonus": _bonus_to_dict(achievement.bonus),
+        "description": str(getattr(achievement, "description", "") or ""),
+        "bonuses": bonuses,
+        # Backward compatibility for older readers expecting a single bonus field.
+        "bonus": first_bonus,
     }
 
 
@@ -167,10 +172,24 @@ def _achievement_from_dict(data: Any) -> Achievement | None:
     if not name:
         return None
 
+    bonuses: list[Bonus] = []
+    raw_bonuses = data.get("bonuses")
+    if isinstance(raw_bonuses, list):
+        for raw_bonus in raw_bonuses:
+            parsed_bonus = _bonus_from_dict(raw_bonus)
+            if parsed_bonus is not None:
+                bonuses.append(parsed_bonus)
+    else:
+        # Backward compatibility: legacy single `bonus` field.
+        parsed_bonus = _bonus_from_dict(data.get("bonus"))
+        if parsed_bonus is not None:
+            bonuses.append(parsed_bonus)
+
     return Achievement(
         name=name,
-        bonus=_bonus_from_dict(data.get("bonus")),
+        bonuses=bonuses,
         title=str(data.get("title", "") or ""),
+        description=str(data.get("description", "") or ""),
     )
 
 
@@ -429,3 +448,4 @@ def character_from_state(
 
     character.CalculateBonus()
     return character
+

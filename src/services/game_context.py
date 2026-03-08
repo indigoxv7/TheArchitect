@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+﻿from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
@@ -33,3 +33,7 @@ class GameContext:
     # Global spellbook runtime state
     global_spellbook: dict[str, object] = field(default_factory=dict)
     spellbook_overview: str = "No spells in spellbook yet."
+
+    # Global achievementbook runtime state
+    global_achievementbook: dict[str, object] = field(default_factory=dict)
+    achievementbook_overview: str = "No achievements in achievementbook yet."

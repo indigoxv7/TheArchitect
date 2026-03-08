@@ -1,0 +1,147 @@
+{
+    "format_version": 1,
+    "achievements": [
+        {
+            "name": "First Clear",
+            "title": "",
+            "description": "As the first of your species to complete a combat scenario, you have been awarded an achievement. - [First Clear]",
+            "bonuses": [
+                {
+                    "bonusType": "PERCENTAGE",
+                    "attributeBonus": {
+                        "attribute": "ALL_ATTRIBUTES",
+                        "bonus": 10
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                }
+            ],
+            "bonus": {
+                "bonusType": "PERCENTAGE",
+                "attributeBonus": {
+                    "attribute": "ALL_ATTRIBUTES",
+                    "bonus": 10
+                },
+                "affinities": null,
+                "nanoMultiplier": 0.0,
+                "reason": "",
+                "permanent": true
+            }
+        },
+        {
+            "name": "First Kill",
+            "title": "",
+            "description": "As the first of your species to kill a nano-enhanced being, you have been awarded an achievement. - [First Kill]",
+            "bonuses": [
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_POWER",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                },
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_STAMINA",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                },
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "PHYSICAL_RESISTANCE",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                },
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "MAGIC_POWER",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                },
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "MAGIC_STAMINA",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                },
+                {
+                    "bonusType": "FLAT",
+                    "attributeBonus": {
+                        "attribute": "MAGIC_RESISTANCE",
+                        "bonus": 2
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                }
+            ],
+            "bonus": {
+                "bonusType": "FLAT",
+                "attributeBonus": {
+                    "attribute": "PHYSICAL_POWER",
+                    "bonus": 2
+                },
+                "affinities": null,
+                "nanoMultiplier": 0.0,
+                "reason": "",
+                "permanent": true
+            }
+        },
+        {
+            "name": "Solo Warrior",
+            "title": "",
+            "description": "For clearing an equal level combat scenario by yourself, you have gained an achievement. - [Solo Warrior]",
+            "bonuses": [
+                {
+                    "bonusType": "PERCENTAGE",
+                    "attributeBonus": {
+                        "attribute": "ALL_ATTRIBUTES",
+                        "bonus": 10
+                    },
+                    "affinities": null,
+                    "nanoMultiplier": 0.0,
+                    "reason": "",
+                    "permanent": true
+                }
+            ],
+            "bonus": {
+                "bonusType": "PERCENTAGE",
+                "attributeBonus": {
+                    "attribute": "ALL_ATTRIBUTES",
+                    "bonus": 10
+                },
+                "affinities": null,
+                "nanoMultiplier": 0.0,
+                "reason": "",
+                "permanent": true
+            }
+        }
+    ]
+}
