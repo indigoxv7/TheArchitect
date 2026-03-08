@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.persistence.character_store import CharacterStore
 from src.persistence.menu_store import MenuStore
+from src.persistence.racebook_store import RacebookStore
 from src.persistence.roster_store import ExistingPlayersRosterStore
 from src.persistence.whitelist_store import WhitelistStore
 
@@ -71,6 +72,23 @@ class TestPersistenceStores(unittest.TestCase):
 
             store.delete_character_file("TestCharacter0")
             self.assertEqual(store.list_character_ids(), [])
+    def test_racebook_store_load_save_behavior(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            racebook_path = Path(temp_dir) / "racebook.json"
+            store = RacebookStore(str(racebook_path))
+
+            loaded = store.load()
+            self.assertEqual(loaded.get("format_version"), 1)
+            self.assertEqual(loaded.get("races"), [])
+
+            payload = {
+                "format_version": 1,
+                "races": [{"raceId": "Human0", "name": "Human"}],
+            }
+            store.save(payload)
+
+            reloaded = store.load()
+            self.assertEqual(reloaded.get("races", [])[0].get("raceId"), "Human0")
 
     def test_menu_store_loads_required_menu_set(self):
         store = MenuStore("GameData/Menus")
@@ -81,3 +99,4 @@ class TestPersistenceStores(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

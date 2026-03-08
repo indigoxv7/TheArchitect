@@ -16,6 +16,7 @@ from src.domain.CharacterUtil import (
 )
 from src.domain.Spells import AffinityTypes
 from src.domain.character_io import character_to_state
+from src.tools.race_editor import RaceEditorFrame
 
 
 def _parse_label_id(label: str) -> str:
@@ -192,12 +193,13 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
         self.achievement_service = achievement_service
         self.player_service = player_service
+        self.race_service = race_service
 
         self.root = tk.Tk()
         self.root.title("TheArchitect Admin Editor")
@@ -212,6 +214,7 @@ class AdminEditorApp:
         self.character_frame = CharacterEditorFrame(self.container, self)
         self.player_frame = PlayerEditorFrame(self.container, self)
         self.achievement_frame = AchievementBookFrame(self.container, self)
+        self.race_frame = RaceEditorFrame(self.container, self)
 
         self._build_home()
         self.show_home()
@@ -223,6 +226,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Characters", command=self.show_character_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Players", command=self.show_player_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Achievements", command=self.show_achievement_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Edit Races", command=self.show_race_editor).pack(fill=tk.X, pady=6)
 
     def _show(self, frame):
         for child in (
@@ -232,6 +236,7 @@ class AdminEditorApp:
             self.character_frame,
             self.player_frame,
             self.achievement_frame,
+            self.race_frame,
         ):
             child.pack_forget()
         frame.pack(fill=tk.BOTH, expand=True)
@@ -258,6 +263,10 @@ class AdminEditorApp:
     def show_achievement_editor(self):
         self.achievement_frame.refresh_achievement_list(reset_form=True)
         self._show(self.achievement_frame)
+
+    def show_race_editor(self):
+        self.race_frame.refresh_race_list(reset_form=True)
+        self._show(self.race_frame)
 
     def run(self):
         self.root.mainloop()
@@ -1440,6 +1449,57 @@ class AchievementPickerDialog(tk.Toplevel):
         self.on_select(payload)
         self.destroy()
 
+
+class RacePickerDialog(tk.Toplevel):
+    def __init__(self, parent, race_service, on_select):
+        super().__init__(parent)
+        self.title("Select Race")
+        self.geometry("760x500")
+        self.race_service = race_service
+        self.on_select = on_select
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for race in self.race_service.list_races():
+            label = self.race_service.get_race_label(race)
+            if query and query not in label.lower():
+                continue
+            self.filtered.append(race)
+            self.listbox.insert(tk.END, label)
+
+    def _select(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Select Race", "Select a race.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        race = self.filtered[index]
+        self.on_select(race.raceId)
+        self.destroy()
+
 class CharacterEditorFrame(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
@@ -1469,15 +1529,30 @@ class CharacterEditorFrame(ttk.Frame):
 
         self.vars = {
             "name": tk.StringVar(),
+            "description": tk.StringVar(),
+            "portraitURL": tk.StringVar(),
+            "footerImageURL": tk.StringVar(),
             "level": tk.StringVar(value="0"),
             "raceTier": tk.StringVar(value="Tier I"),
+            "race": tk.StringVar(value="Human1"),
             "party": tk.StringVar(value="0"),
             "health": tk.StringVar(value="100"),
             "healthState": tk.StringVar(value=HealthState.HEALTHY.name),
         }
         self._row_entry("Name", self.vars["name"])
+        self._row_entry("Description", self.vars["description"])
+        self._row_entry("Portrait URL", self.vars["portraitURL"])
+        self._row_entry("Footer Image URL", self.vars["footerImageURL"])
         self._row_entry("Level", self.vars["level"])
         self._row_entry("Race Tier", self.vars["raceTier"])
+
+        race_row = ttk.Frame(self)
+        race_row.pack(fill=tk.X, pady=2)
+        ttk.Label(race_row, text="Race", width=18).pack(side=tk.LEFT)
+        ttk.Entry(race_row, textvariable=self.vars["race"], state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Button(race_row, text="Select", command=self._select_race).pack(side=tk.LEFT, padx=4)
+        ttk.Button(race_row, text="Clear", command=self._clear_race).pack(side=tk.LEFT)
+
         self._row_entry("Party", self.vars["party"])
         self._row_entry("Health", self.vars["health"])
         self._row_combo("Health State", self.vars["healthState"], [e.name for e in HealthState])
@@ -1540,8 +1615,12 @@ class CharacterEditorFrame(ttk.Frame):
     def _clear_form(self):
         self.current_character_id = None
         self.vars["name"].set("")
+        self.vars["description"].set("")
+        self.vars["portraitURL"].set("")
+        self.vars["footerImageURL"].set("")
         self.vars["level"].set("0")
         self.vars["raceTier"].set("Tier I")
+        self.vars["race"].set("Human1")
         self.vars["party"].set("0")
         self.vars["health"].set("100")
         self.vars["healthState"].set(HealthState.HEALTHY.name)
@@ -1585,8 +1664,12 @@ class CharacterEditorFrame(ttk.Frame):
         state = character_to_state(character)
         self.current_character_id = character_id
         self.vars["name"].set(state.get("name", ""))
+        self.vars["description"].set(str(state.get("description", "") or ""))
+        self.vars["portraitURL"].set(str(state.get("portraitURL", "") or ""))
+        self.vars["footerImageURL"].set(str(state.get("footerImageURL", "") or ""))
         self.vars["level"].set(str(state.get("level", 0)))
         self.vars["raceTier"].set(str(state.get("raceTier", "Tier I")))
+        self.vars["race"].set(str(state.get("race", "Human1") or "Human1"))
         self.vars["party"].set(str(state.get("party", 0)))
         self.vars["health"].set(str(state.get("health", 100)))
         self.vars["healthState"].set(str(state.get("healthState", HealthState.HEALTHY.name)))
@@ -1609,6 +1692,11 @@ class CharacterEditorFrame(ttk.Frame):
 
     def _refresh_summary(self):
         lines = [
+            f"Description: {self.vars['description'].get().strip()}",
+            f"Portrait URL: {self.vars['portraitURL'].get().strip()}",
+            f"Footer Image URL: {self.vars['footerImageURL'].get().strip()}",
+            f"Race ID: {self.vars['race'].get().strip() or 'Human1'}",
+            "",
             "Attributes:",
             json.dumps(self.attributes_draft, indent=2, ensure_ascii=False),
             "",
@@ -1629,7 +1717,17 @@ class CharacterEditorFrame(ttk.Frame):
             label = f"{name} ({title})" if title else name
             if description:
                 label += f" - {description[:80]}"
-            self.achievement_listbox.insert(tk.END, label)
+            self.achievement_listbox.insert(tk.END, label)
+    def _select_race(self):
+        def _on_select(race_id: str):
+            self.vars["race"].set(str(race_id or "Human1"))
+            self._refresh_summary()
+
+        RacePickerDialog(self, self.app.race_service, _on_select)
+
+    def _clear_race(self):
+        self.vars["race"].set("Human1")
+        self._refresh_summary()
 
     def _edit_attributes(self):
         AttributesEditorDialog(self, self.attributes_draft, self._on_attributes_saved)
@@ -1681,9 +1779,13 @@ class CharacterEditorFrame(ttk.Frame):
             "name": self.vars["name"].get().strip(),
             "level": _safe_int(self.vars["level"].get(), 0),
             "raceTier": self.vars["raceTier"].get().strip() or "Tier I",
+            "race": self.vars["race"].get().strip() or "Human1",
             "party": _safe_int(self.vars["party"].get(), 0),
             "health": _safe_int(self.vars["health"].get(), 100),
             "healthState": self.vars["healthState"].get().strip() or HealthState.HEALTHY.name,
+            "description": self.vars["description"].get().strip(),
+            "portraitURL": self.vars["portraitURL"].get().strip(),
+            "footerImageURL": self.vars["footerImageURL"].get().strip(),
             "attributes": {
                 "physicalPower": _safe_float(self.attributes_draft.get("physical_power", 5), 5),
                 "physicalStamina": _safe_float(self.attributes_draft.get("physical_stamina", 5), 5),
@@ -2179,10 +2281,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")
@@ -2190,4 +2292,8 @@ def start_admin_gui_thread(spell_service, item_service, character_service, achie
     thread = threading.Thread(target=_run_gui, name="AdminEditorGUI", daemon=True)
     thread.start()
     return thread
+
+
+
+
 

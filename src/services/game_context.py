@@ -37,3 +37,7 @@ class GameContext:
     # Global achievementbook runtime state
     global_achievementbook: dict[str, object] = field(default_factory=dict)
     achievementbook_overview: str = "No achievements in achievementbook yet."
+
+    # Global racebook runtime state
+    all_races: dict[str, object] = field(default_factory=dict)
+    racebook_overview: str = "No races in racebook yet."

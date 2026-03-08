@@ -445,6 +445,8 @@ class MenuRuntimeService:
     def build_discord_embed(self, rendered: RenderedMenu):
         embed = discord.Embed(title=rendered.title, description=rendered.description)
         embed.set_footer(text=rendered.footer)
+        if rendered.thumbnailURL:
+            embed.set_thumbnail(url=rendered.thumbnailURL)
         if rendered.imageURL:
             embed.set_image(url=rendered.imageURL)
         return embed
@@ -969,6 +971,8 @@ class ConsoleMenuInterface(MenuInterface):
         print(f"Title: {self._safe_text(rendered.title)}")
         print(f"Body:\n{self._safe_text(rendered.description)}")
         print(f"Footer: {self._safe_text(rendered.footer)}")
+        if rendered.thumbnailURL:
+            print(f"Thumbnail: {self._safe_text(rendered.thumbnailURL)}")
         if rendered.imageURL:
             print(f"Image: {self._safe_text(rendered.imageURL)}")
         if rendered.hasBack:
@@ -984,28 +988,3 @@ class ConsoleMenuInterface(MenuInterface):
 
     async def send_update(self, rendered: RenderedMenu, menu: Menu, original_message: OriginalMessage):
         self._print_render(rendered)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

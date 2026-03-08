@@ -1,0 +1,52 @@
+{
+    "format_version": 1,
+    "character_id": "AverageGobin2",
+    "character_state": {
+        "name": "Average Gobin",
+        "level": 0,
+        "raceTier": "Tier I",
+        "race": "Goblin0",
+        "party": 0,
+        "health": 50,
+        "healthState": "HEALTHY",
+        "activeAchievementTitle": "",
+        "attributes": {
+            "physicalPower": 4.0,
+            "physicalStamina": 4.0,
+            "physicalResistance": 4.0,
+            "magicPower": 4.0,
+            "magicStamina": 4.0,
+            "magicResistance": 4.0
+        },
+        "affinities": {
+            "chi": 0.5,
+            "mana": 0.5,
+            "psi": 0.5,
+            "aether": 0.5
+        },
+        "gear": {
+            "head_item_id": null,
+            "neck_item_id": null,
+            "body_item_id": null,
+            "hands_item_id": null,
+            "ring_item_id": null,
+            "legs_item_id": null,
+            "feet_item_id": null,
+            "primary_weapon_item_id": null,
+            "offhand_item_id": null,
+            "inventory_item_ids": []
+        },
+        "achievements": [],
+        "buffs": [],
+        "spells": [],
+        "generalSkills": [],
+        "stats": {
+            "kills": 0,
+            "damageTaken": 0,
+            "missionCount": 0
+        },
+        "description": "A small green humanoid with an ill-favored countenance.",
+        "portraitURL": "https://cdn.discordapp.com/attachments/886469391548559372/1480289777126215762/image.png",
+        "footerImageURL": ""
+    }
+}

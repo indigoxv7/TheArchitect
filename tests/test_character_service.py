@@ -47,6 +47,7 @@ class TestCharacterService(unittest.TestCase):
                 "name": "Rhea",
                 "level": 4,
                 "raceTier": "Tier II",
+                "race": "Elf2",
                 "party": 1,
                 "health": 87,
                 "healthState": "INJURED",
@@ -140,6 +141,7 @@ class TestCharacterService(unittest.TestCase):
             self.assertIsNotNone(loaded)
             self.assertEqual(loaded.name, "Rhea")
             self.assertEqual(loaded.level, 4)
+            self.assertEqual(loaded.race, "Elf2")
             self.assertEqual(loaded.health, 87)
             self.assertEqual(loaded.healthState.name, "INJURED")
             self.assertEqual(loaded.gear.head.itemId, helm.itemId)
@@ -210,6 +212,27 @@ class TestCharacterService(unittest.TestCase):
             self.assertEqual(len(loaded.achievements), 1)
             self.assertEqual(len(getattr(loaded.achievements[0], "bonuses", [])), 2)
             self.assertGreaterEqual(len(loaded.ListAllBonuses()), 2)
+    def test_missing_race_field_defaults_to_human1(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, _item_service, character_service, characters_dir = self._build_services(temp_dir)
+
+            character_path = characters_dir / "LegacyNoRace0.json"
+            payload = {
+                "format_version": 1,
+                "character_id": "LegacyNoRace0",
+                "character_state": {
+                    "name": "Legacy No Race",
+                    "level": 1,
+                    "raceTier": "Tier I",
+                },
+            }
+            character_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+            character_service.load_characters()
+            loaded = character_service.get_character("LegacyNoRace0")
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded.name, "Legacy No Race")
+            self.assertEqual(getattr(loaded, "race", None), "Human1")
     def test_missing_gear_item_ids_fallback_without_crash(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, character_service, _characters_dir = self._build_services(temp_dir)
@@ -250,4 +273,5 @@ class TestCharacterService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

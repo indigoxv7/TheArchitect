@@ -367,6 +367,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "name": str(character.name or ""),
         "level": _coerce_int(character.level, 0),
         "raceTier": str(character.raceTier or "Tier I"),
+        "race": str(getattr(character, "race", "Human1") or "Human1"),
         "party": _coerce_int(character.party, 0),
         "health": _coerce_int(character.health, 100),
         "healthState": character.healthState.name if isinstance(character.healthState, HealthState) else str(character.healthState),
@@ -379,6 +380,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "spells": _spells_to_list(getattr(character, "spells", [])),
         "generalSkills": _skills_to_list(getattr(character, "generalSkills", [])),
         "stats": _stats_to_dict(getattr(character, "stats", None)),
+        "description": str(getattr(character, "description", "") or ""),
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
     }
@@ -419,12 +421,16 @@ def character_from_state(
     general_skills = _skills_from_list(data.get("generalSkills", []))
     spells = _spells_from_list(data.get("spells", []))
     stats = _stats_from_dict(data.get("stats"))
+    description = str(data.get("description", "") or "")
+    portrait_url = str(data.get("portraitURL", "") or "")
+    footer_image_url = str(data.get("footerImageURL", "") or "")
 
     character = Character(
         name=name,
         attributes=attributes,
         level=_coerce_int(data.get("level", 0), 0),
         raceTier=str(data.get("raceTier", "Tier I") or "Tier I"),
+        race=str(data.get("race", data.get("raceId", "Human1")) or "Human1"),
         affinities=affinities,
         gear=gear,
         achievements=achievements,
@@ -438,13 +444,9 @@ def character_from_state(
     character.health = _coerce_int(data.get("health", 100), 100)
     character.healthState = _enum_from_name(HealthState, data.get("healthState"), HealthState.HEALTHY)
     character.activeAchievementTitle = str(data.get("activeAchievementTitle", "") or "")
-
-    portrait_url = str(data.get("portraitURL", "") or "")
-    footer_image_url = str(data.get("footerImageURL", "") or "")
-    if portrait_url:
-        character.portraitURL = portrait_url
-    if footer_image_url:
-        character.footerImageURL = footer_image_url
+    character.description = description
+    character.portraitURL = portrait_url
+    character.footerImageURL = footer_image_url
 
     character.CalculateBonus()
     return character

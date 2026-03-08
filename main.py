@@ -15,6 +15,7 @@ from src.services.item_service import ItemService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.player_service import PlayerService
+from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
 from src.services.whitelist_service import AdminWhitelistService
 from src.tools.admin_gui import start_admin_gui_thread
@@ -32,6 +33,7 @@ SPELLBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Spells", "spellbook.json")
 ITEMBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Items", "itembook.json")
 CHARACTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Characters")
 ACHIEVEMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Achievements", "achievementbook.json")
+RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -53,6 +55,12 @@ spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
 character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
 achievement_service = AchievementService(achievementbook_path=ACHIEVEMENTBOOK_PATH, context=context)
+race_service = RaceService(
+    racebook_path=RACEBOOK_PATH,
+    context=context,
+    character_service=character_service,
+    spell_service=spell_service,
+)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
     emoji_placeholders=EMOJI_PLACEHOLDERS,
@@ -81,6 +89,7 @@ def initialize_game():
     achievement_service.load_achievementbook()
     item_service.load_itembook(default_items=dict(context.all_items))
     character_service.load_characters()
+    race_service.load_racebook()
     menu_service.load_menus()
     _is_initialized = True
 
@@ -141,6 +150,7 @@ if __name__ == "__main__":
         character_service=character_service,
         achievement_service=achievement_service,
         player_service=player_service,
+        race_service=race_service,
     )
     bot.run(TOKEN)
 

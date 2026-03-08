@@ -1,0 +1,112 @@
+{
+    "format_version": 1,
+    "races": [
+        {
+            "raceId": "Goblin0",
+            "name": "Goblin",
+            "detailedDescription": "Goblins are small, black-hearted humanoids that lair in despoiled ruins and other dismal settings. Individually weak, they can gather in large numbers to torment other creatures.",
+            "beifDescription": "A small green humanoid with an ill-favored countenance.",
+            "juvenileNomenclature": "young",
+            "size": "SMALL",
+            "averageSpecimineCharacterId": "AverageGobin2",
+            "maxAverageAttributes": {
+                "physicalPower": 6.0,
+                "physicalStamina": 6.0,
+                "physicalResistance": 6.0,
+                "magicPower": 6.0,
+                "magicStamina": 6.0,
+                "magicResistance": 6.0
+            },
+            "minAverageAttributes": {
+                "physicalPower": 2.0,
+                "physicalStamina": 2.0,
+                "physicalResistance": 2.0,
+                "magicPower": 2.0,
+                "magicStamina": 2.0,
+                "magicResistance": 2.0
+            },
+            "spellList": [
+                [],
+                [
+                    "Fire Bolt"
+                ],
+                [
+                    "Mind Blast",
+                    "Fire Bolt"
+                ],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+            ],
+            "famedEnemyCharacterIds": []
+        },
+        {
+            "raceId": "Human1",
+            "name": "Human",
+            "detailedDescription": "humans are the youngest of the common races, late to arrive in the collective and short-lived in comparison to dwarves, elves, and dragons. Perhaps it is because of their shorter lives that they strive to achieve as much as they can in the years they are given.",
+            "beifDescription": "A human.",
+            "juvenileNomenclature": "young",
+            "size": "STANDARD",
+            "averageSpecimineCharacterId": null,
+            "maxAverageAttributes": {
+                "physicalPower": 8.0,
+                "physicalStamina": 8.0,
+                "physicalResistance": 8.0,
+                "magicPower": 8.0,
+                "magicStamina": 8.0,
+                "magicResistance": 8.0
+            },
+            "minAverageAttributes": {
+                "physicalPower": 3.0,
+                "physicalStamina": 3.0,
+                "physicalResistance": 3.0,
+                "magicPower": 3.0,
+                "magicStamina": 3.0,
+                "magicResistance": 3.0
+            },
+            "spellList": [
+                [],
+                [
+                    "Fire Bolt",
+                    "Harden Shell",
+                    "Mind Blast"
+                ],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+            ],
+            "famedEnemyCharacterIds": []
+        }
+    ]
+}

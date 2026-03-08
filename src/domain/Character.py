@@ -31,6 +31,7 @@ class Character:
     achievements: list[Achievement]
     spells: list[Spell]
     buffs: list[Buff]
+    race: str
     portraitURL: str
     footerImageURL: str
 
@@ -48,11 +49,13 @@ class Character:
         party: int = 0,
         buffs: list[Buff] | None = None,
         stats: CharacterStatistics | None = None,
+        race: str = "Human1",
     ):
         self.name = name
         self.attributes = attributes if attributes is not None else Attributes()
         self.level = level
         self.raceTier = raceTier
+        self.race = str(race or "Human1")
         self.affinities = affinities if affinities is not None else Affinities()
         self.gear = gear if gear is not None else Gear()
         self.activeAchievementTitle = ""
@@ -287,6 +290,8 @@ Pooled Nano {nanoEmoji} - {nanoString}
 
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
+
+
 
 
 

@@ -21,6 +21,7 @@ class RenderedMenu:
     description: str
     footer: str
     imageURL: Optional[str]
+    thumbnailURL: Optional[str]
     hasBack: bool
     buttons: List[RenderedButton]
 
@@ -308,6 +309,26 @@ class MenuService:
                 character_index = 0
             original_message.menuContext.character = original_message.player.GetCharacter(character_index)
 
+    def _resolve_character_for_media(self, character):
+        if character is None:
+            return None
+
+        portrait_url = str(getattr(character, "portraitURL", "") or "").strip()
+        footer_image_url = str(getattr(character, "footerImageURL", "") or "").strip()
+        if portrait_url or footer_image_url:
+            return character
+
+        name = str(getattr(character, "name", "") or "").strip().lower()
+        if not name:
+            return character
+
+        for candidate in self.context.all_characters.values():
+            candidate_name = str(getattr(candidate, "name", "") or "").strip().lower()
+            if candidate_name == name:
+                return candidate
+
+        return character
+
     def build_rendered_menu(self, menu: Menu, original_message: "OriginalMessage", display_name: str) -> RenderedMenu:
         original_message.player.GetCurrentEnergy(persist=True)
         replaced_title = self.replace_placeholders(menu.myOptionText, original_message.player, original_message.menuContext)
@@ -317,11 +338,18 @@ class MenuService:
             for child, label in self.get_visible_child_menus(menu, original_message)
         ]
 
+        character = self._resolve_character_for_media(original_message.menuContext.character)
+        thumbnail_url = str(getattr(character, "portraitURL", "") or "").strip() if character is not None else ""
+        footer_image_url = str(getattr(character, "footerImageURL", "") or "").strip() if character is not None else ""
+        default_image_url = menu.imageURL if hasattr(menu, "imageURL") else None
+        image_url = footer_image_url or default_image_url
+
         return RenderedMenu(
             title=replaced_title,
             description=replaced_body,
             footer=f"{display_name}'s Menu",
-            imageURL=menu.imageURL if hasattr(menu, "imageURL") else None,
+            imageURL=image_url,
+            thumbnailURL=thumbnail_url or None,
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
