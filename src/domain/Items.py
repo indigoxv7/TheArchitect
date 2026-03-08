@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 
 from src.domain.CharacterUtil import *
 
@@ -16,8 +16,10 @@ class Item:
         itemType: ItemType = ItemType.DEFAULT,
         itemPower: list[ItemPower] = None,
         damageType: list[DamageType] = None,
+        itemId: str | None = None,
     ):
         self.name = name
+        self.itemId = str(itemId or "").strip()
         self.slot = slot
         self.tier = tier
         self.durability = durability
@@ -29,6 +31,8 @@ class Item:
         self.itemPower = itemPower if itemPower is not None else []
         self.damageType = damageType if damageType is not None else []
         self.tags = [self.name, self.itemType.name, self.slot.name]
+        if self.itemId:
+            self.tags.append(self.itemId)
         self.tags.extend([damage_type.name for damage_type in self.damageType])
 
     @staticmethod
@@ -144,6 +148,7 @@ class Item:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "itemId": self.itemId,
             "name": self.name,
             "slot": self.slot.name,
             "tier": int(self.tier),
@@ -162,6 +167,7 @@ class Item:
 
         slot = cls._enum_from_name(EquipSlot, data.get("slot"), EquipSlot.NOT_EQUIPABLE)
         item_type = cls._enum_from_name(ItemType, data.get("itemType"), ItemType.DEFAULT)
+        item_id = str(data.get("itemId", data.get("itemID", "")) or "").strip()
 
         try:
             tier = int(data.get("tier", 0))
@@ -200,6 +206,7 @@ class Item:
             itemType=item_type,
             itemPower=item_power,
             damageType=damage_type,
+            itemId=item_id,
         )
 
 

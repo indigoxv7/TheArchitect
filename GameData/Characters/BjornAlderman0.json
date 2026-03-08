@@ -1,0 +1,50 @@
+{
+    "format_version": 1,
+    "character_id": "BjornAlderman0",
+    "character_state": {
+        "name": "Bjorn Alderman",
+        "level": 0,
+        "raceTier": "Tier I",
+        "party": 0,
+        "health": 100,
+        "healthState": "HEALTHY",
+        "activeAchievementTitle": "",
+        "attributes": {
+            "physicalPower": 9.0,
+            "physicalStamina": 7.0,
+            "physicalResistance": 7.0,
+            "magicPower": 3.0,
+            "magicStamina": 3.0,
+            "magicResistance": 3.0
+        },
+        "affinities": {
+            "chi": 0.5,
+            "mana": 0.5,
+            "psi": 0.5,
+            "aether": 0.5
+        },
+        "gear": {
+            "head_item_id": "Helmet7",
+            "neck_item_id": "Necklace8",
+            "body_item_id": "BodyArmor1",
+            "hands_item_id": "Gloves6",
+            "ring_item_id": "Ring11",
+            "legs_item_id": "Pants9",
+            "feet_item_id": null,
+            "primary_weapon_item_id": "Spear13",
+            "offhand_item_id": null,
+            "inventory_item_ids": []
+        },
+        "achievements": [],
+        "buffs": [],
+        "spells": [],
+        "generalSkills": [],
+        "stats": {
+            "kills": 0,
+            "damageTaken": 0,
+            "missionCount": 0
+        },
+        "portraitURL": "",
+        "footerImageURL": ""
+    }
+}

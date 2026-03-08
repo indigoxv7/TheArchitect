@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from string import Template
 from typing import List, Optional
 
@@ -175,6 +175,7 @@ class MenuService:
             "characters": player.GetCharacterText(),
             "spellbookOverview": self.context.spellbook_overview,
             "itembookOverview": self.context.itembook_overview,
+            "characterbookOverview": self.context.characterbook_overview,
             "spellDraftName": draft.get("name", ""),
             "spellDraftLevel": draft.get("level", ""),
             "spellDraftPower": draft.get("power", ""),
@@ -268,5 +269,6 @@ class MenuService:
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
+
 
 

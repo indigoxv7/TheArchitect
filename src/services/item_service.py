@@ -1,13 +1,52 @@
-﻿from src.domain.CharacterUtil import DEFAULT_DURABILITY, EquipSlot, ItemType
+﻿import re
+
+from src.domain.CharacterUtil import DEFAULT_DURABILITY, EquipSlot, ItemType
 from src.domain.Items import Item
 from src.persistence.itembook_store import ItembookStore
 from src.services.game_context import GameContext
 
 
 class ItemService:
+    ERROR_ITEM_ID = "ERRORMISSINGITEM999999"
+
     def __init__(self, itembook_path: str, context: GameContext):
         self.context = context
         self.store = ItembookStore(itembook_path)
+
+    @staticmethod
+    def _slugify_name(name: str) -> str:
+        compact = re.sub(r"\s+", "", str(name or "").strip())
+        compact = re.sub(r"[^A-Za-z0-9_\-]", "", compact)
+        return compact or "Item"
+
+    def _is_error_item_id(self, item_id: str) -> bool:
+        return self.context.error_item is not None and item_id == self.context.error_item.itemId
+
+    def _generate_item_id(self, name: str) -> str:
+        prefix = self._slugify_name(name)
+        index = len([item for item in self.context.all_items.values() if not self._is_error_item_id(item.itemId)])
+        candidate = f"{prefix}{index}"
+        while candidate in self.context.all_items:
+            index += 1
+            candidate = f"{prefix}{index}"
+        return candidate
+
+    def _assign_item_id_if_missing(self, item: Item):
+        if not getattr(item, "itemId", ""):
+            item.itemId = self._generate_item_id(item.name)
+
+    def _rebuild_name_index(self):
+        index: dict[str, list[str]] = {}
+        for item_id, item in self.context.all_items.items():
+            if self._is_error_item_id(item_id):
+                continue
+            key = str(item.name or "").strip().lower()
+            if not key:
+                continue
+            if key not in index:
+                index[key] = []
+            index[key].append(item_id)
+        self.context.all_items_by_name = index
 
     def _ensure_error_item(self):
         if self.context.error_item is None:
@@ -20,79 +59,146 @@ class ItemService:
                 ItemType.DEFAULT,
                 None,
                 None,
+                itemId=self.ERROR_ITEM_ID,
             )
-        self.context.all_items[self.context.error_item.name] = self.context.error_item
-
-    def _is_error_item_name(self, name: str) -> bool:
-        return self.context.error_item is not None and name == self.context.error_item.name
+        self.context.error_item.itemId = self.ERROR_ITEM_ID
+        self.context.all_items[self.ERROR_ITEM_ID] = self.context.error_item
 
     def load_itembook(self, default_items: dict[str, Item] | None = None):
         payload = self.store.load()
         raw_items = payload.get("items", [])
-
-        if not raw_items and default_items:
-            self.context.all_items.clear()
-            self.context.all_items.update(default_items)
-            self._ensure_error_item()
-            self.save_itembook()
-            self.context.itembook_overview = self.build_itembook_overview()
-            return
+        migrated = False
 
         self.context.all_items.clear()
-        for item_data in raw_items:
-            try:
-                item = Item.from_dict(item_data)
-            except Exception:
-                continue
-            self.context.all_items[item.name] = item
+
+        if not raw_items and default_items:
+            seen_item_ids = set()
+            for item in default_items.values():
+                if item is self.context.error_item or str(getattr(item, "name", "")).strip() == "[ERROR MISSING ITEM]":
+                    continue
+                self._assign_item_id_if_missing(item)
+                if item.itemId in seen_item_ids:
+                    item.itemId = self._generate_item_id(item.name)
+                seen_item_ids.add(item.itemId)
+                self.context.all_items[item.itemId] = item
+            migrated = True
+        else:
+            for item_data in raw_items:
+                try:
+                    item = Item.from_dict(item_data)
+                except Exception:
+                    continue
+
+                if not item.itemId:
+                    item.itemId = self._generate_item_id(item.name)
+                    migrated = True
+
+                if item.itemId in self.context.all_items:
+                    item.itemId = self._generate_item_id(item.name)
+                    migrated = True
+
+                self.context.all_items[item.itemId] = item
 
         self._ensure_error_item()
-        self.context.itembook_overview = self.build_itembook_overview()
+        self._rebuild_name_index()
+
+        if migrated:
+            self.save_itembook()
+        else:
+            self.context.itembook_overview = self.build_itembook_overview()
 
     def save_itembook(self):
         items = [item.to_dict() for item in self.list_items()]
-        payload = {"format_version": 1, "items": items}
+        payload = {"format_version": 2, "items": items}
         self.store.save(payload)
         self.context.itembook_overview = self.build_itembook_overview()
 
     def list_items(self) -> list[Item]:
-        return [
-            self.context.all_items[name]
-            for name in sorted(self.context.all_items.keys())
-            if not self._is_error_item_name(name)
+        items = [
+            item
+            for item_id, item in self.context.all_items.items()
+            if not self._is_error_item_id(item_id)
         ]
+        return sorted(items, key=lambda item: (item.name.lower(), item.itemId))
 
-    def get_item(self, name: str) -> Item | None:
-        item = self.context.all_items.get(name)
-        if item is None or self._is_error_item_name(name):
+    def get_item_by_id(self, item_id: str) -> Item | None:
+        item = self.context.all_items.get(str(item_id or "").strip())
+        if item is None:
+            return None
+        if self._is_error_item_id(item.itemId):
             return None
         return item
 
+    def get_items_by_name(self, name: str) -> list[Item]:
+        key = str(name or "").strip().lower()
+        if not key:
+            return []
+
+        item_ids = self.context.all_items_by_name.get(key, [])
+        items: list[Item] = []
+        for item_id in item_ids:
+            item = self.get_item_by_id(item_id)
+            if item is not None:
+                items.append(item)
+        return items
+
+    def get_item(self, identifier: str) -> Item | None:
+        key = str(identifier or "").strip()
+        if not key:
+            return None
+
+        by_id = self.get_item_by_id(key)
+        if by_id is not None:
+            return by_id
+
+        by_name = self.get_items_by_name(key)
+        if len(by_name) == 1:
+            return by_name[0]
+
+        return None
+
+    @staticmethod
+    def get_item_label(item: Item) -> str:
+        return f"{item.name} [{item.itemId}]"
+
+    @staticmethod
+    def parse_item_id_from_label(label: str) -> str:
+        text = str(label or "").strip()
+        if text.endswith("]") and "[" in text:
+            return text[text.rfind("[") + 1 : -1].strip()
+        return text
+
     def create_item_from_dict(self, data: dict):
         item = Item.from_dict(data)
-        if item.name in self.context.all_items and not self._is_error_item_name(item.name):
-            raise ValueError(f"Item '{item.name}' already exists.")
+        self._assign_item_id_if_missing(item)
 
-        self.context.all_items[item.name] = item
+        if item.itemId in self.context.all_items and not self._is_error_item_id(item.itemId):
+            raise ValueError(f"Item ID '{item.itemId}' already exists.")
+
+        self.context.all_items[item.itemId] = item
         self._ensure_error_item()
+        self._rebuild_name_index()
         self.save_itembook()
 
-    def edit_item_from_patch(self, item_name: str, patch: dict):
-        existing = self.get_item(item_name)
+    def edit_item_from_patch(self, item_identifier: str, patch: dict):
+        existing = self.get_item(item_identifier)
         if existing is None:
-            raise ValueError(f"Item '{item_name}' does not exist.")
+            raise ValueError(f"Item '{item_identifier}' does not exist or is ambiguous.")
 
         merged = existing.to_dict()
         merged.update(patch)
         if "name" not in merged or not str(merged["name"]).strip():
             merged["name"] = existing.name
 
-        updated = Item.from_dict(merged)
+        # Item IDs are immutable.
+        merged["itemId"] = existing.itemId
 
-        if updated.name != existing.name:
-            self.context.all_items.pop(existing.name, None)
-        self.context.all_items[updated.name] = updated
+        updated = Item.from_dict(merged)
+        updated.itemId = existing.itemId
+
+        self.context.all_items[updated.itemId] = updated
         self._ensure_error_item()
+        self._rebuild_name_index()
         self.save_itembook()
 
     def build_itembook_overview(self, max_lines: int = 20) -> str:
@@ -102,9 +208,10 @@ class ItemService:
 
         lines = []
         for item in items[:max_lines]:
-            lines.append(f"- {item.name} (T{item.tier}, {item.itemType.name}, {item.slot.name})")
+            lines.append(f"- {item.name} [{item.itemId}] (T{item.tier}, {item.itemType.name}, {item.slot.name})")
 
         if len(items) > max_lines:
             lines.append(f"... and {len(items) - max_lines} more")
 
         return "\n".join(lines)
+

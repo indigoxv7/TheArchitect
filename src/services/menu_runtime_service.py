@@ -1,4 +1,4 @@
-import json
+﻿import json
 from abc import ABC, abstractmethod
 
 import discord
@@ -354,10 +354,17 @@ class ItemSelectModal(discord.ui.Modal, title="Edit Existing Item"):
         item_name = str(self.item_name.value).strip()
         item = self.runtime.item_service.get_item(item_name)
         if item is None:
-            await interaction.response.send_message(f"Item '{item_name}' does not exist.", ephemeral=True)
+            matches = self.runtime.item_service.get_items_by_name(item_name)
+            if len(matches) > 1:
+                await interaction.response.send_message(
+                    f"Item name '{item_name}' is ambiguous. Use the item ID instead.",
+                    ephemeral=True,
+                )
+            else:
+                await interaction.response.send_message(f"Item '{item_name}' does not exist.", ephemeral=True)
             return
 
-        self.runtime._start_item_draft(self.original_message.menuContext, source_item_name=item.name)
+        self.runtime._start_item_draft(self.original_message.menuContext, source_item_id=item.itemId)
         self.runtime._populate_item_draft_from_item(self.original_message.menuContext, item)
         self.runtime._refresh_itembook_overview()
 
@@ -542,10 +549,11 @@ class MenuRuntimeService:
 
 
     @staticmethod
-    def _start_item_draft(menu_context: MenuContext, source_item_name: str | None = None):
+    def _start_item_draft(menu_context: MenuContext, source_item_id: str | None = None):
         menu_context.itemDraft = dict(ITEM_FIELD_DEFAULTS)
         menu_context.itemDraftActive = True
-        menu_context.itemDraftSourceName = source_item_name
+        menu_context.itemDraftSourceId = source_item_id
+        menu_context.itemDraftSourceName = source_item_id
 
     @staticmethod
     def _populate_item_draft_from_item(menu_context: MenuContext, item):
@@ -573,6 +581,7 @@ class MenuRuntimeService:
     def _clear_item_draft(menu_context: MenuContext):
         menu_context.itemDraft = {}
         menu_context.itemDraftActive = False
+        menu_context.itemDraftSourceId = None
         menu_context.itemDraftSourceName = None
 
 
@@ -678,9 +687,13 @@ class MenuRuntimeService:
 
             try:
                 payload = self._build_item_payload_from_draft(original_message.menuContext.itemDraft)
-                source_item_name = original_message.menuContext.itemDraftSourceName
-                if source_item_name:
-                    self.item_service.edit_item_from_patch(source_item_name, payload)
+                source_item_id = (
+                    original_message.menuContext.itemDraftSourceId
+                    if hasattr(original_message.menuContext, "itemDraftSourceId")
+                    else original_message.menuContext.itemDraftSourceName
+                )
+                if source_item_id:
+                    self.item_service.edit_item_from_patch(source_item_id, payload)
                     await interface.send_ephemeral("Item updated.")
                 else:
                     self.item_service.create_item_from_dict(payload)
@@ -862,7 +875,7 @@ class MenuRuntimeService:
                 await interface.send_ephemeral("Spell edit cancelled." if was_edit else "Spell creation cancelled.")
                 response_consumed = True
             if menu.uniqueName == "itembookMenu" and original_message.menuContext.itemDraftActive:
-                was_edit = bool(original_message.menuContext.itemDraftSourceName)
+                was_edit = bool(getattr(original_message.menuContext, "itemDraftSourceId", None) or original_message.menuContext.itemDraftSourceName)
                 self._clear_item_draft(original_message.menuContext)
                 await interface.send_ephemeral("Item edit cancelled." if was_edit else "Item creation cancelled.")
                 response_consumed = True
@@ -971,6 +984,9 @@ class ConsoleMenuInterface(MenuInterface):
 
     async def send_update(self, rendered: RenderedMenu, menu: Menu, original_message: OriginalMessage):
         self._print_render(rendered)
+
+
+
 
 
 

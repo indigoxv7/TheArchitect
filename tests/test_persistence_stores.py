@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.persistence.character_store import CharacterStore
 from src.persistence.menu_store import MenuStore
 from src.persistence.roster_store import ExistingPlayersRosterStore
 from src.persistence.whitelist_store import WhitelistStore
@@ -18,8 +19,8 @@ class TestPersistenceStores(unittest.TestCase):
             self.assertTrue(whitelist_path.exists())
             self.assertEqual(ids, [123])
 
-            with open(whitelist_path, "w", encoding="utf-8") as f:
-                json.dump(["456", "bad", 789], f)
+            with open(whitelist_path, "w", encoding="utf-8") as file:
+                json.dump(["456", "bad", 789], file)
 
             ids = store.load_ids()
             self.assertEqual(ids, [456, 789])
@@ -45,6 +46,32 @@ class TestPersistenceStores(unittest.TestCase):
             discovered = store.discover_save_ids()
             self.assertEqual(discovered, {100, 300})
 
+    def test_character_store_directory_and_file_behavior(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            characters_dir = Path(temp_dir) / "Characters"
+            store = CharacterStore(str(characters_dir))
+
+            store.ensure_directory()
+            self.assertTrue(characters_dir.exists())
+            self.assertEqual(store.list_character_ids(), [])
+
+            payload = {
+                "format_version": 1,
+                "character_id": "TestCharacter0",
+                "character_state": {"name": "Test Character", "level": 1},
+            }
+            store.save_character_file("TestCharacter0", payload)
+
+            loaded = store.load_character_file("TestCharacter0")
+            self.assertIsInstance(loaded, dict)
+            self.assertEqual(loaded.get("character_id"), "TestCharacter0")
+
+            ids = store.list_character_ids()
+            self.assertEqual(ids, ["TestCharacter0"])
+
+            store.delete_character_file("TestCharacter0")
+            self.assertEqual(store.list_character_ids(), [])
+
     def test_menu_store_loads_required_menu_set(self):
         store = MenuStore("GameData/Menus")
         menus = store.load_menus()
@@ -54,4 +81,3 @@ class TestPersistenceStores(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

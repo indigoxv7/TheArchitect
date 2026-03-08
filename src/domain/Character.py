@@ -1,5 +1,4 @@
-﻿import copy
-from attr import attributes
+import copy
 from src.domain.CharacterUtil import *
 from src.domain.Items import Gear, Item
 from src.domain.GeneralSkills import GeneralSkills
@@ -35,39 +34,45 @@ class Character:
     portraitURL: str
     footerImageURL: str
 
-    def __init__(self, name: str, attributes: Attributes, level:  int = 0, raceTier: str = "Tier I",
-                 affinities: Affinities = None, gear: Gear = None,
-                 achievements=list[Achievement], generalSkills: list[GeneralSkills] = None, spells: list[Spell] = None, party: int = 0, buffs: list[Buff] = None, stats: CharacterStatistics = None):
+    def __init__(
+        self,
+        name: str,
+        attributes: Attributes | None = None,
+        level: int = 0,
+        raceTier: str = "Tier I",
+        affinities: Affinities | None = None,
+        gear: Gear | None = None,
+        achievements: list[Achievement] | None = None,
+        generalSkills: list[GeneralSkills] | None = None,
+        spells: list[Spell] | None = None,
+        party: int = 0,
+        buffs: list[Buff] | None = None,
+        stats: CharacterStatistics | None = None,
+    ):
         self.name = name
-        self.attributes = attributes
+        self.attributes = attributes if attributes is not None else Attributes()
         self.level = level
         self.raceTier = raceTier
-        self.affinities = affinities
-        self.gear = gear
+        self.affinities = affinities if affinities is not None else Affinities()
+        self.gear = gear if gear is not None else Gear()
         self.activeAchievementTitle = ""
         self.achievements = []
         if achievements is not None:
             if not isinstance(achievements, list):
-                achievements = [achievements]  # Convert to list if it's not already one
+                achievements = [achievements]
 
             for achievement in achievements:
                 self.AddAchievement(achievement)
-        self.generalSkills = []
-        if generalSkills is not None:
-            self.generalSkills = generalSkills
-        self.spells = []
-        if spells is not None:
-            self.spells = spells
+        self.generalSkills = generalSkills if generalSkills is not None else []
+        self.spells = spells if spells is not None else []
         self.party = party
         self.health = 100
         self.healthState = HealthState.HEALTHY
-        self.buffs = []
-        if buffs is not None:
-            self.buffs = buffs
+        self.buffs = buffs if buffs is not None else []
         self.totalBonus = TotalBonus(None)
-        self.stats = stats
-        self.finalAttributes = copy.deepcopy(attributes)
-        self.finalAffinities = copy.deepcopy(affinities)
+        self.stats = stats if stats is not None else CharacterStatistics()
+        self.finalAttributes = copy.deepcopy(self.attributes)
+        self.finalAffinities = copy.deepcopy(self.affinities)
         self.CalculateBonus()
 
     def ListAllItemBonuses(self):
@@ -137,15 +142,15 @@ class Character:
         if self.healthState == HealthState.HEALTHY:
             return "Healthy"
         elif self.healthState == HealthState.INJURED:
-            return "Injured ðŸ©¸"
+            return "Injured 🩸"
         elif self.healthState == HealthState.HEAVILY_INJURED:
-            return "Heavily Injured ðŸ©¸ðŸ©¸"
+            return "Heavily Injured 🩸🩸"
         elif self.healthState == HealthState.UNCONSCIOUS:
-            return "Unconscious ðŸ˜µâ€ðŸ’«"
+            return "Unconscious 😵‍💫"
         elif self.healthState == HealthState.DYING:
-            return "Dying âŒ›"
+            return "Dying ⌛"
         elif self.healthState == HealthState.DEAD:
-            return "Dead ðŸ’€"
+            return "Dead 💀"
 
     def GetAttributeString(self, text: str, base: float, percent: float, bonus: float, total: float):
         text += " - " + str(base)
@@ -278,6 +283,7 @@ Pooled Nano {nanoEmoji} - {nanoString}
 
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
+
 
 
 

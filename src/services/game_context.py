@@ -16,9 +16,14 @@ class GameContext:
 
     # Item runtime state
     all_items: dict[str, object] = field(default_factory=dict)
+    all_items_by_name: dict[str, list[str]] = field(default_factory=dict)
     error_item: Optional[object] = None
     itembook_overview: str = "No items in itembook yet."
     max_num_characters: int = 4
+
+    # Character runtime state
+    all_characters: dict[str, object] = field(default_factory=dict)
+    characterbook_overview: str = "No characters in characterbook yet."
 
     # Menu runtime state
     menus_by_name: dict[str, object] = field(default_factory=dict)
@@ -28,5 +33,3 @@ class GameContext:
     # Global spellbook runtime state
     global_spellbook: dict[str, object] = field(default_factory=dict)
     spellbook_overview: str = "No spells in spellbook yet."
-
-

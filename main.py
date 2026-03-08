@@ -8,6 +8,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
@@ -27,7 +28,8 @@ PLAYER_SAVE_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerSaves")
 EXISTING_PLAYERS_ROSTER_PATH = os.path.join(GAME_DATA_DIRECTORY, "ExistingPlayersRoster.json")
 MENU_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Menus")
 SPELLBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Spells", "spellbook.json")
-ITEMBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "items", "itembook.json")
+ITEMBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Items", "itembook.json")
+CHARACTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Characters")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -47,6 +49,7 @@ player_service = PlayerService(
 )
 spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
+character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
     emoji_placeholders=EMOJI_PLACEHOLDERS,
@@ -73,6 +76,7 @@ def initialize_game():
     player_service.initialize_storage()
     spell_service.load_spellbook()
     item_service.load_itembook(default_items=dict(context.all_items))
+    character_service.load_characters()
     menu_service.load_menus()
     _is_initialized = True
 
@@ -127,6 +131,9 @@ async def on_ready():
 TOKEN = os.getenv("BOT_TOKEN")
 if __name__ == "__main__":
     initialize_game()
-    start_admin_gui_thread(spell_service=spell_service, item_service=item_service)
+    start_admin_gui_thread(
+        spell_service=spell_service,
+        item_service=item_service,
+        character_service=character_service,
+    )
     bot.run(TOKEN)
-

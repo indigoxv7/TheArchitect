@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from enum import Enum
 from typing import Optional, Set, Dict
@@ -21,6 +21,7 @@ class MenuContext:
         self.itemDraft = {}
         self.itemDraftActive = False
         self.itemDraftSourceName = None
+        self.itemDraftSourceId = None
         self.attributesDraft = {}
         self.attributesDraftActive = False
         self.gearDraft = {}
