@@ -126,6 +126,8 @@ class Character:
 
     # Updates the character's bonus object that is the combination of all the character's current bonuses (Equipment, achievements, buffs, etc.)
     def CalculateBonus(self):
+        # Recompute from scratch each time to avoid stacking duplicate values across repeated calls.
+        self.totalBonus = TotalBonus(None)
         self.totalBonus.ApplyAllBonuses(self.ListAllBonuses())
         self.CalculateFinalAttributes()
 
@@ -149,24 +151,31 @@ class Character:
         if self.healthState == HealthState.HEALTHY:
             return "Healthy"
         elif self.healthState == HealthState.INJURED:
-            return "Injured ðŸ©¸"
+            return "Injured."
         elif self.healthState == HealthState.HEAVILY_INJURED:
-            return "Heavily Injured ðŸ©¸ðŸ©¸"
+            return "Heavily Injured."
         elif self.healthState == HealthState.UNCONSCIOUS:
-            return "Unconscious ðŸ˜µâ€ðŸ’«"
+            return "Unconscious."
         elif self.healthState == HealthState.DYING:
-            return "Dying âŒ›"
+            return "Dying."
         elif self.healthState == HealthState.DEAD:
-            return "Dead ðŸ’€"
+            return "Dead."
 
     def GetAttributeString(self, text: str, base: float, percent: float, bonus: float, total: float):
-        text += " - " + str(base)
+        rounded_base = round(float(base), 1)
+        rounded_total = round(float(total), 1)
+        rounded_bonus = round(float(bonus), 1)
+
+        text += f" - {rounded_base:.1f}"
         if percent > 0:
-            text += f"(+{percent*100}%)"
-        if bonus > 0:
-            text += f"[+{bonus}]"
-        if total != base:
-            text += f" - {total}"
+            text += f"(+{percent*100:g}%)"
+        if rounded_bonus > 0:
+            if rounded_bonus.is_integer():
+                text += f"[+{int(rounded_bonus)}]"
+            else:
+                text += f"[+{rounded_bonus:.1f}]"
+        if rounded_total != rounded_base:
+            text += f" - {rounded_total:.1f}"
         return text
 
     def GetAttributesString(self):
@@ -210,11 +219,12 @@ class Character:
                                 baseStatDict[attribute] += bonus.attributeBonus.bonus
             else: # if the bonus type is multiplicative
                 if bonus.attributeBonus is not None:
+                    percent_as_multiplier = float(bonus.attributeBonus.bonus) / 100.0
                     if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
-                        bonusMultiplierDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
+                        bonusMultiplierDict[bonus.attributeBonus.attribute] += percent_as_multiplier
                     else:
                         for attribute in bonusMultiplierDict:
-                            bonusMultiplierDict[attribute] += bonus.attributeBonus.bonus
+                            bonusMultiplierDict[attribute] += percent_as_multiplier
 
         # then we subtract the total bonus from the bonusMultiplierDict so that we only show stats which are not covered by the general bonus
         for attribute in bonusAttributeDict:
@@ -222,7 +232,7 @@ class Character:
 
         attributeIncrease = ""
         if self.totalBonus.allStatBonusUIAmount > 0:
-            attributeIncrease += f"Increased by {self.totalBonus.allStatBonusUIAmount*100}%"
+            attributeIncrease += f"Increased by {self.totalBonus.allStatBonusUIAmount*100:g}%"
 
 
 
@@ -290,6 +300,7 @@ Pooled Nano {nanoEmoji} - {nanoString}
 
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
+        self.CalculateFinalAttributes()
 
 
 

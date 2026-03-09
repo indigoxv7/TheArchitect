@@ -139,6 +139,11 @@ class Attributes:
         self.magicStamina *= (1 + otherAttributes.magicStamina)
         self.magicResistance *= (1 + otherAttributes.magicResistance)
 
+
+def _percentage_points_to_multiplier(value: float) -> float:
+    # Percentage bonuses are stored as whole percentage points, e.g. 10 means +10%.
+    return float(value) / 100.0
+
 # each value is a percentage, from 0.01 at the lowest to 0.9 at the highest.
 class Affinities:
     def __init__(self, chi: float = 0.5, mana: float = 0.5, psi: float = 0.5, aether: float = 0.5):
@@ -193,7 +198,7 @@ class TotalBonus:
     def ApplyBonus(self, bonus: Bonus):
         if bonus.bonusType == BonusType.FLAT:
             if bonus.attributeBonus is not None:
-                if not bonus.permanent:
+                if bonus.permanent:
                     self.flatInherentAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
                 else:
                     self.flatBonusAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
@@ -202,9 +207,10 @@ class TotalBonus:
 
         if bonus.bonusType == BonusType.PERCENTAGE:
             if bonus.attributeBonus is not None:
-                self.percentAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
+                multiplier_value = _percentage_points_to_multiplier(bonus.attributeBonus.bonus)
+                self.percentAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, multiplier_value)
                 if bonus.attributeBonus.attribute == Attribute.ALL_ATTRIBUTES:
-                    self.allStatBonusUIAmount += bonus.attributeBonus.bonus
+                    self.allStatBonusUIAmount += multiplier_value
             if bonus.affinities is not None:
                 self.percentAffinities.AddAffinities(bonus.affinities)
 

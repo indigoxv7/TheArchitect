@@ -13,7 +13,7 @@ class CreatureSize(Enum):
     SMALL = 1
     STANDARD = 2
     LARGE = 3
-    Giant = 5
+    GIANT = 5
 
 
 class Race:
