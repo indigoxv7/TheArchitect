@@ -15,6 +15,13 @@ class EquipSlot(Enum):
     FEET = 7
 
 
+class HitLocation(Enum):
+    HEAD = 1
+    BODY = 2
+    ARMS = 3
+    LEGS = 4
+
+
 class Attribute(Enum):
     PHYSICAL_POWER = 0
     PHYSICAL_STAMINA = 1

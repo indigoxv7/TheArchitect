@@ -16,6 +16,11 @@ class Item:
         itemType: ItemType = ItemType.DEFAULT,
         itemPower: list[ItemPower] = None,
         damageType: list[DamageType] = None,
+        damageMin: float | None = None,
+        damageMax: float | None = None,
+        armorMultiplier: float = 1.0,
+        ignoreArmorFraction: float = 0.0,
+        penetrationBase: float = 0.0,
         itemId: str | None = None,
     ):
         self.name = name
@@ -30,6 +35,12 @@ class Item:
         self.itemType = itemType
         self.itemPower = itemPower if itemPower is not None else []
         self.damageType = damageType if damageType is not None else []
+        default_damage = float(self.itemPower[0].power) if self.itemPower else 0.0
+        self.damageMin = float(default_damage if damageMin is None else damageMin)
+        self.damageMax = float(default_damage if damageMax is None else damageMax)
+        self.armorMultiplier = float(armorMultiplier)
+        self.ignoreArmorFraction = float(ignoreArmorFraction)
+        self.penetrationBase = float(penetrationBase)
         self.tags = [self.name, self.itemType.name, self.slot.name]
         if self.itemId:
             self.tags.append(self.itemId)
@@ -157,6 +168,11 @@ class Item:
             "itemType": self.itemType.name,
             "itemPower": [self._item_power_to_dict(power) for power in self.itemPower],
             "damageType": [damage_type.name for damage_type in self.damageType],
+            "damageMin": float(self.damageMin),
+            "damageMax": float(self.damageMax),
+            "armorMultiplier": float(self.armorMultiplier),
+            "ignoreArmorFraction": float(self.ignoreArmorFraction),
+            "penetrationBase": float(self.penetrationBase),
         }
 
     @classmethod
@@ -186,6 +202,7 @@ class Item:
                 parsed = cls._item_power_from_dict(raw)
                 if parsed is not None:
                     item_power.append(parsed)
+        fallback_damage = float(item_power[0].power) if item_power else 0.0
 
         raw_bonuses = data.get("statBonuses", [])
         stat_bonuses = []
@@ -197,6 +214,27 @@ class Item:
 
         damage_type = cls._damage_type_from_list(data.get("damageType", []))
 
+        try:
+            damage_min = float(data.get("damageMin", fallback_damage))
+        except Exception:
+            damage_min = fallback_damage
+        try:
+            damage_max = float(data.get("damageMax", fallback_damage))
+        except Exception:
+            damage_max = fallback_damage
+        try:
+            armor_multiplier = float(data.get("armorMultiplier", 1.0))
+        except Exception:
+            armor_multiplier = 1.0
+        try:
+            ignore_armor_fraction = float(data.get("ignoreArmorFraction", 0.0))
+        except Exception:
+            ignore_armor_fraction = 0.0
+        try:
+            penetration_base = float(data.get("penetrationBase", 0.0))
+        except Exception:
+            penetration_base = 0.0
+
         return cls(
             name=name,
             slot=slot,
@@ -206,6 +244,11 @@ class Item:
             itemType=item_type,
             itemPower=item_power,
             damageType=damage_type,
+            damageMin=damage_min,
+            damageMax=damage_max,
+            armorMultiplier=armor_multiplier,
+            ignoreArmorFraction=ignore_armor_fraction,
+            penetrationBase=penetration_base,
             itemId=item_id,
         )
 
@@ -227,3 +270,26 @@ class Gear:
         allItems = [item for item in [self.head, self.neck, self.body, self.hands, self.ring, self.legs, self.feet, self.primaryWeapon, self.offhand] if item is not None]
 
         return allItems
+
+    def _get_item_for_location(self, location: HitLocation) -> Item | None:
+        if location == HitLocation.HEAD:
+            return self.head
+        if location == HitLocation.BODY:
+            return self.body
+        if location == HitLocation.ARMS:
+            return self.hands
+        if location == HitLocation.LEGS:
+            return self.legs
+        return None
+
+    def get_armor(self, location: HitLocation) -> float:
+        item = self._get_item_for_location(location)
+        if item is None:
+            return 0.0
+        return max(0.0, float(getattr(item, "durability", 0.0)))
+
+    def set_armor(self, location: HitLocation, new_value: float) -> None:
+        item = self._get_item_for_location(location)
+        if item is None:
+            return
+        item.durability = max(0.0, float(new_value))
