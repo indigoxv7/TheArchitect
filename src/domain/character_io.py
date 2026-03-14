@@ -1,8 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
 from src.domain.Character import Buff, Character, HealthState
+from src.domain.MainCharacter import CharacterInfo, MainCharacter
 from src.domain.CharacterUtil import (
     Achievement,
     Affinities,
@@ -362,10 +363,24 @@ def _gear_from_dict(data: Any, item_resolver: Callable[[str], Item | None], erro
     )
 
 
+
+
+def _character_info_to_dict(character_info: CharacterInfo | None) -> dict[str, Any] | None:
+    if character_info is None:
+        return None
+    return character_info.to_dict()
+
+
+def _character_info_from_dict(data: Any) -> CharacterInfo | None:
+    if not isinstance(data, dict):
+        return None
+    return CharacterInfo.from_dict(data)
+
 def character_to_state(character: Character) -> dict[str, Any]:
     return {
         "name": str(character.name or ""),
         "level": _coerce_int(character.level, 0),
+        "characterType": "MainCharacter" if isinstance(character, MainCharacter) else "Character",
         "raceTier": str(character.raceTier or "Tier I"),
         "race": str(getattr(character, "race", "Human1") or "Human1"),
         "party": _coerce_int(character.party, 0),
@@ -383,6 +398,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "description": str(getattr(character, "description", "") or ""),
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
+        "characterInfo": _character_info_to_dict(getattr(character, "characterInfo", None)),
     }
 
 
@@ -425,21 +441,31 @@ def character_from_state(
     portrait_url = str(data.get("portraitURL", "") or "")
     footer_image_url = str(data.get("footerImageURL", "") or "")
 
-    character = Character(
-        name=name,
-        attributes=attributes,
-        level=_coerce_int(data.get("level", 0), 0),
-        raceTier=str(data.get("raceTier", "Tier I") or "Tier I"),
-        race=str(data.get("race", data.get("raceId", "Human1")) or "Human1"),
-        affinities=affinities,
-        gear=gear,
-        achievements=achievements,
-        generalSkills=general_skills,
-        spells=spells,
-        party=_coerce_int(data.get("party", 0), 0),
-        buffs=buffs,
-        stats=stats,
-    )
+    character_type = str(data.get("characterType", "") or "").strip()
+    character_info = _character_info_from_dict(data.get("characterInfo"))
+    character_kwargs = {
+        "name": name,
+        "attributes": attributes,
+        "level": _coerce_int(data.get("level", 0), 0),
+        "raceTier": str(data.get("raceTier", "Tier I") or "Tier I"),
+        "race": str(data.get("race", data.get("raceId", "Human1")) or "Human1"),
+        "affinities": affinities,
+        "gear": gear,
+        "achievements": achievements,
+        "generalSkills": general_skills,
+        "spells": spells,
+        "party": _coerce_int(data.get("party", 0), 0),
+        "buffs": buffs,
+        "stats": stats,
+    }
+
+    if character_type == "MainCharacter" or character_info is not None:
+        character = MainCharacter(
+            characterInfo=character_info if character_info is not None else CharacterInfo(),
+            **character_kwargs,
+        )
+    else:
+        character = Character(**character_kwargs)
 
     character.health = _coerce_int(data.get("health", 100), 100)
     character.healthState = _enum_from_name(HealthState, data.get("healthState"), HealthState.HEALTHY)

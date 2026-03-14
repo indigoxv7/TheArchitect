@@ -1,0 +1,17 @@
+
+trait_group,trait_name,option,weight,notes
+background,occupation,healthcare or education worker,17.1,"nurses, doctors, teachers, school staff"
+background,occupation,professional or business services,14.2,"office workers, managers, consultants, IT support"
+background,occupation,hospitality or service worker,10.7,"food service, tourism, entertainment"
+background,occupation,retail worker,9.8,"store clerks, cashiers, sales associates"
+background,occupation,government employee,9.5,"local, state, or federal government positions"
+background,occupation,manufacturing worker,8.0,"factory, production, assembly line"
+background,occupation,finance professional,5.8,"banking, insurance, accounting"
+background,occupation,construction worker,5.2,"construction, trades, laborers"
+background,occupation,transportation/warehousing worker,4.3,"drivers, logistics, warehouse employees"
+background,occupation,wholesale trade worker,3.9,"distribution, wholesale supply"
+background,occupation,information/tech worker,2.0,"software, telecommunications, information services"
+background,occupation,agriculture/mining/fishing worker,1.5,"farmers, fishers, miners"
+background,occupation,arts/entertainment worker,1.5,"artists, performers, writers"
+background,occupation,self-employed/freelancer,3.0,"entrepreneurs, gig economy"
+background,occupation,unemployed/student/other,3.5,"unemployed, students, homemakers"

@@ -1,0 +1,14 @@
+
+trait_group,trait_name,option,weight
+occupation,finance_professional,Bank Teller,15.0
+occupation,finance_professional,Accountant,12.0
+occupation,finance_professional,Financial Analyst,8.0
+occupation,finance_professional,Loan Officer,8.0
+occupation,finance_professional,Insurance Agent,10.0
+occupation,finance_professional,Financial Advisor,7.0
+occupation,finance_professional,Auditor,6.0
+occupation,finance_professional,Bookkeeper,10.0
+occupation,finance_professional,Investment Banker,2.0
+occupation,finance_professional,Tax Preparer,6.0
+occupation,finance_professional,Credit Analyst,8.0
+occupation,finance_professional,Actuary,8.0

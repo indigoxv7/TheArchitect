@@ -1,0 +1,17 @@
+
+trait_group,trait_name,option,weight
+occupation,self_employed_or_freelancer,Freelance Writer,8.77
+occupation,self_employed_or_freelancer,Freelance Artist,7.02
+occupation,self_employed_or_freelancer,Independent Consultant,8.77
+occupation,self_employed_or_freelancer,Craftsperson/Artisan,7.02
+occupation,self_employed_or_freelancer,Ride-share Driver,8.77
+occupation,self_employed_or_freelancer,Handyman,7.02
+occupation,self_employed_or_freelancer,Entrepreneur (Small Business Owner),8.77
+occupation,self_employed_or_freelancer,Personal Trainer,5.26
+occupation,self_employed_or_freelancer,Real Estate Agent (Self-employed),5.26
+occupation,self_employed_or_freelancer,Freelance Developer,5.26
+occupation,self_employed_or_freelancer,Photographer (Independent),5.26
+occupation,self_employed_or_freelancer,Social Media Influencer,5.26
+occupation,self_employed_or_freelancer,Hair Stylist,7.02
+occupation,self_employed_or_freelancer,Tattoo Artist,5.26
+occupation,self_employed_or_freelancer,Dog Walker,5.26

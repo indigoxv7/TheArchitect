@@ -1,0 +1,12 @@
+
+trait_group,trait_name,option,weight,notes
+personality,goal,survival,20,simply staying alive
+personality,goal,protect_family,15,protecting loved ones
+personality,goal,reunite_with_loved_ones,10,finding or rescuing loved ones
+personality,goal,gain_power,10,achieving power or influence
+personality,goal,escape_danger,10,escaping immediate danger
+personality,goal,acquire_resources,10,finding supplies and resources
+personality,goal,knowledge_or_discovery,8,learning or discovering something
+personality,goal,rebuild_community,8,helping rebuild society/community
+personality,goal,revenge,6,getting revenge on someone
+personality,goal,personal_redemption,3,seeking forgiveness or redemption

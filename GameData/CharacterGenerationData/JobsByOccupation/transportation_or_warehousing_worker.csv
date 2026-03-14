@@ -1,0 +1,14 @@
+
+trait_group,trait_name,option,weight
+occupation,transportation_or_warehousing_worker,Truck Driver,20.0
+occupation,transportation_or_warehousing_worker,Delivery Driver,15.0
+occupation,transportation_or_warehousing_worker,Warehouse Associate,15.0
+occupation,transportation_or_warehousing_worker,Forklift Operator,8.0
+occupation,transportation_or_warehousing_worker,Logistics Coordinator,7.0
+occupation,transportation_or_warehousing_worker,Bus Driver,8.0
+occupation,transportation_or_warehousing_worker,Train Conductor,3.0
+occupation,transportation_or_warehousing_worker,Airline Pilot,2.0
+occupation,transportation_or_warehousing_worker,Flight Attendant,2.0
+occupation,transportation_or_warehousing_worker,Package Handler,10.0
+occupation,transportation_or_warehousing_worker,Postal Delivery Driver,5.0
+occupation,transportation_or_warehousing_worker,Ship Captain,5.0

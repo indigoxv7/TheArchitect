@@ -1,0 +1,12 @@
+
+trait_group,trait_name,option,weight,notes
+personality,coping_habit,humor,15,coping through humor or jokes
+personality,coping_habit,withdrawal,20,withdraws or isolates
+personality,coping_habit,anger,15,reacts with anger or outbursts
+personality,coping_habit,overworking,10,immerses in work or tasks
+personality,coping_habit,seeking_support,10,turns to friends or family
+personality,coping_habit,substance_use,5,"uses alcohol, drugs, etc."
+personality,coping_habit,comfort_eating,8,eats for comfort
+personality,coping_habit,prayer_or_meditation,10,prays or meditates
+personality,coping_habit,overexplaining,4,talks incessantly to cope
+personality,coping_habit,risk_taking,3,engages in risky behaviour

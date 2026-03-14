@@ -1,4 +1,4 @@
-﻿import copy
+import copy
 from src.domain.CharacterUtil import *
 from src.domain.Items import Gear, Item
 from src.domain.GeneralSkills import GeneralSkills
@@ -59,6 +59,9 @@ class Character:
         self.affinities = affinities if affinities is not None else Affinities()
         self.gear = gear if gear is not None else Gear()
         self.activeAchievementTitle = ""
+        self.description = ""
+        self.portraitURL = ""
+        self.footerImageURL = ""
         self.achievements = []
         if achievements is not None:
             if not isinstance(achievements, list):

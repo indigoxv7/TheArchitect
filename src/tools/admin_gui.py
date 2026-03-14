@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.Character import HealthState
+from src.domain.MainCharacter import CharacterInfo, MainCharacter
 from src.domain.CharacterUtil import (
     Affinities,
     Attribute,
@@ -15,7 +16,7 @@ from src.domain.CharacterUtil import (
     TitlePreference,
 )
 from src.domain.Spells import AffinityTypes
-from src.domain.character_io import character_to_state
+from src.domain.character_io import character_from_state, character_to_state
 from src.tools.race_editor import RaceEditorFrame
 
 
@@ -1500,11 +1501,53 @@ class RacePickerDialog(tk.Toplevel):
         self.on_select(race.raceId)
         self.destroy()
 
+
+class MainCharacterInfoDialog(tk.Toplevel):
+    def __init__(self, parent, draft: dict, on_save):
+        super().__init__(parent)
+        self.title("Main Character Info")
+        self.geometry("760x820")
+        self.on_save = on_save
+        self.vars = {}
+
+        body = ttk.Frame(self, padding=12)
+        body.pack(fill=tk.BOTH, expand=True)
+
+        for field_key, label in CharacterInfo.FIELD_SPECS:
+            row = ttk.Frame(body)
+            row.pack(fill=tk.X, pady=2)
+            ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
+            var = tk.StringVar(value=str(draft.get(field_key, "") or ""))
+            self.vars[field_key] = var
+            ttk.Entry(row, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        actions = ttk.Frame(body)
+        actions.pack(fill=tk.X, pady=(12, 0))
+        ttk.Button(actions, text="Save", command=self._save).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self.transient(parent)
+        self.grab_set()
+
+    def _save(self):
+        payload = {}
+        for field_key, _label in CharacterInfo.FIELD_SPECS:
+            value = self.vars[field_key].get().strip()
+            if field_key == "age":
+                payload[field_key] = _safe_int(value, 0)
+            else:
+                payload[field_key] = value
+        self.on_save(payload)
+        self.destroy()
+
+
 class CharacterEditorFrame(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
         self.current_character_id = None
+        self.is_main_character = False
+        self.main_character_info_draft = self._default_main_character_info()
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -1564,6 +1607,8 @@ class CharacterEditorFrame(ttk.Frame):
         ttk.Button(actions, text="Edit Bonus (Buff List)", command=self._edit_buffs).pack(side=tk.LEFT, padx=4)
         ttk.Button(actions, text="Add Achievement", command=self._add_achievement).pack(side=tk.LEFT, padx=4)
         ttk.Button(actions, text="Remove Achievement", command=self._remove_selected_achievement).pack(side=tk.LEFT, padx=4)
+        self.main_character_button = ttk.Button(actions, text="Convert to Main Character", command=self._edit_main_character)
+        self.main_character_button.pack(side=tk.LEFT, padx=4)
 
         achievement_panel = ttk.LabelFrame(self, text="Assigned Achievements")
         achievement_panel.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -1612,8 +1657,20 @@ class CharacterEditorFrame(ttk.Frame):
             "inventory_item_ids": [],
         }
 
+    def _default_main_character_info(self):
+        return CharacterInfo().to_dict()
+
+    def _normalize_main_character_info(self, payload) -> dict:
+        return CharacterInfo.from_dict(payload).to_dict()
+
+    def _refresh_main_character_button(self):
+        button_text = "Edit Main Character Info" if self.is_main_character else "Convert to Main Character"
+        self.main_character_button.config(text=button_text)
+
     def _clear_form(self):
         self.current_character_id = None
+        self.is_main_character = False
+        self.main_character_info_draft = self._default_main_character_info()
         self.vars["name"].set("")
         self.vars["description"].set("")
         self.vars["portraitURL"].set("")
@@ -1631,6 +1688,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.spells_data = []
         self.general_skills_data = []
         self.stats_data = None
+        self._refresh_main_character_button()
         self._refresh_summary()
 
     def _filtered_characters(self):
@@ -1663,6 +1721,12 @@ class CharacterEditorFrame(ttk.Frame):
             return
         state = character_to_state(character)
         self.current_character_id = character_id
+        self.is_main_character = isinstance(character, MainCharacter) or bool(state.get("characterInfo"))
+        self.main_character_info_draft = (
+            self._normalize_main_character_info(state.get("characterInfo"))
+            if self.is_main_character
+            else self._default_main_character_info()
+        )
         self.vars["name"].set(state.get("name", ""))
         self.vars["description"].set(str(state.get("description", "") or ""))
         self.vars["portraitURL"].set(str(state.get("portraitURL", "") or ""))
@@ -1688,24 +1752,42 @@ class CharacterEditorFrame(ttk.Frame):
         self.spells_data = state.get("spells", [])
         self.general_skills_data = state.get("generalSkills", [])
         self.stats_data = state.get("stats")
+        self._refresh_main_character_button()
         self._refresh_summary()
 
     def _refresh_summary(self):
         lines = [
+            f"Character Type: {'MainCharacter' if self.is_main_character else 'Character'}",
             f"Description: {self.vars['description'].get().strip()}",
             f"Portrait URL: {self.vars['portraitURL'].get().strip()}",
             f"Footer Image URL: {self.vars['footerImageURL'].get().strip()}",
             f"Race ID: {self.vars['race'].get().strip() or 'Human1'}",
-            "",
-            "Attributes:",
-            json.dumps(self.attributes_draft, indent=2, ensure_ascii=False),
-            "",
-            "Gear:",
-            json.dumps(self.gear_draft, indent=2, ensure_ascii=False),
-            "",
-            f"Buff entries: {len(self.buffs_draft)}",
-            f"Achievement entries: {len(self.achievements_draft)}",
         ]
+
+        if self.is_main_character:
+            info = self.main_character_info_draft
+            lines.extend(
+                [
+                    f"Main Character Age: {info.get('age', 0)}",
+                    f"Occupation: {info.get('occupation', '')}",
+                    f"Job: {info.get('job', '')}",
+                    f"Personality Type: {info.get('personalityType', '')}",
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                "Attributes:",
+                json.dumps(self.attributes_draft, indent=2, ensure_ascii=False),
+                "",
+                "Gear:",
+                json.dumps(self.gear_draft, indent=2, ensure_ascii=False),
+                "",
+                f"Buff entries: {len(self.buffs_draft)}",
+                f"Achievement entries: {len(self.achievements_draft)}",
+            ]
+        )
         self.summary.delete("1.0", tk.END)
         self.summary.insert(tk.END, "\n".join(lines))
 
@@ -1717,7 +1799,8 @@ class CharacterEditorFrame(ttk.Frame):
             label = f"{name} ({title})" if title else name
             if description:
                 label += f" - {description[:80]}"
-            self.achievement_listbox.insert(tk.END, label)
+            self.achievement_listbox.insert(tk.END, label)
+
     def _select_race(self):
         def _on_select(race_id: str):
             self.vars["race"].set(str(race_id or "Human1"))
@@ -1727,6 +1810,39 @@ class CharacterEditorFrame(ttk.Frame):
 
     def _clear_race(self):
         self.vars["race"].set("Human1")
+        self._refresh_summary()
+
+    def _build_character_for_main_character_conversion(self):
+        if not self.vars["name"].get().strip():
+            self.vars["name"].set("Generated Main Character")
+        payload = self._build_payload(include_main_character=False)
+        return character_from_state(
+            payload,
+            item_resolver=self.app.item_service.get_item,
+            error_item=self.app.item_service.context.error_item,
+        )
+
+    def _edit_main_character(self):
+        if not self.is_main_character:
+            try:
+                base_character = self._build_character_for_main_character_conversion()
+                main_character = MainCharacter.from_character(base_character)
+                self.main_character_info_draft = self._normalize_main_character_info(
+                    main_character.characterInfo.to_dict()
+                )
+                self.is_main_character = True
+            except Exception as exc:
+                messagebox.showerror("Character Editor", f"Failed to convert to Main Character: {exc}")
+                return
+
+        self._refresh_main_character_button()
+        self._refresh_summary()
+        MainCharacterInfoDialog(self, self.main_character_info_draft, self._on_main_character_info_saved)
+
+    def _on_main_character_info_saved(self, payload):
+        self.main_character_info_draft = self._normalize_main_character_info(payload)
+        self.is_main_character = True
+        self._refresh_main_character_button()
         self._refresh_summary()
 
     def _edit_attributes(self):
@@ -1774,8 +1890,8 @@ class CharacterEditorFrame(ttk.Frame):
         self.achievements_draft.pop(index)
         self._refresh_summary()
 
-    def _build_payload(self):
-        return {
+    def _build_payload(self, include_main_character: bool = True):
+        payload = {
             "name": self.vars["name"].get().strip(),
             "level": _safe_int(self.vars["level"].get(), 0),
             "raceTier": self.vars["raceTier"].get().strip() or "Tier I",
@@ -1802,6 +1918,10 @@ class CharacterEditorFrame(ttk.Frame):
             "generalSkills": list(self.general_skills_data),
             "stats": self.stats_data,
         }
+        if include_main_character and self.is_main_character:
+            payload["characterType"] = "MainCharacter"
+            payload["characterInfo"] = dict(self.main_character_info_draft)
+        return payload
 
     def _save(self):
         payload = self._build_payload()
@@ -1818,6 +1938,7 @@ class CharacterEditorFrame(ttk.Frame):
             self.refresh_character_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Character Editor", f"Failed to save character: {exc}")
+
 
 class CharacterPickerDialog(tk.Toplevel):
     def __init__(self, parent, character_service, on_select):

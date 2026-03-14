@@ -1,0 +1,22 @@
+
+trait_group,trait_name,option,weight
+occupation,professional_or_business_services,Administrative Assistant,15.46
+occupation,professional_or_business_services,Accountant,12.37
+occupation,professional_or_business_services,Lawyer,5.15
+occupation,professional_or_business_services,Marketing Specialist,8.25
+occupation,professional_or_business_services,Human Resources Specialist,6.19
+occupation,professional_or_business_services,Project Manager,6.19
+occupation,professional_or_business_services,Management Analyst / Consultant,5.15
+occupation,professional_or_business_services,Sales Manager,4.12
+occupation,professional_or_business_services,Architect,2.06
+occupation,professional_or_business_services,Real Estate Agent,3.09
+occupation,professional_or_business_services,Graphic Designer,3.09
+occupation,professional_or_business_services,Data Analyst,4.12
+occupation,professional_or_business_services,Business Analyst,4.12
+occupation,professional_or_business_services,Computer Programmer,4.12
+occupation,professional_or_business_services,IT Project Manager,3.09
+occupation,professional_or_business_services,Recruiter,3.09
+occupation,professional_or_business_services,Executive Assistant,3.09
+occupation,professional_or_business_services,Customer Service Manager,3.09
+occupation,professional_or_business_services,Public Relations Specialist,2.06
+occupation,professional_or_business_services,Auditor,2.06

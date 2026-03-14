@@ -1,0 +1,13 @@
+
+trait_group,trait_name,option,weight
+occupation,manufacturing_worker,Assembly Line Worker,25.0
+occupation,manufacturing_worker,Machine Operator,15.0
+occupation,manufacturing_worker,Quality Control Inspector,10.0
+occupation,manufacturing_worker,Maintenance Technician,10.0
+occupation,manufacturing_worker,Production Manager,5.0
+occupation,manufacturing_worker,Welder,8.0
+occupation,manufacturing_worker,Fabricator,7.0
+occupation,manufacturing_worker,Forklift Operator,8.0
+occupation,manufacturing_worker,CNC Machinist,4.0
+occupation,manufacturing_worker,Packaging Operator,5.0
+occupation,manufacturing_worker,Plant Manager,3.0

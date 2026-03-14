@@ -1,0 +1,11 @@
+
+trait_group,trait_name,option,weight
+occupation,unemployed_student_or_other,Unemployed,25.0
+occupation,unemployed_student_or_other,Student,25.0
+occupation,unemployed_student_or_other,Homemaker/Stay-at-home Parent,10.0
+occupation,unemployed_student_or_other,Retired,10.0
+occupation,unemployed_student_or_other,Disabled/Not Working,5.0
+occupation,unemployed_student_or_other,Volunteer,5.0
+occupation,unemployed_student_or_other,Intern,5.0
+occupation,unemployed_student_or_other,"Gig Worker (Food Delivery, etc.)",10.0
+occupation,unemployed_student_or_other,Seasonal Worker,5.0

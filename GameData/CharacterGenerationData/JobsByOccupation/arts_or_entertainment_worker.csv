@@ -1,0 +1,19 @@
+
+trait_group,trait_name,option,weight
+occupation,arts_or_entertainment_worker,Actor,10.75
+occupation,arts_or_entertainment_worker,Musician,10.75
+occupation,arts_or_entertainment_worker,Dancer,5.38
+occupation,arts_or_entertainment_worker,Painter,5.38
+occupation,arts_or_entertainment_worker,Sculptor,3.23
+occupation,arts_or_entertainment_worker,Graphic Designer,8.6
+occupation,arts_or_entertainment_worker,Writer/Author,6.45
+occupation,arts_or_entertainment_worker,Photographer,7.53
+occupation,arts_or_entertainment_worker,Film Director,3.23
+occupation,arts_or_entertainment_worker,Stage Manager,4.3
+occupation,arts_or_entertainment_worker,Lighting Technician,4.3
+occupation,arts_or_entertainment_worker,Costume Designer,4.3
+occupation,arts_or_entertainment_worker,Museum Curator,3.23
+occupation,arts_or_entertainment_worker,Animator,5.38
+occupation,arts_or_entertainment_worker,Singer,8.6
+occupation,arts_or_entertainment_worker,Comedian,4.3
+occupation,arts_or_entertainment_worker,Makeup Artist,4.3

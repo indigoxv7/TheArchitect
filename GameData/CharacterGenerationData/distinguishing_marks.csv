@@ -1,0 +1,8 @@
+
+trait_group,trait_name,option,weight,notes
+appearance,distinguishing_mark,none,40,no notable marks
+appearance,distinguishing_mark,tattoos,32,has one or more tattoos
+appearance,distinguishing_mark,scar,15,visible scars
+appearance,distinguishing_mark,piercings,7,facial or unusual piercings
+appearance,distinguishing_mark,birthmark,5,visible birthmark
+appearance,distinguishing_mark,other,1,"rare marks like heterochromia, vitiligo, missing limb"

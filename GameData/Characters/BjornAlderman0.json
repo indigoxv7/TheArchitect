@@ -4,7 +4,9 @@
     "character_state": {
         "name": "Bjorn Alderman",
         "level": 0,
+        "characterType": "MainCharacter",
         "raceTier": "Tier I",
+        "race": "Human1",
         "party": 0,
         "health": 100,
         "healthState": "HEALTHY",
@@ -88,6 +90,30 @@
         },
         "description": "A middle aged woodsman with short brown hair and beard.",
         "portraitURL": "https://static.wikia.nocookie.net/bannersaga_wikickstart/images/b/b2/Saga1_Hero_Icon_Rook.png/revision/latest?cb=20140312162120",
-        "footerImageURL": "https://media.discordapp.net/attachments/886469391548559372/1480267501437980863/image.png"
+        "footerImageURL": "https://media.discordapp.net/attachments/886469391548559372/1480267501437980863/image.png",
+        "characterInfo": {
+            "age": 48,
+            "birthday": "February 6, 1978",
+            "sex": "Male",
+            "height": "5'10.4\"",
+            "build": "average",
+            "skinTone": "medium",
+            "hairColor": "black",
+            "eyeColor": "brown",
+            "distinguishingMarks": "birthmark",
+            "background": "suburban middle-class",
+            "occupation": "healthcare or education worker",
+            "job": "Secondary School Teacher",
+            "personalityType": "ESFJ",
+            "coreValue": "knowledge",
+            "strength": "resilience",
+            "flaw": "pessimism",
+            "socialStyle": "guarded",
+            "speechStyle": "persuasive",
+            "goal": "protect_family",
+            "secret": "hidden_family_member",
+            "emotionalTrigger": "helplessness",
+            "copingHabit": "anger"
+        }
     }
 }

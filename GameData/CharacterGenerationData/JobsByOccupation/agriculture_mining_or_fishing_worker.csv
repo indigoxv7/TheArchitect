@@ -1,0 +1,14 @@
+
+trait_group,trait_name,option,weight
+occupation,agriculture_mining_or_fishing_worker,Farmer,15.0
+occupation,agriculture_mining_or_fishing_worker,Agricultural Laborer,15.0
+occupation,agriculture_mining_or_fishing_worker,Farm Manager,10.0
+occupation,agriculture_mining_or_fishing_worker,Rancher,8.0
+occupation,agriculture_mining_or_fishing_worker,Fisherman,10.0
+occupation,agriculture_mining_or_fishing_worker,Fishery Worker,5.0
+occupation,agriculture_mining_or_fishing_worker,Logger/Lumberjack,10.0
+occupation,agriculture_mining_or_fishing_worker,Miner,8.0
+occupation,agriculture_mining_or_fishing_worker,Oil/Gas Drilling Operator,5.0
+occupation,agriculture_mining_or_fishing_worker,Agricultural Scientist,5.0
+occupation,agriculture_mining_or_fishing_worker,Dairy Worker,5.0
+occupation,agriculture_mining_or_fishing_worker,Vineyard Worker,4.0

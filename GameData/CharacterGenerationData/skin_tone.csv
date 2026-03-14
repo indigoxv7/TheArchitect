@@ -1,0 +1,6 @@
+
+trait_group,trait_name,option,weight,notes
+appearance,skin_tone,fair,40,very light skin
+appearance,skin_tone,light,30,light or olive skin
+appearance,skin_tone,medium,20,medium or tan skin
+appearance,skin_tone,dark,10,dark brown skin

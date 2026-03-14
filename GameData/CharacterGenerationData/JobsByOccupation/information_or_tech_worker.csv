@@ -1,0 +1,15 @@
+
+trait_group,trait_name,option,weight
+occupation,information_or_tech_worker,Software Developer,20.0
+occupation,information_or_tech_worker,IT Support Specialist,10.0
+occupation,information_or_tech_worker,Systems Analyst,8.0
+occupation,information_or_tech_worker,Network Engineer,8.0
+occupation,information_or_tech_worker,Cybersecurity Analyst,6.0
+occupation,information_or_tech_worker,Data Scientist,6.0
+occupation,information_or_tech_worker,Web Developer,8.0
+occupation,information_or_tech_worker,Database Administrator,6.0
+occupation,information_or_tech_worker,DevOps Engineer,6.0
+occupation,information_or_tech_worker,UX/UI Designer,6.0
+occupation,information_or_tech_worker,IT Project Manager,8.0
+occupation,information_or_tech_worker,Cloud Architect,4.0
+occupation,information_or_tech_worker,Technical Writer,4.0

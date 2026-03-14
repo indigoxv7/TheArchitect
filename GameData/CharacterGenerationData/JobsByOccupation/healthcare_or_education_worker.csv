@@ -1,0 +1,21 @@
+
+trait_group,trait_name,option,weight
+occupation,healthcare_or_education_worker,Registered Nurse,20.2
+occupation,healthcare_or_education_worker,Elementary School Teacher,12.12
+occupation,healthcare_or_education_worker,Nursing Assistant / Home Health Aide,10.1
+occupation,healthcare_or_education_worker,Secondary School Teacher,8.08
+occupation,healthcare_or_education_worker,Teacher Assistant,8.08
+occupation,healthcare_or_education_worker,Physician (General Practitioner),5.05
+occupation,healthcare_or_education_worker,Dentist,3.03
+occupation,healthcare_or_education_worker,Surgeon,1.01
+occupation,healthcare_or_education_worker,Physical Therapist,4.04
+occupation,healthcare_or_education_worker,Pharmacist,3.03
+occupation,healthcare_or_education_worker,Medical Technician,5.05
+occupation,healthcare_or_education_worker,Health Administrator / Medical Records,4.04
+occupation,healthcare_or_education_worker,Special Education Teacher,2.02
+occupation,healthcare_or_education_worker,School Counselor,3.03
+occupation,healthcare_or_education_worker,University Professor,2.02
+occupation,healthcare_or_education_worker,Paramedic / EMT,4.04
+occupation,healthcare_or_education_worker,School Principal,1.01
+occupation,healthcare_or_education_worker,School Librarian,2.02
+occupation,healthcare_or_education_worker,Social Worker (Medical/School),2.02

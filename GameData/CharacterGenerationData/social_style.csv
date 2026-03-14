@@ -1,0 +1,11 @@
+
+trait_group,trait_name,option,weight,notes
+personality,social_style,friendly,25,warm and sociable
+personality,social_style,quiet,20,"reserved, introverted"
+personality,social_style,formal,10,polite and formal
+personality,social_style,guarded,10,keeps emotional distance
+personality,social_style,blunt,10,direct or straightforward
+personality,social_style,awkward,8,socially awkward
+personality,social_style,charming,7,charismatic and flirtatious
+personality,social_style,manipulative,5,uses others to advantage
+personality,social_style,stoic,5,unemotional or impassive

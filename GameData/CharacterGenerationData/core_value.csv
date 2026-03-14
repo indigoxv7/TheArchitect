@@ -1,0 +1,12 @@
+
+trait_group,trait_name,option,weight,notes
+personality,core_value,family,35,places family above all
+personality,core_value,freedom,20,values personal freedom and independence
+personality,core_value,faith,10,religious or spiritual conviction
+personality,core_value,integrity,10,"honesty, respect, trustworthiness"
+personality,core_value,kindness,5,compassion and kindness
+personality,core_value,health,5,physical and mental well-being
+personality,core_value,happiness,5,personal happiness and joy
+personality,core_value,knowledge,5,curiosity and learning
+personality,core_value,ambition,3,career success and achievement
+personality,core_value,wealth,2,material success and wealth

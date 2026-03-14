@@ -1,0 +1,18 @@
+
+trait_group,trait_name,option,weight
+occupation,government_employee,Administrative Clerk,14.71
+occupation,government_employee,Police Officer,11.76
+occupation,government_employee,Firefighter,7.84
+occupation,government_employee,Postal Worker,9.8
+occupation,government_employee,Social Worker,7.84
+occupation,government_employee,Civil Engineer,3.92
+occupation,government_employee,City Planner,1.96
+occupation,government_employee,Court Clerk,5.88
+occupation,government_employee,Park Ranger,2.94
+occupation,government_employee,Probation Officer,2.94
+occupation,government_employee,Sanitation Worker,7.84
+occupation,government_employee,Public School Teacher,9.8
+occupation,government_employee,Correctional Officer,4.9
+occupation,government_employee,DMV Clerk,2.94
+occupation,government_employee,Public Health Nurse,1.96
+occupation,government_employee,Policy Analyst,2.94

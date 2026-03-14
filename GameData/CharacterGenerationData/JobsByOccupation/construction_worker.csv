@@ -1,0 +1,14 @@
+
+trait_group,trait_name,option,weight
+occupation,construction_worker,General Laborer,20.0
+occupation,construction_worker,Carpenter,15.0
+occupation,construction_worker,Electrician,10.0
+occupation,construction_worker,Plumber,10.0
+occupation,construction_worker,Heavy Equipment Operator,10.0
+occupation,construction_worker,Roofer,5.0
+occupation,construction_worker,Concrete Mason,7.0
+occupation,construction_worker,Site Supervisor,5.0
+occupation,construction_worker,Civil Engineer,3.0
+occupation,construction_worker,Painter,5.0
+occupation,construction_worker,Ironworker,5.0
+occupation,construction_worker,Surveyor,5.0

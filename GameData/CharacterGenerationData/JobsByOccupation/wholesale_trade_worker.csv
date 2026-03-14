@@ -1,0 +1,11 @@
+
+trait_group,trait_name,option,weight
+occupation,wholesale_trade_worker,Wholesale Sales Representative,25.0
+occupation,wholesale_trade_worker,Purchasing Agent,15.0
+occupation,wholesale_trade_worker,Warehouse Supervisor,10.0
+occupation,wholesale_trade_worker,Wholesale Manager,10.0
+occupation,wholesale_trade_worker,Merchandise Buyer,8.0
+occupation,wholesale_trade_worker,Distribution Coordinator,8.0
+occupation,wholesale_trade_worker,Export/Import Clerk,8.0
+occupation,wholesale_trade_worker,Inventory Control Specialist,8.0
+occupation,wholesale_trade_worker,Procurement Manager,8.0

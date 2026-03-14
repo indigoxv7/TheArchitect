@@ -1,0 +1,11 @@
+
+trait_group,trait_name,option,weight,notes
+personality,emotional_trigger,threat_to_loved_ones,20,threats or harm to loved ones
+personality,emotional_trigger,betrayal,15,betrayal or broken trust
+personality,emotional_trigger,disrespect,15,disrespect or insult
+personality,emotional_trigger,authority_injustice,10,authority abuse or injustice
+personality,emotional_trigger,being_lied_to,10,lies or deception
+personality,emotional_trigger,loss_of_control,10,loss of control or failure
+personality,emotional_trigger,helplessness,8,feeling powerless or trapped
+personality,emotional_trigger,being_ignored,7,being ignored or overlooked
+personality,emotional_trigger,reminder_of_trauma,5,triggers related to past trauma

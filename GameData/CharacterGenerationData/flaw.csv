@@ -1,0 +1,13 @@
+
+trait_group,trait_name,option,weight,notes
+personality,flaw,stubbornness,15,inflexible or obstinate
+personality,flaw,impulsiveness,13,acts without thinking
+personality,flaw,arrogance,10,overly confident or superior
+personality,flaw,distrustfulness,10,wary or suspicious of others
+personality,flaw,naivety,8,innocent or gullible
+personality,flaw,short_temper,12,prone to anger
+personality,flaw,overly_cautious,7,afraid to take risks
+personality,flaw,greed,7,selfish or materialistic
+personality,flaw,pessimism,8,expects the worst
+personality,flaw,narcissism,5,self-centered
+personality,flaw,secretive,5,keeps information hidden

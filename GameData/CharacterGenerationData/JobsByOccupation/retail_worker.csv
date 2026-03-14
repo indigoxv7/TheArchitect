@@ -1,0 +1,9 @@
+
+trait_group,trait_name,option,weight
+occupation,retail_worker,Cashier,30.0
+occupation,retail_worker,Sales Associate,25.0
+occupation,retail_worker,Retail Store Manager,10.0
+occupation,retail_worker,Stock Clerk,15.0
+occupation,retail_worker,Customer Service Representative,10.0
+occupation,retail_worker,Visual Merchandiser,3.0
+occupation,retail_worker,Department Manager,7.0

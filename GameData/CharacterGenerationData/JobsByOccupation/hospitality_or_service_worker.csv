@@ -1,0 +1,14 @@
+
+trait_group,trait_name,option,weight
+occupation,hospitality_or_service_worker,Waiter/Waitress,20.0
+occupation,hospitality_or_service_worker,Bartender,10.0
+occupation,hospitality_or_service_worker,Chef/Cook,15.0
+occupation,hospitality_or_service_worker,Housekeeper,10.0
+occupation,hospitality_or_service_worker,Hotel Concierge,5.0
+occupation,hospitality_or_service_worker,Front Desk Clerk,10.0
+occupation,hospitality_or_service_worker,Janitor/Cleaner,10.0
+occupation,hospitality_or_service_worker,Event Planner,5.0
+occupation,hospitality_or_service_worker,Host/Hostess,5.0
+occupation,hospitality_or_service_worker,Dishwasher,5.0
+occupation,hospitality_or_service_worker,Bellhop/Porter,3.0
+occupation,hospitality_or_service_worker,Tour Guide,2.0

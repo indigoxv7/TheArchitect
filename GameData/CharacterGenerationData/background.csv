@@ -1,0 +1,10 @@
+
+trait_group,trait_name,option,weight,notes
+background,background,suburban middle-class,40,grew up in a typical suburban community
+background,background,urban working-class,20,grew up in a city environment
+background,background,rural,15,rural or small-town upbringing
+background,background,poor/underprivileged,10,economically disadvantaged upbringing
+background,background,upper-class,5,wealthy or privileged upbringing
+background,background,immigrant family,5,first or second generation immigrant
+background,background,military family,3,one or more parents in the military
+background,background,foster/orphan,2,raised in foster care or orphanage

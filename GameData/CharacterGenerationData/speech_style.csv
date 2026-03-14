@@ -1,0 +1,12 @@
+
+trait_group,trait_name,option,weight,notes
+personality,speech_style,concise,15,brief and to the point
+personality,speech_style,formal,15,uses educated or proper language
+personality,speech_style,slang-heavy,15,uses slang and colloquialisms
+personality,speech_style,rambling,12,long-winded or talkative
+personality,speech_style,quiet,10,soft-spoken or minimal
+personality,speech_style,poetic,8,uses metaphors or flowery language
+personality,speech_style,sarcastic,7,sarcastic or wry tone
+personality,speech_style,gruff,7,rough or harsh tone
+personality,speech_style,persuasive,6,"polished, persuasive speaker"
+personality,speech_style,monotone,5,"flat, monotone voice"

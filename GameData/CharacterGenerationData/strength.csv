@@ -1,0 +1,12 @@
+
+trait_group,trait_name,option,weight,notes
+personality,strength,empathy,15,compassionate toward others
+personality,strength,intelligence,15,"analytical, quick-thinking"
+personality,strength,resilience,12,able to endure hardship
+personality,strength,courage,10,brave in the face of danger
+personality,strength,resourcefulness,10,able to adapt and find solutions
+personality,strength,determination,10,persistent and goal-driven
+personality,strength,charisma,8,socially persuasive or charming
+personality,strength,creativity,8,innovative and imaginative
+personality,strength,physical_strength,7,physically strong or fit
+personality,strength,humor,5,uses humor effectively

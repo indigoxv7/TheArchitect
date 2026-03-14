@@ -1,0 +1,7 @@
+
+trait_group,trait_name,option,weight,notes
+appearance,eye_color,brown,45,most common
+appearance,eye_color,blue,27,
+appearance,eye_color,hazel,18,
+appearance,eye_color,green,9,
+appearance,eye_color,other,1,"gray, amber, or heterochromia"
