@@ -22,6 +22,21 @@ class HitLocation(Enum):
     LEGS = 4
 
 
+class BodyPart(Enum):
+    HEAD = 0
+    FACE = 1
+    NECK = 2
+    SHOULDER = 3
+    ARM = 4
+    HAND = 5
+    CHEST = 6
+    BACK = 7
+    ABDOMEN = 8
+    HIP = 9
+    LEG = 10
+    FOOT = 11
+
+
 class Attribute(Enum):
     PHYSICAL_POWER = 0
     PHYSICAL_STAMINA = 1

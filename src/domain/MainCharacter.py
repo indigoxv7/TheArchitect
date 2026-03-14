@@ -14,6 +14,7 @@ class CharacterInfo:
         ("hairColor", "Hair Color"),
         ("eyeColor", "Eye Color"),
         ("distinguishingMarks", "Distinguishing Marks"),
+        ("distinguishingMarksLocation", "Distinguishing Marks Location"),
         ("background", "Background"),
         ("occupation", "Occupation"),
         ("job", "Job"),
@@ -40,6 +41,7 @@ class CharacterInfo:
         hairColor: str = "",
         eyeColor: str = "",
         distinguishingMarks: str = "",
+        distinguishingMarksLocation: str = "",
         background: str = "",
         occupation: str = "",
         job: str = "",
@@ -63,6 +65,7 @@ class CharacterInfo:
         self.hairColor = str(hairColor or "")
         self.eyeColor = str(eyeColor or "")
         self.distinguishingMarks = str(distinguishingMarks or "")
+        self.distinguishingMarksLocation = str(distinguishingMarksLocation or "")
         self.background = str(background or "")
         self.occupation = str(occupation or "")
         self.job = str(job or "")
@@ -88,6 +91,7 @@ class CharacterInfo:
             "hairColor": self.hairColor,
             "eyeColor": self.eyeColor,
             "distinguishingMarks": self.distinguishingMarks,
+            "distinguishingMarksLocation": self.distinguishingMarksLocation,
             "background": self.background,
             "occupation": self.occupation,
             "job": self.job,
@@ -116,6 +120,7 @@ class CharacterInfo:
             hairColor=str(data.get("hairColor", "") or ""),
             eyeColor=str(data.get("eyeColor", "") or ""),
             distinguishingMarks=str(data.get("distinguishingMarks", "") or ""),
+            distinguishingMarksLocation=str(data.get("distinguishingMarksLocation", "") or ""),
             background=str(data.get("background", "") or ""),
             occupation=str(data.get("occupation", "") or ""),
             job=str(data.get("job", "") or ""),
@@ -205,15 +210,13 @@ class MainCharacter(Character):
             character_info = copy.deepcopy(base_character.characterInfo)
             llm_profile = copy.deepcopy(base_character.llmControlProfile)
         else:
-            from src.services.main_character_generator import generate_main_character
+            from src.services.main_character_generator import generate_character_info
 
-            generated = generate_main_character(
-                name=str(getattr(base_character, "name", "") or "Generated Main Character"),
+            character_info = generate_character_info(
                 generation_data_directory=generation_data_directory,
                 rng=rng,
             )
-            character_info = copy.deepcopy(generated.characterInfo)
-            llm_profile = copy.deepcopy(getattr(generated, "llmControlProfile", LLMControlProfile()))
+            llm_profile = LLMControlProfile()
 
         main_character = cls(
             name=str(getattr(base_character, "name", "") or "Generated Main Character"),

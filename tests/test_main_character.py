@@ -4,11 +4,17 @@ import unittest
 from pathlib import Path
 
 from src.domain.Character import Character
-from src.domain.MainCharacter import MainCharacter
+from src.domain.CharacterUtil import Attributes, BodyPart
+from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.Race import Race
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
-from src.services.main_character_generator import generate_main_character
+from src.services.main_character_generator import (
+    generate_character_from_race,
+    generate_main_character,
+    generate_main_character_from_scratch,
+)
 
 
 class TestMainCharacter(unittest.TestCase):
@@ -37,6 +43,98 @@ class TestMainCharacter(unittest.TestCase):
         self.assertTrue(character.characterInfo.job)
         self.assertTrue(character.characterInfo.personalityType)
         self.assertTrue(character.characterInfo.goal)
+        self.assertIn(character.characterInfo.distinguishingMarksLocation, BodyPart.__members__)
+
+    def test_generate_character_from_race_respects_attribute_bounds(self):
+        average = Character(
+            name="Average Goblin",
+            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=4, magicStamina=4, magicResistance=4),
+            level=2,
+            raceTier="Tier I",
+            race="Goblin1",
+        )
+        race = Race(
+            name="Goblin",
+            raceId="Goblin1",
+            averageSpecimine=average,
+            minAverageAttributes=Attributes(physicalPower=3, physicalStamina=3, physicalResistance=3, magicPower=2, magicStamina=2, magicResistance=2),
+            maxAverageAttributes=Attributes(physicalPower=7, physicalStamina=7, physicalResistance=7, magicPower=6, magicStamina=6, magicResistance=6),
+        )
+
+        generated = generate_character_from_race(name="Goblin Scout", race=race, rng=random.Random(9))
+
+        self.assertIsInstance(generated, Character)
+        self.assertNotIsInstance(generated, MainCharacter)
+        self.assertEqual(generated.name, "Goblin Scout")
+        self.assertEqual(generated.race, "Goblin1")
+        self.assertEqual(generated.level, 2)
+
+        self.assertGreaterEqual(generated.attributes.physicalPower, 3)
+        self.assertLessEqual(generated.attributes.physicalPower, 7)
+        self.assertGreaterEqual(generated.attributes.magicResistance, 2)
+        self.assertLessEqual(generated.attributes.magicResistance, 6)
+
+    def test_generate_main_character_from_scratch_average_build_is_no_op(self):
+        average = Character(
+            name="Average Human",
+            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            race="Human1",
+        )
+        race = Race(
+            name="Human",
+            raceId="Human1",
+            averageSpecimine=average,
+            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+        )
+        info = CharacterInfo(build="average", distinguishingMarks="Freckles")
+
+        generated = generate_main_character_from_scratch(
+            name="Average Hero",
+            race=race,
+            rng=random.Random(21),
+            character_info=info,
+        )
+
+        self.assertEqual(generated.attributes.physicalPower, 5)
+        self.assertEqual(generated.attributes.physicalStamina, 5)
+        self.assertEqual(generated.attributes.physicalResistance, 5)
+        self.assertEqual(generated.attributes.magicPower, 5)
+        self.assertEqual(generated.attributes.magicStamina, 5)
+        self.assertEqual(generated.attributes.magicResistance, 5)
+
+    def test_generate_main_character_from_scratch_applies_build_modifier(self):
+        average = Character(
+            name="Average Human",
+            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            race="Human1",
+        )
+        race = Race(
+            name="Human",
+            raceId="Human1",
+            averageSpecimine=average,
+            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+        )
+        info = CharacterInfo(build="Fit", distinguishingMarks="Scar")
+
+        generated = generate_main_character_from_scratch(
+            name="Generated Hero",
+            race=race,
+            rng=random.Random(12),
+            character_info=info,
+        )
+
+        self.assertIsInstance(generated, MainCharacter)
+        self.assertEqual(generated.race, "Human1")
+        self.assertEqual(generated.attributes.physicalPower, 7)
+        self.assertEqual(generated.attributes.physicalStamina, 7)
+        self.assertEqual(generated.attributes.physicalResistance, 7)
+        self.assertEqual(generated.attributes.magicPower, 5)
+        self.assertEqual(generated.attributes.magicStamina, 5)
+        self.assertEqual(generated.attributes.magicResistance, 5)
+        self.assertEqual(generated.characterInfo.build, "Fit")
+        self.assertIn(generated.characterInfo.distinguishingMarksLocation, BodyPart.__members__)
 
     def test_main_character_from_character_preserves_base_fields(self):
         base_character = Character(name="Avery", level=3, raceTier="Tier II", party=1, race="Elf2")
@@ -77,6 +175,7 @@ class TestMainCharacter(unittest.TestCase):
                     "hairColor": "black",
                     "eyeColor": "green",
                     "distinguishingMarks": "scar on left cheek",
+                    "distinguishingMarksLocation": "FACE",
                     "background": "urban working-class",
                     "occupation": "information/tech worker",
                     "job": "Software Developer",
@@ -96,6 +195,7 @@ class TestMainCharacter(unittest.TestCase):
             character_id, created = character_service.create_character_from_dict(payload)
             self.assertIsInstance(created, MainCharacter)
             self.assertEqual(created.characterInfo.job, "Software Developer")
+            self.assertEqual(created.characterInfo.distinguishingMarksLocation, "FACE")
 
             character_service.load_characters()
             loaded = character_service.get_character(character_id)
@@ -104,6 +204,7 @@ class TestMainCharacter(unittest.TestCase):
             self.assertEqual(loaded.level, 5)
             self.assertEqual(loaded.characterInfo.occupation, "information/tech worker")
             self.assertEqual(loaded.characterInfo.goal, "protect the team")
+            self.assertEqual(loaded.characterInfo.distinguishingMarksLocation, "FACE")
 
 
 if __name__ == "__main__":

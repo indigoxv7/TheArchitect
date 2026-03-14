@@ -17,6 +17,7 @@ from src.domain.CharacterUtil import (
 )
 from src.domain.Spells import AffinityTypes
 from src.domain.character_io import character_from_state, character_to_state
+from src.services.main_character_generator import generate_main_character_from_scratch
 from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.race_editor import RaceEditorFrame
 
@@ -1637,6 +1638,7 @@ class CharacterEditorFrame(ttk.Frame):
         ttk.Button(actions, text="Remove Achievement", command=self._remove_selected_achievement).pack(side=tk.LEFT, padx=4)
         self.main_character_button = ttk.Button(actions, text="Convert to Main Character", command=self._edit_main_character)
         self.main_character_button.pack(side=tk.LEFT, padx=4)
+        ttk.Button(actions, text="Generate Main Character", command=self._generate_main_character_from_scratch).pack(side=tk.LEFT, padx=4)
 
         achievement_panel = ttk.LabelFrame(self, text="Assigned Achievements")
         achievement_panel.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -1745,18 +1747,9 @@ class CharacterEditorFrame(ttk.Frame):
         elif self.pick_var.get() not in labels:
             self.pick_var.set("<New Character>")
 
-    def _on_pick(self, _evt=None):
-        selected = self.pick.get().strip()
-        if selected == "<New Character>":
-            self._clear_form()
-            return
-        character_id = _parse_label_id(selected)
-        character = self.app.character_service.get_character(character_id)
-        if character is None:
-            return
-        state = character_to_state(character)
+    def _load_state_into_form(self, state: dict, character_id: str | None = None):
         self.current_character_id = character_id
-        self.is_main_character = isinstance(character, MainCharacter) or bool(state.get("characterInfo"))
+        self.is_main_character = bool(state.get("characterType") == "MainCharacter" or state.get("characterInfo"))
         self.main_character_info_draft = (
             self._normalize_main_character_info(state.get("characterInfo"))
             if self.is_main_character
@@ -1794,6 +1787,17 @@ class CharacterEditorFrame(ttk.Frame):
         self.stats_data = state.get("stats")
         self._refresh_main_character_button()
         self._refresh_summary()
+
+    def _on_pick(self, _evt=None):
+        selected = self.pick.get().strip()
+        if selected == "<New Character>":
+            self._clear_form()
+            return
+        character_id = _parse_label_id(selected)
+        character = self.app.character_service.get_character(character_id)
+        if character is None:
+            return
+        self._load_state_into_form(character_to_state(character), character_id=character_id)
 
     def _refresh_summary(self):
         lines = [
@@ -1853,6 +1857,27 @@ class CharacterEditorFrame(ttk.Frame):
     def _clear_race(self):
         self.vars["race"].set("Human1")
         self._refresh_summary()
+
+    def _generate_main_character_from_scratch(self):
+        race_id = str(self.vars["race"].get() or "Human1").strip() or "Human1"
+        race = self.app.race_service.get_race(race_id)
+        if race is None:
+            messagebox.showerror("Character Editor", f"Select a valid race before generating. '{race_id}' was not found.")
+            return
+
+        generated_name = self.vars["name"].get().strip() or f"{race.name} Main Character"
+        try:
+            generated = generate_main_character_from_scratch(
+                name=generated_name,
+                race=race,
+            )
+        except Exception as exc:
+            messagebox.showerror("Character Editor", f"Failed to generate Main Character: {exc}")
+            return
+
+        self.pick_var.set("<New Character>")
+        self._load_state_into_form(character_to_state(generated), character_id=None)
+        messagebox.showinfo("Character Editor", "Generated a new unsaved Main Character draft.")
 
     def _build_character_for_main_character_conversion(self):
         if not self.vars["name"].get().strip():

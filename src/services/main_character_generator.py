@@ -1,4 +1,5 @@
 import csv
+import copy
 import importlib.util
 import random
 import re
@@ -6,7 +7,10 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
+from src.domain.Character import Character
+from src.domain.CharacterUtil import Attributes, BodyPart
 from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.Race import Race
 
 DEFAULT_GENERATION_DATA_DIRECTORY = (
     Path(__file__).resolve().parents[2] / "GameData" / "CharacterGenerationData"
@@ -30,6 +34,29 @@ TRAIT_FILE_MAP = {
     "secret": "secret.csv",
     "emotionalTrigger": "emotional_trigger.csv",
     "copingHabit": "coping_habit.csv",
+}
+
+ATTRIBUTE_FIELDS = (
+    "physicalPower",
+    "physicalStamina",
+    "physicalResistance",
+    "magicPower",
+    "magicStamina",
+    "magicResistance",
+)
+PHYSICAL_ATTRIBUTE_FIELDS = (
+    "physicalPower",
+    "physicalStamina",
+    "physicalResistance",
+)
+BUILD_MODIFIERS = {
+    "underweight": {field: -1 for field in PHYSICAL_ATTRIBUTE_FIELDS},
+    "slim": {"physicalStamina": 1},
+    "average": {},
+    "fit": {field: 2 for field in PHYSICAL_ATTRIBUTE_FIELDS},
+    "muscular": {field: 3 for field in PHYSICAL_ATTRIBUTE_FIELDS},
+    "overweight": {"physicalResistance": 1, "physicalStamina": -1},
+    "obese": {field: -2 for field in PHYSICAL_ATTRIBUTE_FIELDS},
 }
 
 
@@ -141,6 +168,44 @@ def _generate_job(occupation: str, generation_directory: Path, rng) -> str:
     return _choose_weighted_option(options, rng)
 
 
+def _coerce_int(value, default: int = 5) -> int:
+    try:
+        return int(round(float(value)))
+    except Exception:
+        return int(default)
+
+
+def _attributes_to_int_dict(attributes: Attributes | None, default: int = 5) -> dict[str, int]:
+    attributes = attributes if attributes is not None else Attributes()
+    return {field: _coerce_int(getattr(attributes, field, default), default) for field in ATTRIBUTE_FIELDS}
+
+
+def _attributes_from_int_dict(values: dict[str, int]) -> Attributes:
+    return Attributes(
+        physicalPower=_coerce_int(values.get("physicalPower", 5), 5),
+        physicalStamina=_coerce_int(values.get("physicalStamina", 5), 5),
+        physicalResistance=_coerce_int(values.get("physicalResistance", 5), 5),
+        magicPower=_coerce_int(values.get("magicPower", 5), 5),
+        magicStamina=_coerce_int(values.get("magicStamina", 5), 5),
+        magicResistance=_coerce_int(values.get("magicResistance", 5), 5),
+    )
+
+
+def _clamp_attribute_dict(values: dict[str, int], minimums: dict[str, int], maximums: dict[str, int]) -> dict[str, int]:
+    clamped = {}
+    for field in ATTRIBUTE_FIELDS:
+        low = minimums.get(field, values.get(field, 5))
+        high = maximums.get(field, values.get(field, 5))
+        if high < low:
+            high = low
+        clamped[field] = max(low, min(high, values.get(field, 5)))
+    return clamped
+
+
+def _normalize_build_key(build_value: str) -> str:
+    return str(build_value or "").strip().lower().replace("-", " ").replace("_", " ")
+
+
 def generate_character_info(
     generation_data_directory: str | None = None,
     rng: random.Random | None = None,
@@ -166,6 +231,7 @@ def generate_character_info(
         hairColor=_generate_trait("hairColor", generation_directory, rng),
         eyeColor=_generate_trait("eyeColor", generation_directory, rng),
         distinguishingMarks=_generate_trait("distinguishingMarks", generation_directory, rng),
+        distinguishingMarksLocation=rng.choice(list(BodyPart)).name,
         background=_generate_trait("background", generation_directory, rng),
         occupation=occupation,
         job=_generate_job(occupation, generation_directory, rng),
@@ -182,13 +248,161 @@ def generate_character_info(
     )
 
 
+def randomize_attributes_point_buy(
+    race: Race | None,
+    starting_attributes: Attributes | None = None,
+    rng: random.Random | None = None,
+) -> Attributes:
+    rng = rng if rng is not None else random.Random()
+    base_attributes = starting_attributes
+    if base_attributes is None and race is not None and getattr(race, 'averageSpecimine', None) is not None:
+        base_attributes = getattr(race.averageSpecimine, 'attributes', None)
+    current = _attributes_to_int_dict(base_attributes, default=5)
+
+    minimums = _attributes_to_int_dict(getattr(race, 'minAverageAttributes', None), default=0) if race is not None else {field: 0 for field in ATTRIBUTE_FIELDS}
+    maximums = _attributes_to_int_dict(getattr(race, 'maxAverageAttributes', None), default=99) if race is not None else {field: 99 for field in ATTRIBUTE_FIELDS}
+    current = _clamp_attribute_dict(current, minimums, maximums)
+
+    removable_total = sum(max(0, current[field] - minimums[field]) for field in ATTRIBUTE_FIELDS)
+    if removable_total <= 0:
+        return _attributes_from_int_dict(current)
+
+    transfer_count = rng.randint(1, removable_total)
+    unspent_points = 0
+    for _ in range(transfer_count):
+        donors = [field for field in ATTRIBUTE_FIELDS if current[field] > minimums[field]]
+        if not donors:
+            break
+        donor = rng.choice(donors)
+        current[donor] -= 1
+        unspent_points += 1
+
+    while unspent_points > 0:
+        recipients = [field for field in ATTRIBUTE_FIELDS if current[field] < maximums[field]]
+        if not recipients:
+            break
+        recipient = rng.choice(recipients)
+        current[recipient] += 1
+        unspent_points -= 1
+
+    return _attributes_from_int_dict(_clamp_attribute_dict(current, minimums, maximums))
+
+
+def apply_build_modifier(
+    attributes: Attributes,
+    build_value: str,
+    minimum_attributes: Attributes | None = None,
+    maximum_attributes: Attributes | None = None,
+) -> Attributes:
+    values = _attributes_to_int_dict(attributes, default=5)
+    minimums = _attributes_to_int_dict(minimum_attributes, default=-999)
+    maximums = _attributes_to_int_dict(maximum_attributes, default=999)
+
+    modifier = BUILD_MODIFIERS.get(_normalize_build_key(build_value), {})
+    for field, delta in modifier.items():
+        values[field] = values.get(field, 5) + int(delta)
+
+    return _attributes_from_int_dict(_clamp_attribute_dict(values, minimums, maximums))
+
+
+def generate_character_from_race(
+    name: str = "Generated Character",
+    race: Race | None = None,
+    rng: random.Random | None = None,
+) -> Character:
+    rng = rng if rng is not None else random.Random()
+    template = race.averageSpecimine if race is not None and race.averageSpecimine is not None else None
+
+    character = Character(
+        name=str(name or "Generated Character"),
+        attributes=copy.deepcopy(getattr(template, 'attributes', None)),
+        level=int(getattr(template, 'level', 0) or 0),
+        raceTier=str(getattr(template, 'raceTier', 'Tier I') or 'Tier I'),
+        affinities=copy.deepcopy(getattr(template, 'affinities', None)),
+        gear=copy.deepcopy(getattr(template, 'gear', None)),
+        achievements=copy.deepcopy(getattr(template, 'achievements', None)),
+        generalSkills=copy.deepcopy(getattr(template, 'generalSkills', None)),
+        spells=copy.deepcopy(getattr(template, 'spells', None)),
+        party=int(getattr(template, 'party', 0) or 0),
+        buffs=copy.deepcopy(getattr(template, 'buffs', None)),
+        stats=copy.deepcopy(getattr(template, 'stats', None)),
+        race=str(getattr(race, 'raceId', '') or getattr(template, 'race', 'Human1') or 'Human1'),
+    )
+    character.health = int(getattr(template, 'health', 100) or 100)
+    character.healthState = copy.deepcopy(getattr(template, 'healthState', character.healthState))
+    character.activeAchievementTitle = str(getattr(template, 'activeAchievementTitle', '') or '')
+    character.description = str(getattr(template, 'description', '') or '')
+    character.portraitURL = str(getattr(template, 'portraitURL', '') or '')
+    character.footerImageURL = str(getattr(template, 'footerImageURL', '') or '')
+    character.playerInstanceId = ''
+
+    if race is not None:
+        character.race = str(race.raceId or character.race or 'Human1')
+        character.attributes = randomize_attributes_point_buy(
+            race,
+            starting_attributes=getattr(template, 'attributes', character.attributes),
+            rng=rng,
+        )
+
+    character.CalculateBonus()
+    return character
+
+
+def generate_main_character_from_scratch(
+    name: str = "Generated Main Character",
+    race: Race | None = None,
+    generation_data_directory: str | None = None,
+    rng: random.Random | None = None,
+    character_info: CharacterInfo | None = None,
+) -> MainCharacter:
+    rng = rng if rng is not None else random.Random()
+    base_character = generate_character_from_race(name=name, race=race, rng=rng)
+    info = copy.deepcopy(character_info) if character_info is not None else generate_character_info(
+        generation_data_directory=generation_data_directory,
+        rng=rng,
+    )
+    if not str(getattr(info, 'distinguishingMarksLocation', '') or '').strip():
+        info.distinguishingMarksLocation = rng.choice(list(BodyPart)).name
+
+    main_character = MainCharacter.from_character(
+        base_character,
+        generation_data_directory=generation_data_directory,
+        rng=rng,
+    )
+    main_character.characterInfo = info
+
+    minimums = getattr(race, 'minAverageAttributes', None) if race is not None else None
+    maximums = getattr(race, 'maxAverageAttributes', None) if race is not None else None
+    main_character.attributes = apply_build_modifier(
+        main_character.attributes,
+        info.build,
+        minimum_attributes=minimums,
+        maximum_attributes=maximums,
+    )
+    main_character.CalculateBonus()
+    return main_character
+
+
+
+def generate_character(
+    name: str = "Generated Character",
+    race: Race | None = None,
+    rng: random.Random | None = None,
+) -> Character:
+    return generate_character_from_race(name=name, race=race, rng=rng)
+
+
 def generate_main_character(
     name: str = "Generated Main Character",
     generation_data_directory: str | None = None,
     rng: random.Random | None = None,
+    race: Race | None = None,
+    character_info: CharacterInfo | None = None,
 ) -> MainCharacter:
-    character_info = generate_character_info(
+    return generate_main_character_from_scratch(
+        name=name,
+        race=race,
         generation_data_directory=generation_data_directory,
         rng=rng,
+        character_info=character_info,
     )
-    return MainCharacter(name=str(name or "Generated Main Character"), characterInfo=character_info)
