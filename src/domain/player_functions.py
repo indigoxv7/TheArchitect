@@ -20,6 +20,8 @@ LEGACY_MODULE_MAP = {
     "Globals": "src.config.Globals",
     "src.thearchitect.domain.player_functions": "src.domain.player_functions",
     "src.thearchitect.ui.menu_functions": "src.ui.menu_functions",
+    "MainCharacter": "src.domain.MainCharacter",
+    "src.thearchitect.domain.MainCharacter": "src.domain.MainCharacter",
 }
 
 
@@ -128,6 +130,13 @@ class Player:
             self.energyRegenRatePerSecond = Player.ENERGY_REGEN_RATE_PER_SECOND
         if not hasattr(self, "inventory"):
             self.inventory = []
+        if not hasattr(self, "characters") or self.characters is None:
+            self.characters = []
+
+        for character in self.characters:
+            ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
+            if callable(ensure_defaults):
+                ensure_defaults()
 
         object.__setattr__(self, "_is_initializing", False)
         object.__setattr__(self, "_auto_save_enabled", False)
@@ -254,6 +263,7 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
+
 
 
 

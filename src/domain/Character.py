@@ -1,4 +1,4 @@
-import copy
+﻿import copy
 from src.domain.CharacterUtil import *
 from src.domain.Items import Gear, Item
 from src.domain.GeneralSkills import GeneralSkills
@@ -31,6 +31,7 @@ class Character:
     achievements: list[Achievement]
     spells: list[Spell]
     buffs: list[Buff]
+    playerInstanceId: str
     race: str
     portraitURL: str
     footerImageURL: str
@@ -50,12 +51,14 @@ class Character:
         buffs: list[Buff] | None = None,
         stats: CharacterStatistics | None = None,
         race: str = "Human1",
+        playerInstanceId: str = "",
     ):
         self.name = name
         self.attributes = attributes if attributes is not None else Attributes()
         self.level = level
         self.raceTier = raceTier
         self.race = str(race or "Human1")
+        self.playerInstanceId = str(playerInstanceId or "")
         self.affinities = affinities if affinities is not None else Affinities()
         self.gear = gear if gear is not None else Gear()
         self.activeAchievementTitle = ""
@@ -79,6 +82,47 @@ class Character:
         self.stats = stats if stats is not None else CharacterStatistics()
         self.finalAttributes = copy.deepcopy(self.attributes)
         self.finalAffinities = copy.deepcopy(self.affinities)
+        self.CalculateBonus()
+
+    def EnsureRuntimeDefaults(self):
+        if not hasattr(self, "race"):
+            self.race = "Human1"
+        if not hasattr(self, "playerInstanceId"):
+            self.playerInstanceId = ""
+        if not hasattr(self, "activeAchievementTitle"):
+            self.activeAchievementTitle = ""
+        if not hasattr(self, "description"):
+            self.description = ""
+        if not hasattr(self, "portraitURL"):
+            self.portraitURL = ""
+        if not hasattr(self, "footerImageURL"):
+            self.footerImageURL = ""
+        if not hasattr(self, "achievements") or self.achievements is None:
+            self.achievements = []
+        if not hasattr(self, "generalSkills") or self.generalSkills is None:
+            self.generalSkills = []
+        if not hasattr(self, "spells") or self.spells is None:
+            self.spells = []
+        if not hasattr(self, "buffs") or self.buffs is None:
+            self.buffs = []
+        if not hasattr(self, "stats") or self.stats is None:
+            self.stats = CharacterStatistics()
+        if not hasattr(self, "health"):
+            self.health = 100
+        if not hasattr(self, "healthState"):
+            self.healthState = HealthState.HEALTHY
+        if not hasattr(self, "attributes") or self.attributes is None:
+            self.attributes = Attributes()
+        if not hasattr(self, "affinities") or self.affinities is None:
+            self.affinities = Affinities()
+        if not hasattr(self, "gear") or self.gear is None:
+            self.gear = Gear()
+        if not hasattr(self, "party"):
+            self.party = 0
+        if not hasattr(self, "raceTier"):
+            self.raceTier = "Tier I"
+        if not hasattr(self, "totalBonus") or self.totalBonus is None:
+            self.totalBonus = TotalBonus(None)
         self.CalculateBonus()
 
     def ListAllItemBonuses(self):
@@ -304,22 +348,3 @@ Pooled Nano {nanoEmoji} - {nanoString}
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
         self.CalculateFinalAttributes()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

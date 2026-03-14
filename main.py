@@ -8,12 +8,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from src.persistence.player_memory_store import PlayerMemoryStore
 from src.services.achievement_service import AchievementService
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
+from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
+from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.player_service import PlayerService
 from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
@@ -34,6 +37,8 @@ ITEMBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Items", "itembook.json")
 CHARACTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Characters")
 ACHIEVEMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Achievements", "achievementbook.json")
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
+PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
+PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -66,6 +71,13 @@ menu_service = MenuService(
     emoji_placeholders=EMOJI_PLACEHOLDERS,
     context=context,
 )
+openai_narrative_service = OpenAINarrativeService()
+player_memory_store = PlayerMemoryStore(db_path=PLAYER_MEMORY_DB_PATH)
+memory_service = MainCharacterMemoryService(
+    memory_store=player_memory_store,
+    player_service=player_service,
+    openai_service=openai_narrative_service,
+)
 _is_initialized = False
 
 menu_runtime_service = MenuRuntimeService(
@@ -90,6 +102,7 @@ def initialize_game():
     item_service.load_itembook(default_items=dict(context.all_items))
     character_service.load_characters()
     race_service.load_racebook()
+    memory_service.initialize()
     menu_service.load_menus()
     _is_initialized = True
 
@@ -151,6 +164,7 @@ if __name__ == "__main__":
         achievement_service=achievement_service,
         player_service=player_service,
         race_service=race_service,
+        memory_service=memory_service,
     )
     bot.run(TOKEN)
 

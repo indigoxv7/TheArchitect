@@ -147,6 +147,11 @@ cython_debug/
 # Local game runtime data
 GameData/PlayerSaves/*
 !GameData/PlayerSaves/.gitkeep
+GameData/PlayerMemory/*.sqlite
+GameData/PlayerMemory/*.sqlite-journal
+GameData/PlayerMemory/*.sqlite-shm
+GameData/PlayerMemory/*.sqlite-wal
+!GameData/PlayerMemory/.gitkeep
 
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can

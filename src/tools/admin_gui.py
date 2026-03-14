@@ -1,10 +1,10 @@
-import json
+﻿import json
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.Character import HealthState
-from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
 from src.domain.CharacterUtil import (
     Affinities,
     Attribute,
@@ -17,6 +17,7 @@ from src.domain.CharacterUtil import (
 )
 from src.domain.Spells import AffinityTypes
 from src.domain.character_io import character_from_state, character_to_state
+from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.race_editor import RaceEditorFrame
 
 
@@ -194,13 +195,14 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, memory_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
         self.achievement_service = achievement_service
         self.player_service = player_service
         self.race_service = race_service
+        self.memory_service = memory_service
 
         self.root = tk.Tk()
         self.root.title("TheArchitect Admin Editor")
@@ -216,6 +218,7 @@ class AdminEditorApp:
         self.player_frame = PlayerEditorFrame(self.container, self)
         self.achievement_frame = AchievementBookFrame(self.container, self)
         self.race_frame = RaceEditorFrame(self.container, self)
+        self.memory_frame = MainCharacterMemoryFrame(self.container, self)
 
         self._build_home()
         self.show_home()
@@ -228,6 +231,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Players", command=self.show_player_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Achievements", command=self.show_achievement_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Races", command=self.show_race_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Main Character Memory", command=self.show_memory_editor).pack(fill=tk.X, pady=6)
 
     def _show(self, frame):
         for child in (
@@ -238,6 +242,7 @@ class AdminEditorApp:
             self.player_frame,
             self.achievement_frame,
             self.race_frame,
+            self.memory_frame,
         ):
             child.pack_forget()
         frame.pack(fill=tk.BOTH, expand=True)
@@ -268,6 +273,10 @@ class AdminEditorApp:
     def show_race_editor(self):
         self.race_frame.refresh_race_list(reset_form=True)
         self._show(self.race_frame)
+
+    def show_memory_editor(self):
+        self.memory_frame.refresh_player_list(reset_form=True)
+        self._show(self.memory_frame)
 
     def run(self):
         self.root.mainloop()
@@ -1503,23 +1512,36 @@ class RacePickerDialog(tk.Toplevel):
 
 
 class MainCharacterInfoDialog(tk.Toplevel):
-    def __init__(self, parent, draft: dict, on_save):
+    def __init__(self, parent, info_draft: dict, profile_draft: dict, on_save):
         super().__init__(parent)
         self.title("Main Character Info")
-        self.geometry("760x820")
+        self.geometry("780x980")
         self.on_save = on_save
-        self.vars = {}
+        self.info_vars = {}
+        self.profile_widgets = {}
 
         body = ttk.Frame(self, padding=12)
         body.pack(fill=tk.BOTH, expand=True)
 
+        ttk.Label(body, text="Character Info", font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
         for field_key, label in CharacterInfo.FIELD_SPECS:
             row = ttk.Frame(body)
             row.pack(fill=tk.X, pady=2)
-            ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
-            var = tk.StringVar(value=str(draft.get(field_key, "") or ""))
-            self.vars[field_key] = var
+            ttk.Label(row, text=label, width=22).pack(side=tk.LEFT)
+            var = tk.StringVar(value=str(info_draft.get(field_key, "") or ""))
+            self.info_vars[field_key] = var
             ttk.Entry(row, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        ttk.Separator(body, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=12)
+        ttk.Label(body, text="LLM Control Profile", font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
+        for field_key, label in LLMControlProfile.FIELD_SPECS:
+            row = ttk.Frame(body)
+            row.pack(fill=tk.X, pady=2)
+            ttk.Label(row, text=label, width=22).pack(side=tk.LEFT, anchor="n")
+            widget = tk.Text(row, height=4, wrap=tk.WORD)
+            widget.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            widget.insert("1.0", str(profile_draft.get(field_key, "") or ""))
+            self.profile_widgets[field_key] = widget
 
         actions = ttk.Frame(body)
         actions.pack(fill=tk.X, pady=(12, 0))
@@ -1530,13 +1552,18 @@ class MainCharacterInfoDialog(tk.Toplevel):
         self.grab_set()
 
     def _save(self):
-        payload = {}
+        payload = {
+            "characterInfo": {},
+            "llmControlProfile": {},
+        }
         for field_key, _label in CharacterInfo.FIELD_SPECS:
-            value = self.vars[field_key].get().strip()
+            value = self.info_vars[field_key].get().strip()
             if field_key == "age":
-                payload[field_key] = _safe_int(value, 0)
+                payload["characterInfo"][field_key] = _safe_int(value, 0)
             else:
-                payload[field_key] = value
+                payload["characterInfo"][field_key] = value
+        for field_key, _label in LLMControlProfile.FIELD_SPECS:
+            payload["llmControlProfile"][field_key] = self.profile_widgets[field_key].get("1.0", tk.END).strip()
         self.on_save(payload)
         self.destroy()
 
@@ -1548,6 +1575,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.current_character_id = None
         self.is_main_character = False
         self.main_character_info_draft = self._default_main_character_info()
+        self.llm_control_profile_draft = self._default_llm_control_profile()
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -1660,8 +1688,14 @@ class CharacterEditorFrame(ttk.Frame):
     def _default_main_character_info(self):
         return CharacterInfo().to_dict()
 
+    def _default_llm_control_profile(self):
+        return LLMControlProfile().to_dict()
+
     def _normalize_main_character_info(self, payload) -> dict:
         return CharacterInfo.from_dict(payload).to_dict()
+
+    def _normalize_llm_control_profile(self, payload) -> dict:
+        return LLMControlProfile.from_dict(payload).to_dict()
 
     def _refresh_main_character_button(self):
         button_text = "Edit Main Character Info" if self.is_main_character else "Convert to Main Character"
@@ -1671,6 +1705,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.current_character_id = None
         self.is_main_character = False
         self.main_character_info_draft = self._default_main_character_info()
+        self.llm_control_profile_draft = self._default_llm_control_profile()
         self.vars["name"].set("")
         self.vars["description"].set("")
         self.vars["portraitURL"].set("")
@@ -1727,6 +1762,11 @@ class CharacterEditorFrame(ttk.Frame):
             if self.is_main_character
             else self._default_main_character_info()
         )
+        self.llm_control_profile_draft = (
+            self._normalize_llm_control_profile(state.get("llmControlProfile"))
+            if self.is_main_character
+            else self._default_llm_control_profile()
+        )
         self.vars["name"].set(state.get("name", ""))
         self.vars["description"].set(str(state.get("description", "") or ""))
         self.vars["portraitURL"].set(str(state.get("portraitURL", "") or ""))
@@ -1772,6 +1812,8 @@ class CharacterEditorFrame(ttk.Frame):
                     f"Occupation: {info.get('occupation', '')}",
                     f"Job: {info.get('job', '')}",
                     f"Personality Type: {info.get('personalityType', '')}",
+                    f"Voice Notes: {self.llm_control_profile_draft.get('voiceNotes', '')[:80]}",
+                    f"Knowledge Boundaries: {self.llm_control_profile_draft.get('knowledgeBoundaryNotes', '')[:80]}",
                 ]
             )
 
@@ -1830,6 +1872,9 @@ class CharacterEditorFrame(ttk.Frame):
                 self.main_character_info_draft = self._normalize_main_character_info(
                     main_character.characterInfo.to_dict()
                 )
+                self.llm_control_profile_draft = self._normalize_llm_control_profile(
+                    main_character.llmControlProfile.to_dict()
+                )
                 self.is_main_character = True
             except Exception as exc:
                 messagebox.showerror("Character Editor", f"Failed to convert to Main Character: {exc}")
@@ -1837,10 +1882,11 @@ class CharacterEditorFrame(ttk.Frame):
 
         self._refresh_main_character_button()
         self._refresh_summary()
-        MainCharacterInfoDialog(self, self.main_character_info_draft, self._on_main_character_info_saved)
+        MainCharacterInfoDialog(self, self.main_character_info_draft, self.llm_control_profile_draft, self._on_main_character_info_saved)
 
     def _on_main_character_info_saved(self, payload):
-        self.main_character_info_draft = self._normalize_main_character_info(payload)
+        self.main_character_info_draft = self._normalize_main_character_info(payload.get("characterInfo"))
+        self.llm_control_profile_draft = self._normalize_llm_control_profile(payload.get("llmControlProfile"))
         self.is_main_character = True
         self._refresh_main_character_button()
         self._refresh_summary()
@@ -1921,6 +1967,7 @@ class CharacterEditorFrame(ttk.Frame):
         if include_main_character and self.is_main_character:
             payload["characterType"] = "MainCharacter"
             payload["characterInfo"] = dict(self.main_character_info_draft)
+            payload["llmControlProfile"] = dict(self.llm_control_profile_draft)
         return payload
 
     def _save(self):
@@ -2187,9 +2234,7 @@ class PlayerEditorFrame(ttk.Frame):
         if hasattr(entry, "name") and hasattr(entry, "level"):
             return entry
         if isinstance(entry, str):
-            resolved = self.app.character_service.get_character(entry)
-            if resolved is not None:
-                return resolved
+            return self.app.player_service.clone_character_from_template(entry, self.characters_draft)
         return None
 
     def _normalize_inventory_entry(self, entry):
@@ -2260,22 +2305,8 @@ class PlayerEditorFrame(ttk.Frame):
         self._refresh_lists()
 
     def _resolve_character_id(self, character_obj):
-        for character_id, character in self.app.character_service.list_characters():
-            if character is character_obj:
-                return character_id
-
-        target_name = str(getattr(character_obj, "name", "") or "").strip().lower()
-        if not target_name:
-            return None
-
-        matches = []
-        for character_id, character in self.app.character_service.list_characters():
-            candidate_name = str(getattr(character, "name", "") or "").strip().lower()
-            if candidate_name == target_name:
-                matches.append(character_id)
-        if len(matches) == 1:
-            return matches[0]
-        return None
+        player_instance_id = str(getattr(character_obj, "playerInstanceId", "") or "").strip()
+        return player_instance_id or None
 
     def _character_label(self, character_obj) -> str:
         character_id = self._resolve_character_id(character_obj)
@@ -2310,13 +2341,9 @@ class PlayerEditorFrame(ttk.Frame):
 
     def _add_character(self):
         def _on_select(character_id: str):
-            character = self.app.character_service.get_character(character_id)
+            character = self.app.player_service.clone_character_from_template(character_id, self.characters_draft)
             if character is None:
                 return
-            for existing in self.characters_draft:
-                if self._resolve_character_id(existing) == character_id:
-                    messagebox.showinfo("Player Editor", f"Character '{character.name}' is already assigned.")
-                    return
             self.characters_draft.append(character)
             self._refresh_lists()
 
@@ -2402,10 +2429,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, memory_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, memory_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")
@@ -2413,6 +2440,13 @@ def start_admin_gui_thread(spell_service, item_service, character_service, achie
     thread = threading.Thread(target=_run_gui, name="AdminEditorGUI", daemon=True)
     thread.start()
     return thread
+
+
+
+
+
+
+
 
 
 

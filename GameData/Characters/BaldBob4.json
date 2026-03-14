@@ -1,10 +1,10 @@
 {
     "format_version": 1,
-    "character_id": "BuffyWinchester1",
+    "character_id": "BaldBob4",
     "character_state": {
-        "name": "Buffy Winchester",
+        "name": "Bald Bob",
         "level": 0,
-        "characterType": "MainCharacter",
+        "characterType": "Character",
         "raceTier": "Tier I",
         "race": "Human1",
         "party": 0,
@@ -32,7 +32,7 @@
             "hands_item_id": null,
             "ring_item_id": null,
             "legs_item_id": null,
-            "feet_item_id": "Boots2",
+            "feet_item_id": null,
             "primary_weapon_item_id": null,
             "offhand_item_id": null,
             "inventory_item_ids": []
@@ -46,38 +46,10 @@
             "damageTaken": 0,
             "missionCount": 0
         },
-        "description": "",
+        "description": "A simple woodcutter",
         "portraitURL": "",
         "footerImageURL": "",
-        "characterInfo": {
-            "age": 51,
-            "birthday": "May 19, 1974",
-            "sex": "Female",
-            "height": "5'8.5\"",
-            "build": "average",
-            "skinTone": "fair",
-            "hairColor": "black",
-            "eyeColor": "blue",
-            "distinguishingMarks": "tattoos",
-            "background": "urban working-class",
-            "occupation": "self-employed/freelancer",
-            "job": "self-employed/freelancer",
-            "personalityType": "ISTP",
-            "coreValue": "family",
-            "strength": "determination",
-            "flaw": "naivety",
-            "socialStyle": "friendly",
-            "speechStyle": "poetic",
-            "goal": "knowledge_or_discovery",
-            "secret": "none",
-            "emotionalTrigger": "threat_to_loved_ones",
-            "copingHabit": "humor"
-        },
-        "llmControlProfile": {
-            "systemNotes": "",
-            "voiceNotes": "",
-            "responseStyleNotes": "",
-            "knowledgeBoundaryNotes": ""
-        }
+        "characterInfo": null,
+        "llmControlProfile": null
     }
 }

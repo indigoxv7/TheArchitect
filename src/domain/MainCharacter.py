@@ -1,4 +1,4 @@
-import copy
+﻿import copy
 
 from src.domain.Character import Character
 
@@ -132,10 +132,67 @@ class CharacterInfo:
         )
 
 
+class LLMControlProfile:
+    FIELD_SPECS = [
+        ("systemNotes", "System Notes"),
+        ("voiceNotes", "Voice Notes"),
+        ("responseStyleNotes", "Response Style Notes"),
+        ("knowledgeBoundaryNotes", "Knowledge Boundary Notes"),
+    ]
+
+    def __init__(
+        self,
+        systemNotes: str = "",
+        voiceNotes: str = "",
+        responseStyleNotes: str = "",
+        knowledgeBoundaryNotes: str = "",
+    ):
+        self.systemNotes = str(systemNotes or "")
+        self.voiceNotes = str(voiceNotes or "")
+        self.responseStyleNotes = str(responseStyleNotes or "")
+        self.knowledgeBoundaryNotes = str(knowledgeBoundaryNotes or "")
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "systemNotes": self.systemNotes,
+            "voiceNotes": self.voiceNotes,
+            "responseStyleNotes": self.responseStyleNotes,
+            "knowledgeBoundaryNotes": self.knowledgeBoundaryNotes,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> "LLMControlProfile":
+        data = data if isinstance(data, dict) else {}
+        return cls(
+            systemNotes=str(data.get("systemNotes", "") or ""),
+            voiceNotes=str(data.get("voiceNotes", "") or ""),
+            responseStyleNotes=str(data.get("responseStyleNotes", "") or ""),
+            knowledgeBoundaryNotes=str(data.get("knowledgeBoundaryNotes", "") or ""),
+        )
+
+
 class MainCharacter(Character):
-    def __init__(self, name: str, characterInfo: CharacterInfo | None = None, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        characterInfo: CharacterInfo | None = None,
+        llmControlProfile: LLMControlProfile | None = None,
+        **kwargs,
+    ):
         super().__init__(name=name, **kwargs)
         self.characterInfo = characterInfo if characterInfo is not None else CharacterInfo()
+        self.llmControlProfile = llmControlProfile if llmControlProfile is not None else LLMControlProfile()
+
+    def EnsureRuntimeDefaults(self):
+        super().EnsureRuntimeDefaults()
+        if not hasattr(self, "characterInfo") or self.characterInfo is None:
+            self.characterInfo = CharacterInfo()
+        elif isinstance(self.characterInfo, dict):
+            self.characterInfo = CharacterInfo.from_dict(self.characterInfo)
+        if not hasattr(self, "llmControlProfile") or self.llmControlProfile is None:
+            self.llmControlProfile = LLMControlProfile()
+        elif isinstance(self.llmControlProfile, dict):
+            self.llmControlProfile = LLMControlProfile.from_dict(self.llmControlProfile)
 
     @classmethod
     def from_character(
@@ -146,6 +203,7 @@ class MainCharacter(Character):
     ) -> "MainCharacter":
         if isinstance(base_character, MainCharacter):
             character_info = copy.deepcopy(base_character.characterInfo)
+            llm_profile = copy.deepcopy(base_character.llmControlProfile)
         else:
             from src.services.main_character_generator import generate_main_character
 
@@ -155,6 +213,7 @@ class MainCharacter(Character):
                 rng=rng,
             )
             character_info = copy.deepcopy(generated.characterInfo)
+            llm_profile = copy.deepcopy(getattr(generated, "llmControlProfile", LLMControlProfile()))
 
         main_character = cls(
             name=str(getattr(base_character, "name", "") or "Generated Main Character"),
@@ -170,7 +229,9 @@ class MainCharacter(Character):
             buffs=copy.deepcopy(getattr(base_character, "buffs", None)),
             stats=copy.deepcopy(getattr(base_character, "stats", None)),
             race=str(getattr(base_character, "race", "Human1") or "Human1"),
+            playerInstanceId=str(getattr(base_character, "playerInstanceId", "") or ""),
             characterInfo=character_info,
+            llmControlProfile=llm_profile,
         )
         main_character.health = int(getattr(base_character, "health", 100))
         main_character.healthState = getattr(base_character, "healthState", main_character.healthState)

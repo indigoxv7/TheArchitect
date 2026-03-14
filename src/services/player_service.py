@@ -1,3 +1,4 @@
+﻿import copy
 import os
 import re
 from typing import Optional
@@ -15,6 +16,7 @@ from src.domain.CharacterUtil import (
     PowerType,
 )
 from src.domain.Items import Item
+from src.domain.MainCharacter import MainCharacter
 from src.domain.player_functions import Player, load_player
 from src.persistence.roster_store import ExistingPlayersRosterStore
 from src.services.game_context import GameContext
@@ -46,6 +48,81 @@ class PlayerService:
     def get_int_from_string_end(string: str) -> Optional[int]:
         match = re.search(r"\d+$", string)
         return int(match.group()) if match else None
+
+    @staticmethod
+    def _slugify_name(name: str) -> str:
+        compact = re.sub(r"\s+", "", str(name or "").strip())
+        compact = re.sub(r"[^A-Za-z0-9_\-]", "", compact)
+        return compact or "Character"
+
+    def _generate_player_instance_id(self, existing_characters: list, name: str) -> str:
+        prefix = self._slugify_name(name)
+        used_ids = {
+            str(getattr(character, "playerInstanceId", "") or "")
+            for character in existing_characters
+            if character is not None
+        }
+        index = len(used_ids)
+        candidate = f"{prefix}{index}"
+        while candidate in used_ids:
+            index += 1
+            candidate = f"{prefix}{index}"
+        return candidate
+
+    def _clone_character_for_player(self, character, existing_characters: list | None = None):
+        clone = copy.deepcopy(character)
+        ensure_defaults = getattr(clone, "EnsureRuntimeDefaults", None)
+        if callable(ensure_defaults):
+            ensure_defaults()
+        clone.playerInstanceId = self._generate_player_instance_id(existing_characters or [], getattr(clone, "name", "Character"))
+        return clone
+
+    def clone_character_from_template(self, character_identifier: str, existing_characters: list | None = None):
+        template = self.context.all_characters.get(str(character_identifier or "").strip())
+        if template is None:
+            return None
+        return self._clone_character_for_player(template, existing_characters)
+
+    def _normalize_player_characters(self, player: Player) -> bool:
+        characters = getattr(player, "characters", []) or []
+        normalized = []
+        migrated = False
+        used_ids: set[str] = set()
+        global_templates = list(self.context.all_characters.values())
+
+        for entry in characters:
+            character = entry
+            if isinstance(entry, str):
+                template = self.context.all_characters.get(entry)
+                if template is None:
+                    migrated = True
+                    continue
+                character = self._clone_character_for_player(template, normalized)
+                migrated = True
+            elif any(entry is template for template in global_templates):
+                character = self._clone_character_for_player(entry, normalized)
+                migrated = True
+
+            ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
+            if callable(ensure_defaults):
+                ensure_defaults()
+
+            player_instance_id = str(getattr(character, "playerInstanceId", "") or "")
+            if not player_instance_id or player_instance_id in used_ids:
+                character.playerInstanceId = self._generate_player_instance_id(normalized, getattr(character, "name", "Character"))
+                migrated = True
+            used_ids.add(str(getattr(character, "playerInstanceId", "") or ""))
+            normalized.append(character)
+
+        if normalized != characters:
+            player.characters = normalized
+            migrated = True
+        return migrated
+
+    def _normalize_loaded_player(self, player: Player) -> bool:
+        player._ensure_runtime_defaults()
+        migrated = self._normalize_player_characters(player)
+        return migrated
 
     async def get_name_from_id(self, guild_obj, discord_id: int) -> str:
         candidate_guild = guild_obj or self.context.guild
@@ -171,9 +248,12 @@ class PlayerService:
         if os.path.exists(player_save_path):
             self.context.existing_players[discord_id] = True
             player = load_player(player_save_path)
+            migrated = self._normalize_loaded_player(player)
             player.AttachSavePath(player_save_path, enableAutoSave=True)
             nickname = await self.get_name_from_id(self.context.guild, discord_id)
             player.playerName = nickname
+            if migrated:
+                player.Save()
             self.context.player_cache[discord_id] = player
             return player
 
@@ -209,7 +289,10 @@ class PlayerService:
         except Exception:
             return None
 
+        migrated = self._normalize_loaded_player(player)
         player.AttachSavePath(player_save_path, enableAutoSave=True)
+        if migrated:
+            player.Save()
         self.context.existing_players[discord_id] = True
         self.context.player_cache[discord_id] = player
         return player
@@ -219,6 +302,7 @@ class PlayerService:
         if discord_id <= 0:
             raise ValueError("Player must have a valid discordID before saving.")
 
+        self._normalize_loaded_player(player)
         player_save_path = self.get_player_save_path(discord_id)
         player.AttachSavePath(player_save_path, enableAutoSave=getattr(player, "_auto_save_enabled", True))
         player.Save()
@@ -226,3 +310,9 @@ class PlayerService:
         self.context.player_cache[discord_id] = player
         self.save_existing_players_roster(self.existing_players_roster_path)
 
+    def list_player_main_characters(self, player: Player) -> list:
+        result = []
+        for character in getattr(player, "characters", []) or []:
+            if isinstance(character, MainCharacter):
+                result.append(character)
+        return result

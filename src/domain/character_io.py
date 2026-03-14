@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Callable
 
 from src.domain.Character import Buff, Character, HealthState
-from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
 from src.domain.CharacterUtil import (
     Achievement,
     Affinities,
@@ -160,7 +160,6 @@ def _achievement_to_dict(achievement: Achievement) -> dict[str, Any]:
         "title": str(achievement.title or ""),
         "description": str(getattr(achievement, "description", "") or ""),
         "bonuses": bonuses,
-        # Backward compatibility for older readers expecting a single bonus field.
         "bonus": first_bonus,
     }
 
@@ -181,7 +180,6 @@ def _achievement_from_dict(data: Any) -> Achievement | None:
             if parsed_bonus is not None:
                 bonuses.append(parsed_bonus)
     else:
-        # Backward compatibility: legacy single `bonus` field.
         parsed_bonus = _bonus_from_dict(data.get("bonus"))
         if parsed_bonus is not None:
             bonuses.append(parsed_bonus)
@@ -363,8 +361,6 @@ def _gear_from_dict(data: Any, item_resolver: Callable[[str], Item | None], erro
     )
 
 
-
-
 def _character_info_to_dict(character_info: CharacterInfo | None) -> dict[str, Any] | None:
     if character_info is None:
         return None
@@ -375,6 +371,19 @@ def _character_info_from_dict(data: Any) -> CharacterInfo | None:
     if not isinstance(data, dict):
         return None
     return CharacterInfo.from_dict(data)
+
+
+def _llm_control_profile_to_dict(llm_control_profile: LLMControlProfile | None) -> dict[str, Any] | None:
+    if llm_control_profile is None:
+        return None
+    return llm_control_profile.to_dict()
+
+
+def _llm_control_profile_from_dict(data: Any) -> LLMControlProfile | None:
+    if not isinstance(data, dict):
+        return None
+    return LLMControlProfile.from_dict(data)
+
 
 def character_to_state(character: Character) -> dict[str, Any]:
     return {
@@ -399,6 +408,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
         "characterInfo": _character_info_to_dict(getattr(character, "characterInfo", None)),
+        "llmControlProfile": _llm_control_profile_to_dict(getattr(character, "llmControlProfile", None)),
     }
 
 
@@ -443,6 +453,7 @@ def character_from_state(
 
     character_type = str(data.get("characterType", "") or "").strip()
     character_info = _character_info_from_dict(data.get("characterInfo"))
+    llm_control_profile = _llm_control_profile_from_dict(data.get("llmControlProfile"))
     character_kwargs = {
         "name": name,
         "attributes": attributes,
@@ -462,6 +473,7 @@ def character_from_state(
     if character_type == "MainCharacter" or character_info is not None:
         character = MainCharacter(
             characterInfo=character_info if character_info is not None else CharacterInfo(),
+            llmControlProfile=llm_control_profile if llm_control_profile is not None else LLMControlProfile(),
             **character_kwargs,
         )
     else:
@@ -476,4 +488,3 @@ def character_from_state(
 
     character.CalculateBonus()
     return character
-
