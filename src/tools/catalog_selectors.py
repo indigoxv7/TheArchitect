@@ -147,7 +147,7 @@ class ItemSelectDialog(tk.Toplevel):
         self.filtered = []
         self.listbox.delete(0, tk.END)
         for item in self.item_service.list_items():
-            if self.allowed_slots is not None and item.slot not in self.allowed_slots:
+            if self.allowed_slots is not None and not any(item.can_equip_in(slot) for slot in self.allowed_slots):
                 continue
             label = self.item_service.get_item_label(item)
             if query and query not in label.lower():

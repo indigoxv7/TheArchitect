@@ -5,7 +5,7 @@ import random
 
 from src.domain.Character import Character
 from src.domain.CharacterUtil import HitLocation
-from src.domain.Items import Item
+from src.domain.Items import Weapon
 
 
 @dataclass(frozen=True)
@@ -103,7 +103,7 @@ class DamageCalculator:
         self,
         attacker: Character,
         defender: Character,
-        weapon: Item,
+        weapon: Weapon,
         targetArmor: float,
     ) -> DamageBreakdown:
         attacker_physical_power = float(getattr(attacker.finalAttributes, "physicalPower", 5.0))
@@ -207,7 +207,7 @@ class DamageCalculator:
         self,
         attacker: Character,
         defender: Character,
-        weapon: Item,
+        weapon: Weapon,
         location: HitLocation,
         applyArmorDamageToGear: bool = True,
     ) -> DamageBreakdown:
@@ -237,7 +237,7 @@ class DamageCalculator:
         ratio = max(0.0001, ratio)
         return ratio ** self._config.alpha
 
-    def _compute_penetration(self, weapon: Item, attacker_physical_power: float) -> float:
+    def _compute_penetration(self, weapon: Weapon, attacker_physical_power: float) -> float:
         baseline_power = 5.0
         bonus_power = max(0.0, attacker_physical_power - baseline_power)
         penetration_base = float(getattr(weapon, "penetrationBase", 0.0))

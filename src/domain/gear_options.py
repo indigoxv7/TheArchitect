@@ -15,8 +15,8 @@ class GearOptions:
         ("ringOptions", "Ring", EquipSlot.RING),
         ("legsOptions", "Legs", EquipSlot.LEGS),
         ("feetOptions", "Feet", EquipSlot.FEET),
-        ("primaryWeaponOptions", "Primary Weapon", EquipSlot.HANDS),
-        ("offhandOptions", "Offhand", EquipSlot.HANDS),
+        ("primaryWeaponOptions", "Primary Weapon", EquipSlot.PRIMARY_WEAPON),
+        ("offhandOptions", "Offhand", EquipSlot.OFFHAND),
         ("inventoryOptions", "Inventory", None),
     ]
 

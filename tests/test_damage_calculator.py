@@ -2,8 +2,8 @@ import random
 import unittest
 
 from src.domain.Character import Character
-from src.domain.CharacterUtil import Attributes, HitLocation
-from src.domain.Items import Gear, Item
+from src.domain.CharacterUtil import Attributes, EquipSlot, HitLocation, ItemType
+from src.domain.Items import Armor, Gear, Weapon
 from src.services.damage_calculator import DamageCalculator
 
 
@@ -22,7 +22,7 @@ class TestDamageCalculator(unittest.TestCase):
         )
 
     def _build_defender(self) -> Character:
-        body_armor = Item(name="Body Armor", durability=120)
+        body_armor = Armor(name="Body Armor", slot=EquipSlot.BODY, maxArmor=120, currentArmor=120)
         return Character(
             name="Defender",
             attributes=Attributes(
@@ -36,9 +36,12 @@ class TestDamageCalculator(unittest.TestCase):
             gear=Gear(body=body_armor),
         )
 
-    def _build_weapon(self, **overrides) -> Item:
+    def _build_weapon(self, **overrides) -> Weapon:
         data = {
             "name": "Nano Longsword",
+            "slot": EquipSlot.PRIMARY_WEAPON,
+            "itemType": ItemType.MELEE_WEAPON,
+            "damageType": [],
             "damageMin": 25,
             "damageMax": 35,
             "armorMultiplier": 1.2,
@@ -46,7 +49,7 @@ class TestDamageCalculator(unittest.TestCase):
             "penetrationBase": 110.0,
         }
         data.update(overrides)
-        return Item(**data)
+        return Weapon(**data)
 
     def test_calculate_physical_hit_to_location_updates_armor(self):
         calculator = DamageCalculator(rng=random.Random(1337))
@@ -93,15 +96,15 @@ class TestDamageCalculator(unittest.TestCase):
         with self.assertRaises(ValueError):
             calculator.calculate_physical_hit(attacker=attacker, defender=defender, weapon=weapon, targetArmor=100)
 
-    def test_item_damage_fields_round_trip(self):
+    def test_weapon_damage_fields_round_trip(self):
         payload = {
             "name": "Test Weapon",
-            "slot": "HANDS",
+            "itemClass": "Weapon",
+            "slot": "PRIMARY_WEAPON",
             "tier": 1,
             "durability": 80,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
-            "itemPower": [{"powerType": "PHYSICAL_ATTACK", "power": 11, "spellName": ""}],
             "damageType": ["SLASHING"],
             "damageMin": 10,
             "damageMax": 20,
@@ -110,16 +113,17 @@ class TestDamageCalculator(unittest.TestCase):
             "penetrationBase": 45,
         }
 
-        item = Item.from_dict(payload)
+        item = Weapon.from_dict(payload)
         self.assertAlmostEqual(item.damageMin, 10.0)
         self.assertAlmostEqual(item.damageMax, 20.0)
         self.assertAlmostEqual(item.armorMultiplier, 1.3)
         self.assertAlmostEqual(item.ignoreArmorFraction, 0.2)
         self.assertAlmostEqual(item.penetrationBase, 45.0)
+        self.assertEqual(item.slot.name, "PRIMARY_WEAPON")
 
         serialized = item.to_dict()
-        self.assertEqual(serialized["damageMin"], 10.0)
-        self.assertEqual(serialized["damageMax"], 20.0)
+        self.assertEqual(serialized["damageMin"], 10)
+        self.assertEqual(serialized["damageMax"], 20)
         self.assertEqual(serialized["armorMultiplier"], 1.3)
         self.assertEqual(serialized["ignoreArmorFraction"], 0.2)
         self.assertEqual(serialized["penetrationBase"], 45.0)

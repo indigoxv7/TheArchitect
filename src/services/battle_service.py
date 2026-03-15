@@ -9,7 +9,7 @@ from typing import Any
 
 from src.domain.Character import Character, HealthState
 from src.domain.CharacterUtil import Attributes, EquipSlot, HitLocation, ItemType, PowerType
-from src.domain.Items import Gear, Item
+from src.domain.Items import Consumable, Gear, Item, Weapon
 from src.domain.MainCharacter import MainCharacter
 from src.domain.Race import CreatureSize
 from src.domain.Spells import Spell
@@ -271,7 +271,7 @@ class BattleService:
 
     def _infer_role(self, character) -> CombatRole:
         primary_weapon = getattr(getattr(character, "gear", None), "primaryWeapon", None)
-        if primary_weapon is not None and getattr(primary_weapon, "itemType", None) == ItemType.RANGED_WEAPON:
+        if isinstance(primary_weapon, Weapon) and primary_weapon.isRanged:
             return CombatRole.RANGED
         direct_damage_spells = self._extract_direct_damage_spells(character)
         if direct_damage_spells and primary_weapon is None:
@@ -313,7 +313,7 @@ class BattleService:
             magic_power=float(getattr(attrs, "magicPower", 5.0)),
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
-            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None) or getattr(gear, "hands", None)),
+            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             inventory_item_ids=[self._resolve_item_id(item) for item in getattr(gear, "inventory", []) or [] if self._resolve_item_id(item)],
             spell_names=self._extract_direct_damage_spells(character),
@@ -354,7 +354,7 @@ class BattleService:
             magic_power=float(getattr(attrs, "magicPower", 5.0)),
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
-            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None) or getattr(gear, "hands", None)),
+            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             spell_names=self._extract_direct_damage_spells(character),
         )
@@ -427,14 +427,13 @@ class BattleService:
         text = str(value or "HEALTHY").upper().strip()
         return text if text in HealthState.__members__ else "HEALTHY"
 
-    def _default_unarmed_weapon(self) -> Item:
-        return Item(
+    def _default_unarmed_weapon(self) -> Weapon:
+        return Weapon(
             name="Unarmed Strike",
-            slot=EquipSlot.HANDS,
+            slot=EquipSlot.PRIMARY_WEAPON,
             tier=0,
             durability=100,
             itemType=ItemType.MELEE_WEAPON,
-            itemPower=[],
             damageType=[],
             damageMin=4.0,
             damageMax=6.0,
@@ -444,20 +443,12 @@ class BattleService:
             itemId="UNARMED",
         )
 
-    def _weapon_for_entity(self, entity):
-        primary = self.item_service.get_item_by_id(str(getattr(entity, "primary_weapon_item_id", "") or ""))
-        if primary is not None and getattr(primary, "itemType", None) in {
-            ItemType.MELEE_WEAPON,
-            ItemType.MELEE_THROWABLE,
-            ItemType.RANGED_WEAPON,
-        }:
+    def _weapon_for_entity(self, entity) -> Weapon:
+        primary = self.item_service.get_weapon_by_id(str(getattr(entity, "primary_weapon_item_id", "") or ""))
+        if primary is not None:
             return primary
-        offhand = self.item_service.get_item_by_id(str(getattr(entity, "offhand_item_id", "") or ""))
-        if offhand is not None and getattr(offhand, "itemType", None) in {
-            ItemType.MELEE_WEAPON,
-            ItemType.MELEE_THROWABLE,
-            ItemType.RANGED_WEAPON,
-        }:
+        offhand = self.item_service.get_weapon_by_id(str(getattr(entity, "offhand_item_id", "") or ""))
+        if offhand is not None:
             return offhand
         return self._default_unarmed_weapon()
 
@@ -1046,7 +1037,7 @@ class BattleService:
         results = []
         for entry in getattr(player, "inventory", []) or []:
             item = self._resolve_inventory_item(player, entry)
-            if item is None or getattr(item, "itemType", None) != ItemType.CONSUMABLE:
+            if not isinstance(item, Consumable):
                 continue
             item_id = str(getattr(item, "itemId", "") or "")
             label = self.item_service.get_item_label(item) if item_id else str(getattr(item, "name", "Consumable") or "Consumable")
@@ -1058,10 +1049,10 @@ class BattleService:
         if player is None:
             raise ValueError("Player not found.")
         inventory = list(getattr(player, "inventory", []) or [])
-        item = self.item_service.get_item(str(item_identifier or ""))
+        item = self.item_service.get_consumable(str(item_identifier or ""))
         if item is None:
-            item = self.item_service.get_item_by_id(self.item_service.parse_item_id_from_label(item_identifier))
-        if item is None or getattr(item, "itemType", None) != ItemType.CONSUMABLE:
+            item = self.item_service.get_consumable_by_id(self.item_service.parse_item_id_from_label(item_identifier))
+        if item is None:
             raise ValueError("Consumable not found.")
 
         removed = False

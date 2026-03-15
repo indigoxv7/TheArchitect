@@ -79,7 +79,7 @@ class TestRaceService(unittest.TestCase):
                 }
             )
             item_service.create_item_from_dict({"name": "Goblin Hood", "slot": "HEAD", "itemType": "ARMOR"})
-            item_service.create_item_from_dict({"name": "Rusty Knife", "slot": "HANDS", "itemType": "MELEE_WEAPON"})
+            item_service.create_item_from_dict({"name": "Rusty Knife", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"})
             hood = item_service.get_item("Goblin Hood")
             knife = item_service.get_item("Rusty Knife")
 

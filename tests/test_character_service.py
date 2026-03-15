@@ -21,15 +21,15 @@ class TestCharacterService(unittest.TestCase):
         character_service.load_characters()
         return context, item_service, character_service, characters_dir
 
-    def _create_item(self, item_service: ItemService, name: str, slot: str = "HANDS"):
+    def _create_item(self, item_service: ItemService, name: str, slot: str = "PRIMARY_WEAPON"):
         payload = {
             "name": name,
             "slot": slot,
             "tier": 1,
             "durability": 90,
-            "itemType": "MELEE_WEAPON" if slot == "HANDS" else "ARMOR",
-            "itemPower": [{"powerType": "PHYSICAL_ATTACK", "power": 6, "spellName": ""}] if slot == "HANDS" else [],
-            "damageType": ["SLASHING"] if slot == "HANDS" else [],
+            "itemType": "MELEE_WEAPON" if slot == "PRIMARY_WEAPON" else "ARMOR",
+            "itemPower": [{"powerType": "PHYSICAL_ATTACK", "power": 6, "spellName": ""}] if slot == "PRIMARY_WEAPON" else [],
+            "damageType": ["SLASHING"] if slot == "PRIMARY_WEAPON" else [],
             "statBonuses": [],
         }
         item_service.create_item_from_dict(payload)
@@ -39,7 +39,7 @@ class TestCharacterService(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             context, item_service, character_service, characters_dir = self._build_services(temp_dir)
             helm = self._create_item(item_service, "Test Helm", slot="HEAD")
-            sword = self._create_item(item_service, "Test Sword", slot="HANDS")
+            sword = self._create_item(item_service, "Test Sword", slot="PRIMARY_WEAPON")
             self.assertIsNotNone(helm)
             self.assertIsNotNone(sword)
 
@@ -155,7 +155,7 @@ class TestCharacterService(unittest.TestCase):
     def test_achievement_with_multiple_bonuses_round_trip(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, character_service, characters_dir = self._build_services(temp_dir)
-            sword = self._create_item(item_service, "Multi Bonus Sword", slot="HANDS")
+            sword = self._create_item(item_service, "Multi Bonus Sword", slot="PRIMARY_WEAPON")
             self.assertIsNotNone(sword)
 
             payload = {
@@ -236,7 +236,7 @@ class TestCharacterService(unittest.TestCase):
     def test_missing_gear_item_ids_fallback_without_crash(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, character_service, _characters_dir = self._build_services(temp_dir)
-            known_item = self._create_item(item_service, "Known Sword", slot="HANDS")
+            known_item = self._create_item(item_service, "Known Sword", slot="PRIMARY_WEAPON")
             self.assertIsNotNone(known_item)
 
             payload = {

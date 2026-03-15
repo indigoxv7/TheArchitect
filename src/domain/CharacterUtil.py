@@ -1,4 +1,4 @@
-﻿
+
 
 from enum import Enum
 DEFAULT_DURABILITY = 100
@@ -13,6 +13,8 @@ class EquipSlot(Enum):
     RING = 5
     LEGS = 6
     FEET = 7
+    PRIMARY_WEAPON = 8
+    OFFHAND = 9
 
 
 class HitLocation(Enum):
@@ -270,4 +272,5 @@ class CharacterStatistics:
         self.kills = kills
         self.damageTaken = damageTaken
         self.missionCount = missionCount
+
 

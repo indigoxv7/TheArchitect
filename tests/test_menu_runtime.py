@@ -3,7 +3,7 @@ import unittest
 from src.config import Globals
 import main as game
 from src.domain.player_functions import Player
-from src.domain.Items import Item
+from src.domain.Items import Weapon
 from src.domain.CharacterUtil import EquipSlot
 from src.services.menu_runtime_service import OriginalMessage
 from src.ui.menu_functions import MenuContext, MenuState, load_menus_from_directory
@@ -31,7 +31,7 @@ class TestMenuRuntime(unittest.TestCase):
         sample_player = Player(2)
         sample_player.playerName = "Tester"
         sample_player.inventory = [
-            Item(name="Rusty Dagger", slot=EquipSlot.HANDS, itemId="RustyDagger0"),
+            Weapon(name="Rusty Dagger", slot=EquipSlot.PRIMARY_WEAPON, itemId="RustyDagger0", damageMin=4, damageMax=6),
             "Mysterious Rock",
         ]
 

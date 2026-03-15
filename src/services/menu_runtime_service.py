@@ -215,6 +215,8 @@ ITEM_ENUM_ACTIONS = {
     "itemSetSlot_RING_Action": ("slot", EquipSlot.RING.name),
     "itemSetSlot_LEGS_Action": ("slot", EquipSlot.LEGS.name),
     "itemSetSlot_FEET_Action": ("slot", EquipSlot.FEET.name),
+    "itemSetSlot_PRIMARY_WEAPON_Action": ("slot", EquipSlot.PRIMARY_WEAPON.name),
+    "itemSetSlot_OFFHAND_Action": ("slot", EquipSlot.OFFHAND.name),
     "itemSetType_DEFAULT_Action": ("item_type", ItemType.DEFAULT.name),
     "itemSetType_CONSUMABLE_Action": ("item_type", ItemType.CONSUMABLE.name),
     "itemSetType_MELEE_WEAPON_Action": ("item_type", ItemType.MELEE_WEAPON.name),

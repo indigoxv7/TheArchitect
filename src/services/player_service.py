@@ -9,13 +9,13 @@ from src.domain.CharacterUtil import (
     AttributeBonus,
     Bonus,
     BonusType,
+    ConsumableKind,
     DamageType,
     EquipSlot,
-    ItemPower,
     ItemType,
     PowerType,
 )
-from src.domain.Items import Item
+from src.domain.Items import Armor, Consumable, Item, Weapon
 from src.domain.MainCharacter import MainCharacter
 from src.domain.player_functions import Player, load_player
 from src.persistence.roster_store import ExistingPlayersRosterStore
@@ -187,50 +187,32 @@ class PlayerService:
         self.context.all_items.clear()
         self.context.error_item = None
 
-        standard_attack_power = [ItemPower(PowerType.PHYSICAL_ATTACK, 12)]
-        piercing_damage = [DamageType.PIERCING]
-        bludgeoning_damage = [DamageType.BLUDGEONING]
-        slashing_damage = [DamageType.SLASHING]
-        standard_consumable_power = [ItemPower(PowerType.CONSUMABLE_POWER, 10)]
-
         phys_resist_bonus = [
             Bonus(BonusType.FLAT, AttributeBonus(Attribute.PHYSICAL_RESISTANCE, 1), None, 0, "")
         ]
 
-        new_item = Item("Dagger", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_THROWABLE, standard_attack_power, piercing_damage)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Spear", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, standard_attack_power, piercing_damage)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Sword", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, standard_attack_power, slashing_damage)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Warhammer", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, standard_attack_power, bludgeoning_damage)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Bow", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, None, ItemType.RANGED_WEAPON, standard_attack_power, piercing_damage)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Shield", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.MELEE_WEAPON, None, None)
-        self.context.all_items[new_item.name] = new_item
+        default_items = [
+            Weapon("Dagger", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_THROWABLE, [DamageType.PIERCING], 9, 12, 0.9, 0.10, 4),
+            Weapon("Spear", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.PIERCING], 11, 15, 1.1, 0.05, 6),
+            Weapon("Sword", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.SLASHING], 12, 16, 1.0, 0.0, 5),
+            Weapon("Warhammer", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.BLUDGEONING], 13, 18, 1.35, 0.0, 8),
+            Weapon("Bow", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.RANGED_WEAPON, [DamageType.PIERCING], 10, 14, 0.8, 0.10, 4),
+            Armor("Shield", EquipSlot.OFFHAND, 0, 40, phys_resist_bonus, ItemType.ARMOR, maxArmor=40, currentArmor=40),
+            Armor("Helmet", EquipSlot.HEAD, 0, 30, phys_resist_bonus, ItemType.ARMOR, maxArmor=30, currentArmor=30),
+            Item("Necklace", EquipSlot.NECK, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.DEFAULT),
+            Armor("Body Armor", EquipSlot.BODY, 0, 60, phys_resist_bonus, ItemType.ARMOR, maxArmor=60, currentArmor=60),
+            Armor("Gloves", EquipSlot.HANDS, 0, 20, phys_resist_bonus, ItemType.ARMOR, maxArmor=20, currentArmor=20),
+            Item("Ring", EquipSlot.RING, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.DEFAULT),
+            Armor("Pants", EquipSlot.LEGS, 0, 35, phys_resist_bonus, ItemType.ARMOR, maxArmor=35, currentArmor=35),
+            Armor("Boots", EquipSlot.FEET, 0, 25, phys_resist_bonus, ItemType.ARMOR, maxArmor=25, currentArmor=25),
+            Consumable("Bandage", 0, None, ConsumableKind.POTION, effectPowerType=PowerType.CONSUMABLE_POWER, effectPower=10),
+            Item("Paperclip", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT),
+        ]
 
-        new_item = Item("Helmet", EquipSlot.HEAD, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Necklace", EquipSlot.NECK, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Body Armor", EquipSlot.BODY, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Gloves", EquipSlot.HANDS, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Ring", EquipSlot.RING, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Pants", EquipSlot.LEGS, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
-        new_item = Item("Boots", EquipSlot.FEET, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.ARMOR, None, None)
-        self.context.all_items[new_item.name] = new_item
+        for new_item in default_items:
+            self.context.all_items[new_item.name] = new_item
 
-        new_item = Item("Bandage", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.CONSUMABLE, standard_consumable_power, None)
-        self.context.all_items[new_item.name] = new_item
-
-        new_item = Item("Paperclip", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT, None, None)
-        self.context.all_items[new_item.name] = new_item
-        self.context.error_item = Item("[ERROR MISSING ITEM]", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT, None, None)
+        self.context.error_item = Item("[ERROR MISSING ITEM]", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT)
         self.context.all_items[self.context.error_item.name] = self.context.error_item
 
     def find_item(self, name: str) -> Item:

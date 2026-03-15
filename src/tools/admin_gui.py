@@ -5,10 +5,12 @@ from tkinter import messagebox, ttk
 
 from src.domain.Character import HealthState
 from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
+from src.domain.Items import Armor, Consumable, Weapon
 from src.domain.CharacterUtil import (
     Affinities,
     Attribute,
     BonusType,
+    ConsumableKind,
     DamageType,
     EquipSlot,
     ItemType,
@@ -491,10 +493,15 @@ class SpellEditorFrame(ttk.Frame):
 
 
 class ItemEditorFrame(ttk.Frame):
+    ITEM_CLASS_OPTIONS = ["Item", "Weapon", "Armor", "Consumable"]
+    SLOT_OPTIONS = [slot.name for slot in EquipSlot]
+    ITEM_TYPE_OPTIONS = [item_type.name for item_type in ItemType]
+
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
         self.current_item_id = None
+        self._suspend_class_refresh = False
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -517,7 +524,7 @@ class ItemEditorFrame(ttk.Frame):
             filter_row,
             state="readonly",
             textvariable=self.slot_filter_var,
-            values=["All"] + [e.name for e in EquipSlot],
+            values=["All"] + self.SLOT_OPTIONS,
         )
         self.slot_filter.pack(side=tk.LEFT, fill=tk.X, expand=True)
         ttk.Button(filter_row, text="Apply Filter", command=lambda: self.refresh_item_list(reset_form=False)).pack(side=tk.LEFT, padx=6)
@@ -533,39 +540,76 @@ class ItemEditorFrame(ttk.Frame):
 
         self.vars = {
             "name": tk.StringVar(),
+            "itemClass": tk.StringVar(value="Item"),
             "slot": tk.StringVar(value=EquipSlot.NOT_EQUIPABLE.name),
+            "itemType": tk.StringVar(value=ItemType.DEFAULT.name),
             "tier": tk.StringVar(value="0"),
             "durability": tk.StringVar(value="100"),
-            "itemType": tk.StringVar(value=ItemType.DEFAULT.name),
             "damageType": tk.StringVar(value="NONE"),
-            "powerType": tk.StringVar(value="NONE"),
-            "power": tk.StringVar(value="0"),
+            "damageMin": tk.StringVar(value="0"),
+            "damageMax": tk.StringVar(value="0"),
+            "armorMultiplier": tk.StringVar(value="1.0"),
+            "ignoreArmorFraction": tk.StringVar(value="0.0"),
+            "penetrationBase": tk.StringVar(value="0.0"),
+            "maxArmor": tk.StringVar(value="0"),
+            "currentArmor": tk.StringVar(value="0"),
+            "consumableKind": tk.StringVar(value=ConsumableKind.NONE.name),
+            "effectPowerType": tk.StringVar(value=PowerType.CONSUMABLE_POWER.name),
+            "effectPower": tk.StringVar(value="0"),
             "spellName": tk.StringVar(),
             "statBonuses": tk.StringVar(value="[]"),
         }
-        self._row_entry("Name", self.vars["name"])
-        self._row_combo("Slot", self.vars["slot"], [e.name for e in EquipSlot])
-        self._row_entry("Tier", self.vars["tier"])
-        self._row_entry("Durability", self.vars["durability"])
-        self._row_combo("Item Type", self.vars["itemType"], [e.name for e in ItemType])
-        self._row_combo("Damage Type", self.vars["damageType"], ["NONE"] + [e.name for e in DamageType])
-        self._row_combo("Power Type", self.vars["powerType"], ["NONE"] + [e.name for e in PowerType])
-        self._row_entry("Power Value", self.vars["power"])
-        self._row_entry("Power Spell Name", self.vars["spellName"])
-        self._row_entry("Stat Bonuses JSON", self.vars["statBonuses"])
+
+        common_frame = ttk.LabelFrame(self, text="Common")
+        common_frame.pack(fill=tk.X, pady=6)
+        self._row_entry(common_frame, "Name", self.vars["name"])
+        self._row_combo(common_frame, "Item Class", self.vars["itemClass"], self.ITEM_CLASS_OPTIONS)
+        self._row_combo(common_frame, "Slot", self.vars["slot"], self.SLOT_OPTIONS)
+        self.item_type_combo = self._row_combo(common_frame, "Item Type", self.vars["itemType"], self.ITEM_TYPE_OPTIONS)
+        self._row_entry(common_frame, "Tier", self.vars["tier"])
+        self._row_entry(common_frame, "Stat Bonuses JSON", self.vars["statBonuses"])
+
+        self.base_frame = ttk.LabelFrame(self, text="Generic Item")
+        self._row_entry(self.base_frame, "Durability", self.vars["durability"])
+
+        self.weapon_frame = ttk.LabelFrame(self, text="Weapon Stats")
+        self._row_entry(self.weapon_frame, "Durability", self.vars["durability"])
+        self._row_combo(self.weapon_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType])
+        self._row_entry(self.weapon_frame, "Damage Min", self.vars["damageMin"])
+        self._row_entry(self.weapon_frame, "Damage Max", self.vars["damageMax"])
+        self._row_entry(self.weapon_frame, "Armor Multiplier", self.vars["armorMultiplier"])
+        self._row_entry(self.weapon_frame, "Ignore Armor Fraction", self.vars["ignoreArmorFraction"])
+        self._row_entry(self.weapon_frame, "Penetration Base", self.vars["penetrationBase"])
+
+        self.armor_frame = ttk.LabelFrame(self, text="Armor Stats")
+        self._row_entry(self.armor_frame, "Max Armor", self.vars["maxArmor"])
+        self._row_entry(self.armor_frame, "Current Armor", self.vars["currentArmor"])
+
+        self.consumable_frame = ttk.LabelFrame(self, text="Consumable Stats")
+        self._row_combo(self.consumable_frame, "Consumable Kind", self.vars["consumableKind"], [entry.name for entry in ConsumableKind])
+        self._row_combo(self.consumable_frame, "Effect Power Type", self.vars["effectPowerType"], [entry.name for entry in PowerType])
+        self._row_entry(self.consumable_frame, "Effect Power", self.vars["effectPower"])
+        self._row_entry(self.consumable_frame, "Spell Name", self.vars["spellName"])
+        self._row_combo(self.consumable_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType])
+
         ttk.Button(self, text="Save Item", command=self._save).pack(fill=tk.X, pady=8)
 
-    def _row_entry(self, label, var):
-        row = ttk.Frame(self)
+        self.vars["itemClass"].trace_add("write", self._on_item_class_changed)
+        self._refresh_item_class_ui(force=True)
+
+    def _row_entry(self, parent, label, var):
+        row = ttk.Frame(parent)
         row.pack(fill=tk.X, pady=2)
         ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
         ttk.Entry(row, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-    def _row_combo(self, label, var, values):
-        row = ttk.Frame(self)
+    def _row_combo(self, parent, label, var, values):
+        row = ttk.Frame(parent)
         row.pack(fill=tk.X, pady=2)
         ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
-        ttk.Combobox(row, state="readonly", values=values, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        combo = ttk.Combobox(row, state="readonly", values=values, textvariable=var)
+        combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        return combo
 
     def _clear_filters(self):
         self.search_var.set("")
@@ -575,16 +619,30 @@ class ItemEditorFrame(ttk.Frame):
 
     def _clear_form(self):
         self.current_item_id = None
-        self.vars["name"].set("")
-        self.vars["slot"].set(EquipSlot.NOT_EQUIPABLE.name)
-        self.vars["tier"].set("0")
-        self.vars["durability"].set("100")
-        self.vars["itemType"].set(ItemType.DEFAULT.name)
-        self.vars["damageType"].set("NONE")
-        self.vars["powerType"].set("NONE")
-        self.vars["power"].set("0")
-        self.vars["spellName"].set("")
-        self.vars["statBonuses"].set("[]")
+        self._suspend_class_refresh = True
+        try:
+            self.vars["name"].set("")
+            self.vars["itemClass"].set("Item")
+            self.vars["slot"].set(EquipSlot.NOT_EQUIPABLE.name)
+            self.vars["itemType"].set(ItemType.DEFAULT.name)
+            self.vars["tier"].set("0")
+            self.vars["durability"].set("100")
+            self.vars["damageType"].set("NONE")
+            self.vars["damageMin"].set("0")
+            self.vars["damageMax"].set("0")
+            self.vars["armorMultiplier"].set("1.0")
+            self.vars["ignoreArmorFraction"].set("0.0")
+            self.vars["penetrationBase"].set("0.0")
+            self.vars["maxArmor"].set("0")
+            self.vars["currentArmor"].set("0")
+            self.vars["consumableKind"].set(ConsumableKind.NONE.name)
+            self.vars["effectPowerType"].set(PowerType.CONSUMABLE_POWER.name)
+            self.vars["effectPower"].set("0")
+            self.vars["spellName"].set("")
+            self.vars["statBonuses"].set("[]")
+        finally:
+            self._suspend_class_refresh = False
+        self._refresh_item_class_ui(force=True)
 
     def _filtered_items(self):
         query = self.search_var.get().strip().lower()
@@ -611,6 +669,15 @@ class ItemEditorFrame(ttk.Frame):
         elif self.pick_var.get() not in labels:
             self.pick_var.set("<New Item>")
 
+    def _item_class_for_item(self, item) -> str:
+        if isinstance(item, Weapon):
+            return "Weapon"
+        if isinstance(item, Armor):
+            return "Armor"
+        if isinstance(item, Consumable):
+            return "Consumable"
+        return "Item"
+
     def _on_pick(self, _evt=None):
         selected = self.pick.get().strip()
         if selected == "<New Item>":
@@ -625,43 +692,123 @@ class ItemEditorFrame(ttk.Frame):
         data = item.to_dict()
         power = data.get("itemPower", [{}])[0] if data.get("itemPower") else {}
         self.current_item_id = item.itemId
-        self.vars["name"].set(data.get("name", ""))
-        self.vars["slot"].set(data.get("slot", EquipSlot.NOT_EQUIPABLE.name))
-        self.vars["tier"].set(str(data.get("tier", 0)))
-        self.vars["durability"].set(str(data.get("durability", 100)))
-        self.vars["itemType"].set(data.get("itemType", ItemType.DEFAULT.name))
-        self.vars["damageType"].set(data.get("damageType", ["NONE"])[0] if data.get("damageType") else "NONE")
-        self.vars["powerType"].set(power.get("powerType", "NONE"))
-        self.vars["power"].set(str(power.get("power", 0)))
-        self.vars["spellName"].set(power.get("spellName", ""))
-        self.vars["statBonuses"].set(json.dumps(data.get("statBonuses", []), ensure_ascii=False))
+        self._suspend_class_refresh = True
+        try:
+            self.vars["itemClass"].set(self._item_class_for_item(item))
+            self.vars["name"].set(data.get("name", ""))
+            self.vars["slot"].set(data.get("slot", EquipSlot.NOT_EQUIPABLE.name))
+            self.vars["itemType"].set(data.get("itemType", ItemType.DEFAULT.name))
+            self.vars["tier"].set(str(data.get("tier", 0)))
+            self.vars["durability"].set(str(data.get("durability", 100)))
+            self.vars["damageType"].set(data.get("damageType", ["NONE"])[0] if data.get("damageType") else "NONE")
+            self.vars["damageMin"].set(str(data.get("damageMin", 0)))
+            self.vars["damageMax"].set(str(data.get("damageMax", 0)))
+            self.vars["armorMultiplier"].set(str(data.get("armorMultiplier", 1.0)))
+            self.vars["ignoreArmorFraction"].set(str(data.get("ignoreArmorFraction", 0.0)))
+            self.vars["penetrationBase"].set(str(data.get("penetrationBase", 0.0)))
+            self.vars["maxArmor"].set(str(data.get("maxArmor", 0)))
+            self.vars["currentArmor"].set(str(data.get("currentArmor", data.get("durability", 0))))
+            self.vars["consumableKind"].set(data.get("consumableKind", ConsumableKind.NONE.name))
+            self.vars["effectPowerType"].set(power.get("powerType", PowerType.CONSUMABLE_POWER.name))
+            self.vars["effectPower"].set(str(power.get("power", 0)))
+            self.vars["spellName"].set(power.get("spellName", ""))
+            self.vars["statBonuses"].set(json.dumps(data.get("statBonuses", []), ensure_ascii=False))
+        finally:
+            self._suspend_class_refresh = False
+        self._refresh_item_class_ui(force=True)
+
+    def _on_item_class_changed(self, *_args):
+        if self._suspend_class_refresh:
+            return
+        self._refresh_item_class_ui(force=False)
+
+    def _refresh_item_class_ui(self, force: bool):
+        item_class = self.vars["itemClass"].get() or "Item"
+        for frame in (self.base_frame, self.weapon_frame, self.armor_frame, self.consumable_frame):
+            frame.pack_forget()
+
+        if item_class == "Weapon":
+            self.item_type_combo["values"] = [ItemType.MELEE_WEAPON.name, ItemType.MELEE_THROWABLE.name, ItemType.RANGED_WEAPON.name]
+            if force or self.vars["itemType"].get() not in self.item_type_combo["values"]:
+                self.vars["itemType"].set(ItemType.MELEE_WEAPON.name)
+            if force and self.vars["slot"].get() not in {EquipSlot.PRIMARY_WEAPON.name, EquipSlot.OFFHAND.name}:
+                self.vars["slot"].set(EquipSlot.PRIMARY_WEAPON.name)
+            self.weapon_frame.pack(fill=tk.X, pady=6)
+        elif item_class == "Armor":
+            self.item_type_combo["values"] = [ItemType.ARMOR.name]
+            self.vars["itemType"].set(ItemType.ARMOR.name)
+            if force and self.vars["slot"].get() in {EquipSlot.NOT_EQUIPABLE.name, EquipSlot.PRIMARY_WEAPON.name}:
+                self.vars["slot"].set(EquipSlot.BODY.name)
+            self.armor_frame.pack(fill=tk.X, pady=6)
+        elif item_class == "Consumable":
+            self.item_type_combo["values"] = [ItemType.CONSUMABLE.name]
+            self.vars["itemType"].set(ItemType.CONSUMABLE.name)
+            self.vars["slot"].set(EquipSlot.NOT_EQUIPABLE.name)
+            self.consumable_frame.pack(fill=tk.X, pady=6)
+        else:
+            self.item_type_combo["values"] = [ItemType.DEFAULT.name]
+            self.vars["itemType"].set(ItemType.DEFAULT.name)
+            self.base_frame.pack(fill=tk.X, pady=6)
 
     def _save(self):
         try:
-            power_type = self.vars["powerType"].get()
-            item_power = []
-            if power_type != "NONE":
-                item_power.append(
-                    {
-                        "powerType": power_type,
-                        "power": int(self.vars["power"].get() or 0),
-                        "spellName": self.vars["spellName"].get().strip(),
-                    }
-                )
-
-            damage = self.vars["damageType"].get()
             stat_bonuses = json.loads(self.vars["statBonuses"].get() or "[]")
+            if not isinstance(stat_bonuses, list):
+                raise ValueError("Stat bonuses must be a JSON array.")
 
+            item_class = self.vars["itemClass"].get() or "Item"
             payload = {
                 "name": self.vars["name"].get().strip(),
                 "slot": self.vars["slot"].get(),
                 "tier": int(self.vars["tier"].get() or 0),
-                "durability": int(self.vars["durability"].get() or 100),
-                "itemType": self.vars["itemType"].get(),
-                "itemPower": item_power,
-                "damageType": [] if damage == "NONE" else [damage],
                 "statBonuses": stat_bonuses,
+                "itemClass": item_class,
             }
+
+            if item_class == "Weapon":
+                damage = self.vars["damageType"].get()
+                payload.update(
+                    {
+                        "itemType": self.vars["itemType"].get(),
+                        "durability": _safe_float(self.vars["durability"].get(), 100.0),
+                        "damageType": [] if damage == "NONE" else [damage],
+                        "damageMin": _safe_float(self.vars["damageMin"].get(), 0.0),
+                        "damageMax": _safe_float(self.vars["damageMax"].get(), 0.0),
+                        "armorMultiplier": _safe_float(self.vars["armorMultiplier"].get(), 1.0),
+                        "ignoreArmorFraction": _safe_float(self.vars["ignoreArmorFraction"].get(), 0.0),
+                        "penetrationBase": _safe_float(self.vars["penetrationBase"].get(), 0.0),
+                    }
+                )
+            elif item_class == "Armor":
+                current_armor = _safe_float(self.vars["currentArmor"].get(), 0.0)
+                payload.update(
+                    {
+                        "itemType": ItemType.ARMOR.name,
+                        "durability": current_armor,
+                        "maxArmor": _safe_float(self.vars["maxArmor"].get(), current_armor),
+                        "currentArmor": current_armor,
+                    }
+                )
+            elif item_class == "Consumable":
+                damage = self.vars["damageType"].get()
+                payload.update(
+                    {
+                        "itemType": ItemType.CONSUMABLE.name,
+                        "consumableKind": self.vars["consumableKind"].get(),
+                        "effectPowerType": self.vars["effectPowerType"].get(),
+                        "effectPower": _safe_float(self.vars["effectPower"].get(), 0.0),
+                        "spellName": self.vars["spellName"].get().strip(),
+                        "damageType": [] if damage == "NONE" else [damage],
+                    }
+                )
+            else:
+                payload.update(
+                    {
+                        "itemType": ItemType.DEFAULT.name,
+                        "durability": _safe_float(self.vars["durability"].get(), 100.0),
+                    }
+                )
+
             if self.current_item_id:
                 self.app.item_service.edit_item_from_patch(self.current_item_id, payload)
             else:
@@ -727,8 +874,8 @@ class GearEditorDialog(tk.Toplevel):
         "ring_item_id": EquipSlot.RING,
         "legs_item_id": EquipSlot.LEGS,
         "feet_item_id": EquipSlot.FEET,
-        "primary_weapon_item_id": EquipSlot.HANDS,
-        "offhand_item_id": EquipSlot.HANDS,
+        "primary_weapon_item_id": EquipSlot.PRIMARY_WEAPON,
+        "offhand_item_id": EquipSlot.OFFHAND,
     }
 
     def __init__(self, parent, draft: dict, item_service, on_save):
@@ -770,7 +917,7 @@ class GearEditorDialog(tk.Toplevel):
         allowed_slot = self.SLOT_FILTERS.get(slot_key)
         labels = ["<None>"]
         for item in self.item_service.list_items():
-            if allowed_slot is not None and item.slot != allowed_slot:
+            if allowed_slot is not None and not item.can_equip_in(allowed_slot):
                 continue
             labels.append(self.item_service.get_item_label(item))
 

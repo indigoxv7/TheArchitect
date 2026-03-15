@@ -49,7 +49,7 @@ class TestUnitService(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, spell_service, character_service, race_service, unit_service, unitbook_path = self._build_services(temp_dir)
 
-            item_service.create_item_from_dict({"name": "Club", "slot": "HANDS", "itemType": "MELEE_WEAPON"})
+            item_service.create_item_from_dict({"name": "Club", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"})
             club = item_service.get_item("Club")
             spell_service.create_spell_from_dict(
                 {
