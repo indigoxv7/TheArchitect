@@ -22,6 +22,7 @@ class TestOpenAINarrativeService(unittest.TestCase):
                 'OPENAI_TURN_MODEL': 'gpt-test-turn',
                 'OPENAI_MEMORY_MODEL': 'gpt-test-memory',
                 'OPENAI_EMBEDDING_MODEL': 'text-embedding-test',
+                'OPENAI_COMBAT_JUDGE_MODEL': 'gpt-test-judge',
             },
             clear=False,
         ):
@@ -29,6 +30,7 @@ class TestOpenAINarrativeService(unittest.TestCase):
             self.assertEqual(service.turn_model, 'gpt-test-turn')
             self.assertEqual(service.memory_model, 'gpt-test-memory')
             self.assertEqual(service.embedding_model, 'text-embedding-test')
+            self.assertEqual(service.combat_judge_model, 'gpt-test-judge')
             self.assertTrue(service.is_configured())
 
 

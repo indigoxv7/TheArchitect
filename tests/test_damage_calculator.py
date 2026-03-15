@@ -15,7 +15,7 @@ class TestDamageCalculator(unittest.TestCase):
                 physicalPower=41,
                 physicalStamina=5,
                 physicalResistance=5,
-                magicPower=5,
+                magicPower=18,
                 magicStamina=5,
                 magicResistance=5,
             ),
@@ -31,7 +31,7 @@ class TestDamageCalculator(unittest.TestCase):
                 physicalResistance=41,
                 magicPower=5,
                 magicStamina=5,
-                magicResistance=5,
+                magicResistance=12,
             ),
             gear=Gear(body=body_armor),
         )
@@ -123,6 +123,25 @@ class TestDamageCalculator(unittest.TestCase):
         self.assertEqual(serialized["armorMultiplier"], 1.3)
         self.assertEqual(serialized["ignoreArmorFraction"], 0.2)
         self.assertEqual(serialized["penetrationBase"], 45.0)
+
+    def test_hit_chance_is_clamped(self):
+        calculator = DamageCalculator(rng=random.Random(1))
+        low = calculator.calculate_hit_chance(attacker_stat=1, defender_stat=100)
+        high = calculator.calculate_hit_chance(attacker_stat=100, defender_stat=1)
+
+        self.assertEqual(low, 0.35)
+        self.assertEqual(high, 0.9)
+
+    def test_magic_hit_returns_damage_breakdown(self):
+        calculator = DamageCalculator(rng=random.Random(2))
+        attacker = self._build_attacker()
+        defender = self._build_defender()
+
+        result = calculator.calculate_magic_hit(attacker=attacker, defender=defender, spell_power=12, hit_chance=1.0)
+
+        self.assertTrue(result.didHit)
+        self.assertGreater(result.hpFinal, 0.0)
+        self.assertLessEqual(result.hitChance, 1.0)
 
 
 if __name__ == "__main__":

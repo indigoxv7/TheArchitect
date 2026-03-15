@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
@@ -24,6 +24,9 @@ class GameContext:
     # Character runtime state
     all_characters: dict[str, object] = field(default_factory=dict)
     characterbook_overview: str = "No characters in characterbook yet."
+
+    # Battle runtime state
+    active_battles: dict[int, object] = field(default_factory=dict)
 
     # Menu runtime state
     menus_by_name: dict[str, object] = field(default_factory=dict)

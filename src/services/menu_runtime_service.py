@@ -5,6 +5,7 @@ import discord
 
 from src.bot.views.menu_view import SimpleMenu
 from src.domain.CharacterUtil import DEFAULT_DURABILITY, DamageType, EquipSlot, ItemType, PowerType
+from src.domain.combat import EncounterType
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.menu_service import MenuService, RenderedMenu
@@ -434,6 +435,7 @@ class MenuRuntimeService:
         spell_service: SpellService,
         item_service: ItemService,
         context: GameContext,
+        battle_runtime_service=None,
     ):
         self.menu_service = menu_service
         self.player_service = player_service
@@ -441,6 +443,7 @@ class MenuRuntimeService:
         self.spell_service = spell_service
         self.item_service = item_service
         self.context = context
+        self.battle_runtime_service = battle_runtime_service
 
     def build_discord_embed(self, rendered: RenderedMenu):
         embed = discord.Embed(title=rendered.title, description=rendered.description)
@@ -636,6 +639,30 @@ class MenuRuntimeService:
 
     async def _handle_special_menu_action(self, interface: "MenuInterface", menu: Menu, original_message: OriginalMessage):
         # returns (target_menu, should_render_menu, response_already_consumed)
+        if menu.uniqueName == "scavengingMissionAction":
+            if self.battle_runtime_service is None or not isinstance(interface, DiscordMenuInterface):
+                await interface.send_ephemeral("Combat runtime is only available in Discord right now.")
+                return menu.parent if menu.parent is not None else menu, False, True
+
+            await self.battle_runtime_service.start_or_resume_battle(
+                interaction=interface.interaction,
+                player_id=interface.user_id,
+                encounter_type=EncounterType.SCAVENGING,
+            )
+            return menu.parent if menu.parent is not None else menu, False, True
+
+        if menu.uniqueName == "portalMissionAction":
+            if self.battle_runtime_service is None or not isinstance(interface, DiscordMenuInterface):
+                await interface.send_ephemeral("Combat runtime is only available in Discord right now.")
+                return menu.parent if menu.parent is not None else menu, False, True
+
+            await self.battle_runtime_service.start_or_resume_battle(
+                interaction=interface.interaction,
+                player_id=interface.user_id,
+                encounter_type=EncounterType.PORTAL,
+            )
+            return menu.parent if menu.parent is not None else menu, False, True
+
         if menu.uniqueName == "spellCreateAction":
             self._start_spell_draft(original_message.menuContext)
             return self.context.menus_by_name.get("spellCreateNameMenu", menu), True, False

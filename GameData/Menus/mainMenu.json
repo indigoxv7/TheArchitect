@@ -1,11 +1,13 @@
 {
-    "myEmoji": "\ud83c\udfe0",
+    "myEmoji": "🏠",
     "myOptionText": "Main Menu - $factionTitle $playerName $achievementTitle",
     "uniqueName": "mainMenu",
     "Options": [
         "partyMembers",
         "mainInventory",
-        "tradeRequest"
+        "tradeRequest",
+        "scavengingMissionAction",
+        "portalMissionAction"
     ],
     "menuState": "DEFAULT",
     "imageURL": "https://media.discordapp.net/attachments/886469391548559372/1273164687847985205/image.png?ex=66bd9e83&is=66bc4d03&hm=17098b12936cc89fca3476cc8f5888b94e21b3ba1fce5cc222000cd948b0348b&=&format=webp&quality=lossless",

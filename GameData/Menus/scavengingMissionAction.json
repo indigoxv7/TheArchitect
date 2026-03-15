@@ -1,0 +1,9 @@
+{
+    "myEmoji": "??",
+    "myOptionText": "Scavenging Mission",
+    "uniqueName": "scavengingMissionAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "bodyText": "Start or resume a scavenging battle.",
+    "parentName": "mainMenu"
+}

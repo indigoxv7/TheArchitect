@@ -160,3 +160,6 @@ GameData/PlayerMemory/*.sqlite-wal
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+
+GameData/ActiveBattles/*
+!GameData/ActiveBattles/.gitkeep

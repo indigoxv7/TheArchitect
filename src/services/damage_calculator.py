@@ -18,6 +18,10 @@ class DamageCalculatorConfig:
     bodyC: float = 30.0
     bodyDelta: float = 1.5
     bodyK: float = 5.0
+    baseHitChance: float = 0.65
+    statDeltaHitScale: float = 0.03
+    minHitChance: float = 0.35
+    maxHitChance: float = 0.90
 
 
 @dataclass(frozen=True)
@@ -44,10 +48,56 @@ class DamageBreakdown:
     hpFinal: float
 
 
+@dataclass(frozen=True)
+class MagicDamageBreakdown:
+    hitChance: float
+    didHit: bool
+    basePower: float
+    powerMultiplier: float
+    resistanceMultiplier: float
+    hpFinal: float
+
+
 class DamageCalculator:
     def __init__(self, config: DamageCalculatorConfig | None = None, rng: random.Random | None = None):
         self._config = config if config is not None else DamageCalculatorConfig()
         self._rng = rng if rng is not None else random.Random()
+
+    def calculate_hit_chance(
+        self,
+        attacker_stat: float,
+        defender_stat: float,
+        congestion_penalty: float = 0.0,
+        firing_through_engagement_penalty: float = 0.0,
+        range_penalty: float = 0.0,
+        bonus: float = 0.0,
+    ) -> float:
+        chance = self._config.baseHitChance
+        chance += (float(attacker_stat) - float(defender_stat)) * self._config.statDeltaHitScale
+        chance -= float(congestion_penalty)
+        chance -= float(firing_through_engagement_penalty)
+        chance -= float(range_penalty)
+        chance += float(bonus)
+        return max(self._config.minHitChance, min(self._config.maxHitChance, chance))
+
+    def roll_hit(
+        self,
+        attacker_stat: float,
+        defender_stat: float,
+        congestion_penalty: float = 0.0,
+        firing_through_engagement_penalty: float = 0.0,
+        range_penalty: float = 0.0,
+        bonus: float = 0.0,
+    ) -> tuple[bool, float]:
+        chance = self.calculate_hit_chance(
+            attacker_stat=attacker_stat,
+            defender_stat=defender_stat,
+            congestion_penalty=congestion_penalty,
+            firing_through_engagement_penalty=firing_through_engagement_penalty,
+            range_penalty=range_penalty,
+            bonus=bonus,
+        )
+        return self._rng.random() <= chance, chance
 
     def calculate_physical_hit(
         self,
@@ -124,6 +174,32 @@ class DamageCalculator:
             hpCoupled=hp_coupled,
             bodyArmorRating=body_armor_rating,
             bodyDamageReduction=body_damage_reduction,
+            hpFinal=hp_final,
+        )
+
+    def calculate_magic_hit(
+        self,
+        attacker: Character,
+        defender: Character,
+        spell_power: float,
+        hit_chance: float | None = None,
+    ) -> MagicDamageBreakdown:
+        attacker_magic_power = max(0.0001, float(getattr(attacker.finalAttributes, "magicPower", 5.0)))
+        defender_magic_resistance = max(0.0, float(getattr(defender.finalAttributes, "magicResistance", 5.0)))
+        if hit_chance is None:
+            hit_chance = self.calculate_hit_chance(attacker_magic_power, defender_magic_resistance)
+        did_hit = self._rng.random() <= hit_chance
+        power_multiplier = (attacker_magic_power / 5.0) ** self._config.alpha
+        resistance_multiplier = max(0.05, 1.0 - (defender_magic_resistance / (defender_magic_resistance + 12.0)))
+        hp_final = 0.0
+        if did_hit:
+            hp_final = max(0.0, float(spell_power) * power_multiplier * resistance_multiplier)
+        return MagicDamageBreakdown(
+            hitChance=hit_chance,
+            didHit=did_hit,
+            basePower=float(spell_power),
+            powerMultiplier=power_multiplier,
+            resistanceMultiplier=resistance_multiplier,
             hpFinal=hp_final,
         )
 

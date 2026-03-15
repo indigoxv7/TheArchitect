@@ -1,0 +1,47 @@
+{
+    "encounter_id": "portal_breach_goblin_0",
+    "encounter_type": "PORTAL",
+    "name": "Portal Breach",
+    "terrain": "Shattered Threshold",
+    "width": 4,
+    "total_lines": 7,
+    "objective_text": "Break the invaders before they stabilize the breach.",
+    "allow_retreat": false,
+    "player_front_line": 3,
+    "enemy_front_line": 4,
+    "enemy_entries": [
+        {
+            "kind": "race",
+            "identifier": "Goblin0",
+            "count": 4,
+            "use_stack": true,
+            "notable": false,
+            "name_override": "Portal Goblins"
+        },
+        {
+            "kind": "character",
+            "identifier": "AverageGobin2",
+            "count": 1,
+            "use_stack": false,
+            "notable": true,
+            "name_override": "Goblin Breach Leader"
+        }
+    ],
+    "reinforcements": [
+        {
+            "exchange_number": 3,
+            "team": "ENEMY",
+            "message": "Fresh goblins pour through the unstable portal.",
+            "entries": [
+                {
+                    "kind": "race",
+                    "identifier": "Goblin0",
+                    "count": 2,
+                    "use_stack": true,
+                    "notable": false,
+                    "name_override": "Portal Reinforcements"
+                }
+            ]
+        }
+    ]
+}

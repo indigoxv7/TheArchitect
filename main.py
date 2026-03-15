@@ -8,10 +8,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from src.persistence.active_battle_store import ActiveBattleStore
 from src.persistence.player_memory_store import PlayerMemoryStore
 from src.services.achievement_service import AchievementService
+from src.services.battle_runtime_service import BattleRuntimeService
+from src.services.battle_service import BattleService
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
+from src.services.encounter_service import EncounterService
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
@@ -39,6 +43,8 @@ ACHIEVEMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Achievements", "achiev
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
+ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
+PORTAL_ENCOUNTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PortalEncounters")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -73,11 +79,31 @@ menu_service = MenuService(
 )
 openai_narrative_service = OpenAINarrativeService()
 player_memory_store = PlayerMemoryStore(db_path=PLAYER_MEMORY_DB_PATH)
+active_battle_store = ActiveBattleStore(battles_directory=ACTIVE_BATTLES_DIRECTORY)
+encounter_service = EncounterService(
+    portal_encounter_directory=PORTAL_ENCOUNTER_DIRECTORY,
+    context=context,
+    race_service=race_service,
+    character_service=character_service,
+)
 memory_service = MainCharacterMemoryService(
     memory_store=player_memory_store,
     player_service=player_service,
     openai_service=openai_narrative_service,
 )
+battle_service = BattleService(
+    context=context,
+    player_service=player_service,
+    item_service=item_service,
+    spell_service=spell_service,
+    character_service=character_service,
+    race_service=race_service,
+    encounter_service=encounter_service,
+    active_battle_store=active_battle_store,
+    openai_service=openai_narrative_service,
+    memory_service=memory_service,
+)
+battle_runtime_service = BattleRuntimeService(battle_service=battle_service)
 _is_initialized = False
 
 menu_runtime_service = MenuRuntimeService(
@@ -87,6 +113,7 @@ menu_runtime_service = MenuRuntimeService(
     spell_service=spell_service,
     item_service=item_service,
     context=context,
+    battle_runtime_service=battle_runtime_service,
 )
 
 
@@ -103,6 +130,7 @@ def initialize_game():
     character_service.load_characters()
     race_service.load_racebook()
     memory_service.initialize()
+    battle_service.initialize()
     menu_service.load_menus()
     _is_initialized = True
 

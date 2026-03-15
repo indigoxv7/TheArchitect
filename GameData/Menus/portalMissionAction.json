@@ -1,0 +1,9 @@
+{
+    "myEmoji": "??",
+    "myOptionText": "Portal Mission",
+    "uniqueName": "portalMissionAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "bodyText": "Start or resume a portal battle.",
+    "parentName": "mainMenu"
+}
