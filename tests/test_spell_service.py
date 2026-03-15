@@ -21,6 +21,7 @@ class TestSpellService(unittest.TestCase):
                     "name": "Fire Bolt",
                     "level": 1,
                     "power": "1d10",
+                    "powerLevel": 5.5,
                     "affinity": "fire",
                     "casting_time": "1 action",
                     "range": "120 ft",
@@ -32,14 +33,17 @@ class TestSpellService(unittest.TestCase):
 
             self.assertIsNotNone(service.get_spell("Fire Bolt"))
 
-            service.edit_spell_from_patch("Fire Bolt", {"level": 2, "power": "2d10"})
+            service.edit_spell_from_patch("Fire Bolt", {"level": 2, "power": "2d10", "powerLevel": 11.0})
             self.assertEqual(service.get_spell("Fire Bolt").level, 2)
             self.assertEqual(service.get_spell("Fire Bolt").power, "2d10")
+            self.assertEqual(service.get_spell("Fire Bolt").powerLevel, 11.0)
 
             reloaded_context = GameContext()
             reloaded_service = SpellService(str(spellbook_path), reloaded_context)
             reloaded_service.load_spellbook()
-            self.assertIsNotNone(reloaded_service.get_spell("Fire Bolt"))
+            loaded = reloaded_service.get_spell("Fire Bolt")
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded.powerLevel, 11.0)
             self.assertIn("Fire Bolt", reloaded_context.spellbook_overview)
 
 

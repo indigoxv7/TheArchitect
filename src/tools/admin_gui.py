@@ -5,7 +5,7 @@ from tkinter import messagebox, ttk
 
 from src.domain.Character import HealthState
 from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
-from src.domain.Items import Armor, Consumable, Weapon
+from src.domain.Items import Armor, Consumable, Item, Weapon
 from src.domain.CharacterUtil import (
     Affinities,
     Attribute,
@@ -17,7 +17,7 @@ from src.domain.CharacterUtil import (
     PowerType,
     TitlePreference,
 )
-from src.domain.Spells import AffinityTypes
+from src.domain.Spells import AffinityTypes, Spell
 from src.domain.character_io import character_from_state, character_to_state
 from src.services.main_character_generator import generate_main_character_from_scratch
 from src.tools.allegiance_editor import AllegianceEditorFrame
@@ -202,7 +202,7 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
@@ -214,6 +214,7 @@ class AdminEditorApp:
         self.mission_service = mission_service
         self.environment_service = environment_service
         self.memory_service = memory_service
+        self.power_rating_service = power_rating_service
 
         self.root = tk.Tk()
         self.root.title("TheArchitect Admin Editor")
@@ -366,6 +367,7 @@ class SpellEditorFrame(ttk.Frame):
             "name": tk.StringVar(),
             "level": tk.StringVar(),
             "power": tk.StringVar(),
+            "powerLevel": tk.StringVar(value="0.0"),
             "affinity": tk.StringVar(value=AffinityTypes.MANA.value),
             "casting_time": tk.StringVar(),
             "range": tk.StringVar(),
@@ -381,6 +383,7 @@ class SpellEditorFrame(ttk.Frame):
             ("Name", "name"),
             ("Level", "level"),
             ("Power", "power"),
+            ("Power Level", "powerLevel"),
             ("Casting Time", "casting_time"),
             ("Range", "range"),
             ("Material", "material"),
@@ -405,7 +408,10 @@ class SpellEditorFrame(ttk.Frame):
             ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
             ttk.Combobox(row, state="readonly", values=["True", "False"], textvariable=self.vars[key]).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        ttk.Button(self, text="Save Spell", command=self._save).pack(fill=tk.X, pady=8)
+        button_row = ttk.Frame(self)
+        button_row.pack(fill=tk.X, pady=8)
+        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        ttk.Button(button_row, text="Save Spell", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 
     def _clear_filters(self):
         self.search_var.set("")
@@ -419,6 +425,7 @@ class SpellEditorFrame(ttk.Frame):
             if key in {"verbal", "somatic", "affinity"}:
                 continue
             var.set("")
+        self.vars["powerLevel"].set("0.0")
         self.vars["affinity"].set(AffinityTypes.MANA.value)
         self.vars["verbal"].set("False")
         self.vars["somatic"].set("False")
@@ -463,6 +470,7 @@ class SpellEditorFrame(ttk.Frame):
         self.vars["name"].set(d.get("name", ""))
         self.vars["level"].set(str(d.get("level", 0)))
         self.vars["power"].set(str(d.get("power", "")))
+        self.vars["powerLevel"].set(str(d.get("powerLevel", 0.0)))
         self.vars["affinity"].set(str(d.get("affinity", AffinityTypes.MANA.value)))
         self.vars["casting_time"].set(str(d.get("casting_time", "")))
         self.vars["range"].set(str(d.get("range", "")))
@@ -473,11 +481,12 @@ class SpellEditorFrame(ttk.Frame):
         self.vars["verbal"].set(str(bool(c.get("verbal", False))))
         self.vars["somatic"].set(str(bool(c.get("somatic", False))))
 
-    def _save(self):
-        payload = {
+    def _build_payload(self):
+        return {
             "name": self.vars["name"].get().strip(),
             "level": int(self.vars["level"].get() or 0),
             "power": self.vars["power"].get().strip(),
+            "powerLevel": _safe_float(self.vars["powerLevel"].get(), 0.0),
             "affinity": self.vars["affinity"].get().strip(),
             "casting_time": self.vars["casting_time"].get().strip(),
             "range": self.vars["range"].get().strip(),
@@ -490,6 +499,24 @@ class SpellEditorFrame(ttk.Frame):
             "description": self.vars["description"].get().strip(),
             "higher_level": self.vars["higher_level"].get().strip(),
         }
+
+    def _simulate(self):
+        try:
+            payload = self._build_payload()
+            spell = Spell.from_dict(payload)
+            result = self.app.power_rating_service.simulate_spell_power_level(spell)
+            self.vars["powerLevel"].set(str(result.recommendedPowerLevel))
+            messagebox.showinfo(
+                "Spell Simulation",
+                f"Recommended power level: {result.recommendedPowerLevel:.2f}\n"
+                f"Simulated equivalent: {result.simulatedPowerEquivalent:.2f}\n"
+                f"Win rate: {result.winRate * 100:.1f}% over {result.sampleCount} duels.",
+            )
+        except Exception as exc:
+            messagebox.showerror("Spell Simulation", f"Failed to simulate spell: {exc}")
+
+    def _save(self):
+        payload = self._build_payload()
         try:
             if self.current_name:
                 self.app.spell_service.edit_spell_from_patch(self.current_name, payload)
@@ -551,6 +578,7 @@ class ItemEditorFrame(ttk.Frame):
             "name": tk.StringVar(),
             "itemClass": tk.StringVar(value="Item"),
             "slot": tk.StringVar(value=EquipSlot.NOT_EQUIPABLE.name),
+            "powerLevel": tk.StringVar(value="0.0"),
             "itemType": tk.StringVar(value=ItemType.DEFAULT.name),
             "tier": tk.StringVar(value="0"),
             "durability": tk.StringVar(value="100"),
@@ -574,6 +602,7 @@ class ItemEditorFrame(ttk.Frame):
         self._row_entry(common_frame, "Name", self.vars["name"])
         self._row_combo(common_frame, "Item Class", self.vars["itemClass"], self.ITEM_CLASS_OPTIONS)
         self._row_combo(common_frame, "Slot", self.vars["slot"], self.SLOT_OPTIONS)
+        self._row_entry(common_frame, "Power Level", self.vars["powerLevel"])
         self.item_type_combo = self._row_combo(common_frame, "Item Type", self.vars["itemType"], self.ITEM_TYPE_OPTIONS)
         self._row_entry(common_frame, "Tier", self.vars["tier"])
         self._row_entry(common_frame, "Stat Bonuses JSON", self.vars["statBonuses"])
@@ -601,7 +630,10 @@ class ItemEditorFrame(ttk.Frame):
         self._row_entry(self.consumable_frame, "Spell Name", self.vars["spellName"])
         self._row_combo(self.consumable_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType])
 
-        ttk.Button(self, text="Save Item", command=self._save).pack(fill=tk.X, pady=8)
+        button_row = ttk.Frame(self)
+        button_row.pack(fill=tk.X, pady=8)
+        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        ttk.Button(button_row, text="Save Item", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 
         self.vars["itemClass"].trace_add("write", self._on_item_class_changed)
         self._refresh_item_class_ui(force=True)
@@ -633,6 +665,7 @@ class ItemEditorFrame(ttk.Frame):
             self.vars["name"].set("")
             self.vars["itemClass"].set("Item")
             self.vars["slot"].set(EquipSlot.NOT_EQUIPABLE.name)
+            self.vars["powerLevel"].set("0.0")
             self.vars["itemType"].set(ItemType.DEFAULT.name)
             self.vars["tier"].set("0")
             self.vars["durability"].set("100")
@@ -706,6 +739,7 @@ class ItemEditorFrame(ttk.Frame):
             self.vars["itemClass"].set(self._item_class_for_item(item))
             self.vars["name"].set(data.get("name", ""))
             self.vars["slot"].set(data.get("slot", EquipSlot.NOT_EQUIPABLE.name))
+            self.vars["powerLevel"].set(str(data.get("powerLevel", 0.0)))
             self.vars["itemType"].set(data.get("itemType", ItemType.DEFAULT.name))
             self.vars["tier"].set(str(data.get("tier", 0)))
             self.vars["durability"].set(str(data.get("durability", 100)))
@@ -759,65 +793,84 @@ class ItemEditorFrame(ttk.Frame):
             self.vars["itemType"].set(ItemType.DEFAULT.name)
             self.base_frame.pack(fill=tk.X, pady=6)
 
+    def _build_payload(self):
+        stat_bonuses = json.loads(self.vars["statBonuses"].get() or "[]")
+        if not isinstance(stat_bonuses, list):
+            raise ValueError("Stat bonuses must be a JSON array.")
+
+        item_class = self.vars["itemClass"].get() or "Item"
+        payload = {
+            "name": self.vars["name"].get().strip(),
+            "slot": self.vars["slot"].get(),
+            "tier": int(self.vars["tier"].get() or 0),
+            "powerLevel": _safe_float(self.vars["powerLevel"].get(), 0.0),
+            "statBonuses": stat_bonuses,
+            "itemClass": item_class,
+        }
+
+        if item_class == "Weapon":
+            damage = self.vars["damageType"].get()
+            payload.update(
+                {
+                    "itemType": self.vars["itemType"].get(),
+                    "durability": _safe_float(self.vars["durability"].get(), 100.0),
+                    "damageType": [] if damage == "NONE" else [damage],
+                    "damageMin": _safe_float(self.vars["damageMin"].get(), 0.0),
+                    "damageMax": _safe_float(self.vars["damageMax"].get(), 0.0),
+                    "armorMultiplier": _safe_float(self.vars["armorMultiplier"].get(), 1.0),
+                    "ignoreArmorFraction": _safe_float(self.vars["ignoreArmorFraction"].get(), 0.0),
+                    "penetrationBase": _safe_float(self.vars["penetrationBase"].get(), 0.0),
+                }
+            )
+        elif item_class == "Armor":
+            current_armor = _safe_float(self.vars["currentArmor"].get(), 0.0)
+            payload.update(
+                {
+                    "itemType": ItemType.ARMOR.name,
+                    "durability": current_armor,
+                    "maxArmor": _safe_float(self.vars["maxArmor"].get(), current_armor),
+                    "currentArmor": current_armor,
+                }
+            )
+        elif item_class == "Consumable":
+            damage = self.vars["damageType"].get()
+            payload.update(
+                {
+                    "itemType": ItemType.CONSUMABLE.name,
+                    "consumableKind": self.vars["consumableKind"].get(),
+                    "effectPowerType": self.vars["effectPowerType"].get(),
+                    "effectPower": _safe_float(self.vars["effectPower"].get(), 0.0),
+                    "spellName": self.vars["spellName"].get().strip(),
+                    "damageType": [] if damage == "NONE" else [damage],
+                }
+            )
+        else:
+            payload.update(
+                {
+                    "itemType": ItemType.DEFAULT.name,
+                    "durability": _safe_float(self.vars["durability"].get(), 100.0),
+                }
+            )
+        return payload
+
+    def _simulate(self):
+        try:
+            payload = self._build_payload()
+            item = Item.from_dict(payload)
+            result = self.app.power_rating_service.simulate_item_power_level(item)
+            self.vars["powerLevel"].set(str(result.recommendedPowerLevel))
+            messagebox.showinfo(
+                "Item Simulation",
+                f"Recommended power level: {result.recommendedPowerLevel:.2f}\n"
+                f"Simulated equivalent: {result.simulatedPowerEquivalent:.2f}\n"
+                f"Win rate: {result.winRate * 100:.1f}% over {result.sampleCount} duels.",
+            )
+        except Exception as exc:
+            messagebox.showerror("Item Simulation", f"Failed to simulate item: {exc}")
+
     def _save(self):
         try:
-            stat_bonuses = json.loads(self.vars["statBonuses"].get() or "[]")
-            if not isinstance(stat_bonuses, list):
-                raise ValueError("Stat bonuses must be a JSON array.")
-
-            item_class = self.vars["itemClass"].get() or "Item"
-            payload = {
-                "name": self.vars["name"].get().strip(),
-                "slot": self.vars["slot"].get(),
-                "tier": int(self.vars["tier"].get() or 0),
-                "statBonuses": stat_bonuses,
-                "itemClass": item_class,
-            }
-
-            if item_class == "Weapon":
-                damage = self.vars["damageType"].get()
-                payload.update(
-                    {
-                        "itemType": self.vars["itemType"].get(),
-                        "durability": _safe_float(self.vars["durability"].get(), 100.0),
-                        "damageType": [] if damage == "NONE" else [damage],
-                        "damageMin": _safe_float(self.vars["damageMin"].get(), 0.0),
-                        "damageMax": _safe_float(self.vars["damageMax"].get(), 0.0),
-                        "armorMultiplier": _safe_float(self.vars["armorMultiplier"].get(), 1.0),
-                        "ignoreArmorFraction": _safe_float(self.vars["ignoreArmorFraction"].get(), 0.0),
-                        "penetrationBase": _safe_float(self.vars["penetrationBase"].get(), 0.0),
-                    }
-                )
-            elif item_class == "Armor":
-                current_armor = _safe_float(self.vars["currentArmor"].get(), 0.0)
-                payload.update(
-                    {
-                        "itemType": ItemType.ARMOR.name,
-                        "durability": current_armor,
-                        "maxArmor": _safe_float(self.vars["maxArmor"].get(), current_armor),
-                        "currentArmor": current_armor,
-                    }
-                )
-            elif item_class == "Consumable":
-                damage = self.vars["damageType"].get()
-                payload.update(
-                    {
-                        "itemType": ItemType.CONSUMABLE.name,
-                        "consumableKind": self.vars["consumableKind"].get(),
-                        "effectPowerType": self.vars["effectPowerType"].get(),
-                        "effectPower": _safe_float(self.vars["effectPower"].get(), 0.0),
-                        "spellName": self.vars["spellName"].get().strip(),
-                        "damageType": [] if damage == "NONE" else [damage],
-                    }
-                )
-            else:
-                payload.update(
-                    {
-                        "itemType": ItemType.DEFAULT.name,
-                        "durability": _safe_float(self.vars["durability"].get(), 100.0),
-                    }
-                )
-
+            payload = self._build_payload()
             if self.current_item_id:
                 self.app.item_service.edit_item_from_patch(self.current_item_id, payload)
             else:
@@ -2695,10 +2748,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")

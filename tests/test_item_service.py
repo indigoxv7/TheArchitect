@@ -34,6 +34,7 @@ class TestItemService(unittest.TestCase):
                 "ignoreArmorFraction": 0.1,
                 "penetrationBase": 7,
                 "statBonuses": [],
+                "powerLevel": 12.5,
             }
             service.create_item_from_dict(payload)
 
@@ -41,6 +42,7 @@ class TestItemService(unittest.TestCase):
             self.assertIsInstance(created, Weapon)
             self.assertTrue(created.itemId)
             self.assertEqual(created.slot.name, "PRIMARY_WEAPON")
+            self.assertEqual(created.powerLevel, 12.5)
 
             created_id = created.itemId
             service.edit_item_from_patch(created_id, {"name": "Test Sword", "tier": 3})
@@ -58,6 +60,7 @@ class TestItemService(unittest.TestCase):
             self.assertIsInstance(loaded, Weapon)
             self.assertEqual(loaded.slot.name, "PRIMARY_WEAPON")
             self.assertEqual(loaded.name, "Test Sword")
+            self.assertEqual(loaded.powerLevel, 12.5)
 
     def test_legacy_itembook_without_ids_auto_migrates(self):
         with tempfile.TemporaryDirectory() as temp_dir:

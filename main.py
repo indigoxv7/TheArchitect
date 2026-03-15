@@ -25,6 +25,7 @@ from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeS
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.player_service import PlayerService
+from src.services.power_rating_service import PowerRatingService
 from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
 from src.services.unit_service import UnitService
@@ -72,6 +73,7 @@ player_service = PlayerService(
 )
 spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
+power_rating_service = PowerRatingService(spell_service=spell_service, item_service=item_service)
 character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
 achievement_service = AchievementService(achievementbook_path=ACHIEVEMENTBOOK_PATH, context=context)
 allegiance_service = AllegianceService(allegiancebook_path=ALLEGIANCEBOOK_PATH, context=context)
@@ -226,6 +228,7 @@ if __name__ == "__main__":
         mission_service=mission_service,
         environment_service=environment_service,
         memory_service=memory_service,
+        power_rating_service=power_rating_service,
     )
     bot.run(TOKEN)
 

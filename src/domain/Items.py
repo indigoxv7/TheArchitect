@@ -54,6 +54,7 @@ class Item:
         statBonuses: list[Bonus] | None = None,
         itemType: ItemType = ItemType.DEFAULT,
         itemId: str | None = None,
+        powerLevel: float = 0.0,
     ):
         self.name = str(name or "")
         self.itemId = str(itemId or "").strip()
@@ -62,6 +63,7 @@ class Item:
         self.durability = float(durability if durability is not None else DEFAULT_DURABILITY)
         self.statBonuses = self._normalize_bonuses(statBonuses)
         self.itemType = self._enum_from_name(ItemType, itemType, ItemType.DEFAULT)
+        self.powerLevel = float(powerLevel or 0.0)
         self.itemPower: list[ItemPower] = []
         self.damageType: list[DamageType] = []
         self.tags: list[str] = []
@@ -259,6 +261,7 @@ class Item:
             "statBonuses": stat_bonuses,
             "itemType": item_type,
             "itemId": item_id,
+            "powerLevel": cls._coerce_float(data.get("powerLevel", 0.0), 0.0),
         }
 
     @classmethod
@@ -286,6 +289,7 @@ class Item:
             "durability": _serialize_number(self.durability),
             "statBonuses": [self._bonus_to_dict(bonus) for bonus in self.statBonuses],
             "itemType": self.itemType.name,
+            "powerLevel": _serialize_number(self.powerLevel),
             "itemPower": [self._item_power_to_dict(power) for power in self.itemPower],
             "damageType": [damage_type.name for damage_type in self.damageType],
         }
@@ -325,6 +329,7 @@ class Weapon(Item):
         ignoreArmorFraction: float = 0.0,
         penetrationBase: float = 0.0,
         itemId: str | None = None,
+        powerLevel: float = 0.0,
     ):
         normalized_type = itemType if itemType in WEAPON_ITEM_TYPES else ItemType.MELEE_WEAPON
         normalized_slot = self._normalize_weapon_slot(slot)
@@ -336,6 +341,7 @@ class Weapon(Item):
             statBonuses=statBonuses,
             itemType=normalized_type,
             itemId=itemId,
+            powerLevel=powerLevel,
         )
         self.damageType = self._damage_type_from_list(damageType or [])
         self.damageMin = float(damageMin or 0.0)
@@ -410,6 +416,7 @@ class Weapon(Item):
             ignoreArmorFraction=ignore_armor_fraction,
             penetrationBase=penetration_base,
             itemId=common["itemId"],
+            powerLevel=common["powerLevel"],
         )
 
 
@@ -425,6 +432,7 @@ class Armor(Item):
         maxArmor: float | None = None,
         currentArmor: float | None = None,
         itemId: str | None = None,
+        powerLevel: float = 0.0,
     ):
         effective_current = float(durability if currentArmor is None else currentArmor)
         effective_max = float(effective_current if maxArmor is None else maxArmor)
@@ -438,6 +446,7 @@ class Armor(Item):
             statBonuses=statBonuses,
             itemType=ItemType.ARMOR,
             itemId=itemId,
+            powerLevel=powerLevel,
         )
         self.maxArmor = effective_max
         self.itemPower = []
@@ -492,6 +501,7 @@ class Armor(Item):
             maxArmor=max_armor,
             currentArmor=current_armor,
             itemId=common["itemId"],
+            powerLevel=common["powerLevel"],
         )
 
 
@@ -507,6 +517,7 @@ class Consumable(Item):
         spellName: str = "",
         damageType: list[DamageType] | None = None,
         itemId: str | None = None,
+        powerLevel: float = 0.0,
     ):
         super().__init__(
             name=name,
@@ -516,6 +527,7 @@ class Consumable(Item):
             statBonuses=statBonuses,
             itemType=ItemType.CONSUMABLE,
             itemId=itemId,
+            powerLevel=powerLevel,
         )
         self.consumableKind = self._enum_from_name(ConsumableKind, consumableKind, ConsumableKind.NONE)
         self.effectPowerType = self._enum_from_name(PowerType, effectPowerType, PowerType.CONSUMABLE_POWER)
@@ -565,6 +577,7 @@ class Consumable(Item):
             spellName=consumable_stats.get("spellName", getattr(first_power, "spellName", "")),
             damageType=consumable_stats.get("damageTypes", data.get("damageType", [])),
             itemId=common["itemId"],
+            powerLevel=common["powerLevel"],
         )
 
 

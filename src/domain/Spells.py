@@ -22,6 +22,7 @@ class Spell:
         level: int,
         power: float,
         affinity: AffinityTypes,
+        powerLevel: float = 0.0,
         casting_time: float = 0,
         range: float = 0,
         components: dict[str, Any] = None,
@@ -32,6 +33,7 @@ class Spell:
         self.name = name
         self.level = level
         self.power = power
+        self.powerLevel = self._coerce_float(powerLevel, 0.0)
         self.affinity = affinity
         self.casting_time = casting_time
         self.range = range
@@ -92,6 +94,7 @@ class Spell:
             "name": self.name,
             "level": int(self.level),
             "power": self.power,
+            "powerLevel": self._coerce_float(self.powerLevel),
             "affinity": affinity_value,
             "casting_time": self._coerce_float(self.casting_time),
             "range": self._coerce_float(self.range),
@@ -111,6 +114,7 @@ class Spell:
             name=name,
             level=int(data.get("level", 0) or 0),
             power=data.get("power", ""),
+            powerLevel=cls._coerce_float(data.get("powerLevel", 0.0), 0.0),
             affinity=cls._normalize_affinity(data.get("affinity", AffinityTypes.MANA.value)),
             casting_time=cls._coerce_float(data.get("casting_time", 0.0), 0.0),
             range=cls._coerce_float(data.get("range", 0.0), 0.0),
