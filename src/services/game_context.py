@@ -52,3 +52,8 @@ class GameContext:
     # Global allegiancebook runtime state
     all_allegiances: dict[str, object] = field(default_factory=dict)
     allegiancebook_overview: str = "No allegiances in allegiancebook yet."
+
+    # Global missionbook runtime state
+    all_missions: dict[str, object] = field(default_factory=dict)
+    missionbook_overview: str = "No missions in missionbook yet."
+

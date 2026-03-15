@@ -19,6 +19,7 @@ from src.services.encounter_service import EncounterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
+from src.services.mission_service import MissionService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
@@ -45,6 +46,7 @@ ACHIEVEMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Achievements", "achiev
 ALLEGIANCEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Allegiances", "allegiancebook.json")
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 UNITBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Units", "unitbook.json")
+MISSIONBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Missions", "missionbook.json")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
@@ -85,6 +87,12 @@ unit_service = UnitService(
     character_service=character_service,
     spell_service=spell_service,
     item_service=item_service,
+)
+mission_service = MissionService(
+    missionbook_path=MISSIONBOOK_PATH,
+    context=context,
+    allegiance_service=allegiance_service,
+    unit_service=unit_service,
 )
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
@@ -145,6 +153,7 @@ def initialize_game():
     character_service.load_characters()
     race_service.load_racebook()
     unit_service.load_unitbook()
+    mission_service.load_missionbook()
     memory_service.initialize()
     battle_service.initialize()
     menu_service.load_menus()
@@ -210,6 +219,9 @@ if __name__ == "__main__":
         race_service=race_service,
         unit_service=unit_service,
         allegiance_service=allegiance_service,
+        mission_service=mission_service,
         memory_service=memory_service,
     )
     bot.run(TOKEN)
+
+

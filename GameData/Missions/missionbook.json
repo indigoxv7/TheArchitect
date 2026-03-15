@@ -1,0 +1,33 @@
+{
+    "format_version": 1,
+    "missions": [
+        {
+            "missionId": "GoblinEliminationlvl00",
+            "name": "Goblin Elimination lvl0",
+            "allegianceConfigs": [
+                {
+                    "allegianceId": "Bandit0",
+                    "powerPointCap": 1000,
+                    "unitOptions": [
+                        {
+                            "unitId": "Goblinfighter1",
+                            "capacityMin": null,
+                            "capacityMax": null,
+                            "canBeElite": false
+                        },
+                        {
+                            "unitId": "GoblinAssassin0",
+                            "capacityMin": 1,
+                            "capacityMax": 1,
+                            "canBeElite": false
+                        }
+                    ],
+                    "clusterProbability": 0.0,
+                    "clusterProbabilityVariance": 0.0,
+                    "levelMin": 0,
+                    "levelMax": 0
+                }
+            ]
+        }
+    ]
+}
