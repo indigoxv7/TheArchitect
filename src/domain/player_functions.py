@@ -50,6 +50,7 @@ class Player:
         energyCap: float = 100,
         energyLastCalculatedTime: Optional[float] = None,
         inventory=None,
+        missionPartyCharacterIds=None,
         energyRegenRatePerSecond: float = ENERGY_REGEN_RATE_PER_SECOND,
     ):
         object.__setattr__(self, "_auto_save_enabled", False)
@@ -74,6 +75,7 @@ class Player:
         self.isNewPlayer = False
         self.partyNames = ["Delta Team", "2", "3", "4"]
         self.inventory = inventory if inventory is not None else []
+        self.missionPartyCharacterIds = [str(entry or "").strip() for entry in (missionPartyCharacterIds or []) if str(entry or "").strip()]
 
         self.intChoice = 0
 
@@ -132,6 +134,14 @@ class Player:
             self.inventory = []
         if not hasattr(self, "characters") or self.characters is None:
             self.characters = []
+        if not hasattr(self, "missionPartyCharacterIds") or self.missionPartyCharacterIds is None:
+            self.missionPartyCharacterIds = []
+        elif not isinstance(self.missionPartyCharacterIds, list):
+            self.missionPartyCharacterIds = [str(self.missionPartyCharacterIds)]
+        else:
+            self.missionPartyCharacterIds = [
+                str(entry or "").strip() for entry in self.missionPartyCharacterIds if str(entry or "").strip()
+            ]
 
         for character in self.characters:
             ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
@@ -142,10 +152,45 @@ class Player:
         object.__setattr__(self, "_auto_save_enabled", False)
         object.__setattr__(self, "_save_path", None)
 
+    def _character_identity(self, character) -> str:
+        return str(getattr(character, "playerInstanceId", "") or getattr(character, "name", "") or "")
+
+    def IsCharacterInMissionParty(self, character) -> bool:
+        return self._character_identity(character) in set(self.GetMissionPartyCharacterIds())
+
+    def GetMissionPartyCharacterIds(self) -> list[str]:
+        valid_ids = {
+            self._character_identity(character)
+            for character in self.characters
+            if self._character_identity(character)
+        }
+        selected = [entry for entry in self.missionPartyCharacterIds if entry in valid_ids]
+        if selected:
+            return selected
+        return [self._character_identity(character) for character in self.characters if self._character_identity(character)]
+
+    def SetMissionPartyCharacterIds(self, character_ids) -> list[str]:
+        requested = [str(entry or "").strip() for entry in (character_ids or []) if str(entry or "").strip()]
+        valid_ids = {
+            self._character_identity(character)
+            for character in self.characters
+            if self._character_identity(character)
+        }
+        self.missionPartyCharacterIds = [entry for entry in requested if entry in valid_ids]
+        return self.GetMissionPartyCharacterIds()
+
+    def GetMissionPartyCharacters(self):
+        selected_ids = set(self.GetMissionPartyCharacterIds())
+        return [character for character in self.characters if self._character_identity(character) in selected_ids]
+
     def GetCharacterText(self):
         cString = ""
+        selected_ids = set(self.GetMissionPartyCharacterIds())
         for character in self.characters:
-            cString += "**" + character.name + "** | LvL " + str(character.level) + " | (" + character.GetWoundedString() + ") | Party: " + self.partyNames[character.party] + "\n"
+            line = "**" + character.name + "** | LvL " + str(character.level) + " | (" + character.GetWoundedString() + ")"
+            if self._character_identity(character) in selected_ids:
+                line += " | Selected for Mission"
+            cString += line + "\n"
         return cString
 
     def GetCharacterIndexByName(self, name: str):
@@ -166,7 +211,7 @@ class Player:
 
     def GetCharacterParty(self, characterIndex: int):
         if len(self.characters) > characterIndex:
-            return self.partyNames[self.characters[characterIndex].party]
+            return "Selected for Mission" if self.IsCharacterInMissionParty(self.characters[characterIndex]) else "Reserve"
         return ""
 
     # Returns the requested character index. If no such index exists, return the last character in the list.

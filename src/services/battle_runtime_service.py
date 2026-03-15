@@ -42,7 +42,7 @@ class BattleRuntimeService:
 
     def build_embed(self, battle) -> discord.Embed:
         snapshot = self.battle_service.build_battle_snapshot(battle)
-        title = f"{snapshot['encounter_name']} | {snapshot['terrain']}"
+        title = f"{snapshot['mission_name']} | {snapshot['terrain']}"
         if battle.phase == BattlePhase.RESOLVED:
             title = f"{title} | {battle.outcome.name.title()}"
         embed = discord.Embed(title=title)
@@ -50,10 +50,12 @@ class BattleRuntimeService:
         header_lines = [
             f"Exchange: {snapshot['exchange']}",
             f"Stance: {snapshot['stance']}",
-            f"Objective: {snapshot['objective']}",
+            f"Objective: {snapshot['objective_description']}",
+            f"Objective Status: {snapshot['objective_status']}",
             f"Odds of Success: {odds}%",
         ]
         embed.description = "\n".join(header_lines)
+        mission_stats = snapshot.get("mission_statistics", {}) or {}
         embed.add_field(
             name="Battlefield",
             value=(
@@ -61,6 +63,16 @@ class BattleRuntimeService:
                 f"Width: {snapshot['width']}\n"
                 f"Allied Front: {snapshot['player_front_line']}\n"
                 f"Enemy Front: {snapshot['enemy_front_line']}"
+            ),
+            inline=True,
+        )
+        embed.add_field(
+            name="Mission Stats",
+            value=(
+                f"Enemies Remaining: {mission_stats.get('enemiesRemaining', 0)}/{mission_stats.get('totalStartingEnemies', 0)}\n"
+                f"Allies Remaining: {mission_stats.get('alliesRemaining', 0)}/{mission_stats.get('totalStartingAllies', 0)}\n"
+                f"Bosses Defeated: {mission_stats.get('bossesDefeated', 0)}\n"
+                f"Hours: {float(mission_stats.get('timeInsideMissionHours', 0.0) or 0.0):.2f}"
             ),
             inline=True,
         )

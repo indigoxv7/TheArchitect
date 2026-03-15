@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from src.domain.Mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
 from src.domain.Race import CreatureSize
 
 
@@ -279,7 +280,11 @@ class CombatUnitState:
     line: int = 0
     lane_start: int = 0
     lane_width: int = 1
+    starting_line: int = 0
     character_instance_id: str = ""
+    is_player_owned: bool = False
+    is_boss: bool = False
+    is_elite: bool = False
     template_character_id: str = ""
     race_id: str = "Human1"
     physical_power: float = 5.0
@@ -313,7 +318,11 @@ class CombatUnitState:
             "line": int(self.line),
             "lane_start": int(self.lane_start),
             "lane_width": int(self.lane_width),
+            "starting_line": int(self.starting_line),
             "character_instance_id": self.character_instance_id,
+            "is_player_owned": bool(self.is_player_owned),
+            "is_boss": bool(self.is_boss),
+            "is_elite": bool(self.is_elite),
             "template_character_id": self.template_character_id,
             "race_id": self.race_id,
             "physical_power": float(self.physical_power),
@@ -347,7 +356,11 @@ class CombatUnitState:
             line=int(data.get("line", 0) or 0),
             lane_start=int(data.get("lane_start", 0) or 0),
             lane_width=max(1, int(data.get("lane_width", lane_width_for_size(size)) or lane_width_for_size(size))),
+            starting_line=int(data.get("starting_line", data.get("line", 0)) or 0),
             character_instance_id=str(data.get("character_instance_id", "") or ""),
+            is_player_owned=bool(data.get("is_player_owned", False)),
+            is_boss=bool(data.get("is_boss", False)),
+            is_elite=bool(data.get("is_elite", False)),
             template_character_id=str(data.get("template_character_id", "") or ""),
             race_id=str(data.get("race_id", "Human1") or "Human1"),
             physical_power=float(data.get("physical_power", 5.0) or 5.0),
@@ -380,7 +393,10 @@ class EnemyStackState:
     line: int = 0
     lane_start: int = 0
     lane_width: int = 1
+    starting_line: int = 0
     template_character_id: str = ""
+    is_boss: bool = False
+    is_elite: bool = False
     race_id: str = ""
     level: int = 0
     physical_power: float = 5.0
@@ -427,7 +443,10 @@ class EnemyStackState:
             "line": int(self.line),
             "lane_start": int(self.lane_start),
             "lane_width": int(self.lane_width),
+            "starting_line": int(self.starting_line),
             "template_character_id": self.template_character_id,
+            "is_boss": bool(self.is_boss),
+            "is_elite": bool(self.is_elite),
             "race_id": self.race_id,
             "level": int(self.level),
             "physical_power": float(self.physical_power),
@@ -460,7 +479,10 @@ class EnemyStackState:
             line=int(data.get("line", 0) or 0),
             lane_start=int(data.get("lane_start", 0) or 0),
             lane_width=max(1, int(data.get("lane_width", lane_width_for_size(size)) or lane_width_for_size(size))),
+            starting_line=int(data.get("starting_line", data.get("line", 0)) or 0),
             template_character_id=str(data.get("template_character_id", "") or ""),
+            is_boss=bool(data.get("is_boss", False)),
+            is_elite=bool(data.get("is_elite", False)),
             race_id=str(data.get("race_id", "") or ""),
             level=int(data.get("level", 0) or 0),
             physical_power=float(data.get("physical_power", 5.0) or 5.0),
@@ -565,6 +587,11 @@ class BattleState:
     cached_victory_odds: float | None = None
     cached_orders_signature: str = ""
     mission_menu_name: str = ""
+    mission_id: str = ""
+    mission_name: str = ""
+    mission_objective: MissionObjective = field(default_factory=lambda: EliminationObjective(1.0))
+    mission_statistics: MissionStatistics = field(default_factory=MissionStatistics)
+    mission_objective_status: MissionObjectiveStatus = MissionObjectiveStatus.IN_PROGRESS
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -593,6 +620,11 @@ class BattleState:
             "cached_victory_odds": self.cached_victory_odds,
             "cached_orders_signature": self.cached_orders_signature,
             "mission_menu_name": self.mission_menu_name,
+            "mission_id": self.mission_id,
+            "mission_name": self.mission_name,
+            "mission_objective": self.mission_objective.to_dict(),
+            "mission_statistics": self.mission_statistics.to_dict(),
+            "mission_objective_status": self.mission_objective_status.name,
         }
 
     @classmethod
@@ -645,4 +677,9 @@ class BattleState:
             cached_victory_odds=data.get("cached_victory_odds"),
             cached_orders_signature=str(data.get("cached_orders_signature", "") or ""),
             mission_menu_name=str(data.get("mission_menu_name", "") or ""),
+            mission_id=str(data.get("mission_id", "") or ""),
+            mission_name=str(data.get("mission_name", "") or ""),
+            mission_objective=MissionObjective.from_dict(data.get("mission_objective", {"objectiveType": "ELIMINATION"})),
+            mission_statistics=MissionStatistics.from_dict(data.get("mission_statistics", {})),
+            mission_objective_status=_enum_from_name(MissionObjectiveStatus, data.get("mission_objective_status"), MissionObjectiveStatus.IN_PROGRESS),
         )

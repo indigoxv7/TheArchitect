@@ -323,9 +323,7 @@ def generate_character_from_race(
         achievements=copy.deepcopy(getattr(template, 'achievements', None)),
         generalSkills=copy.deepcopy(getattr(template, 'generalSkills', None)),
         spells=copy.deepcopy(getattr(template, 'spells', None)),
-        party=int(getattr(template, 'party', 0) or 0),
         buffs=copy.deepcopy(getattr(template, 'buffs', None)),
-        stats=copy.deepcopy(getattr(template, 'stats', None)),
         race=str(getattr(race, 'raceId', '') or getattr(template, 'race', 'Human1') or 'Human1'),
     )
     character.health = int(getattr(template, 'health', 100) or 100)

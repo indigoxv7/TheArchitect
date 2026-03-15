@@ -62,6 +62,32 @@ class TestPlayerService(unittest.TestCase):
             saved_character = payload['player_state']['__state__']['characters'][0]['__state__']
             self.assertTrue(saved_character.get('playerInstanceId'))
 
+    def test_legacy_character_party_migrates_to_player_mission_party_and_clears_stats(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, service, player_saves = self._build_service(temp_dir)
+            save_path = player_saves / '202.json'
+
+            legacy_character = Character(name='Legacy Vanguard')
+            legacy_character.party = 0
+            legacy_character.stats = {'kills': 9}
+            player = Player(202, characters=[legacy_character])
+            save_player(player, str(save_path))
+
+            loaded = service.get_player_sync(202)
+
+            self.assertIsNotNone(loaded)
+            self.assertEqual(len(loaded.characters), 1)
+            migrated_character = loaded.characters[0]
+            self.assertFalse(hasattr(migrated_character, 'party'))
+            self.assertFalse(hasattr(migrated_character, 'stats'))
+            self.assertEqual(loaded.GetMissionPartyCharacterIds(), [migrated_character.playerInstanceId])
+
+            payload = json.loads(save_path.read_text(encoding='utf-8'))
+            saved_character = payload['player_state']['__state__']['characters'][0]['__state__']
+            self.assertFalse('party' in saved_character)
+            self.assertFalse('stats' in saved_character)
+            self.assertEqual(payload['player_state']['__state__'].get('missionPartyCharacterIds'), [migrated_character.playerInstanceId])
+
 
 if __name__ == '__main__':
     unittest.main()

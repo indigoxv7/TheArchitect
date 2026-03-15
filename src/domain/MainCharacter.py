@@ -1,6 +1,7 @@
 ﻿import copy
 
 from src.domain.Character import Character
+from src.domain.CharacterUtil import CharacterStatistics
 
 
 class CharacterInfo:
@@ -182,11 +183,13 @@ class MainCharacter(Character):
         name: str,
         characterInfo: CharacterInfo | None = None,
         llmControlProfile: LLMControlProfile | None = None,
+        stats: CharacterStatistics | None = None,
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
         self.characterInfo = characterInfo if characterInfo is not None else CharacterInfo()
         self.llmControlProfile = llmControlProfile if llmControlProfile is not None else LLMControlProfile()
+        self.stats = stats if stats is not None else CharacterStatistics()
 
     def EnsureRuntimeDefaults(self):
         super().EnsureRuntimeDefaults()
@@ -198,6 +201,10 @@ class MainCharacter(Character):
             self.llmControlProfile = LLMControlProfile()
         elif isinstance(self.llmControlProfile, dict):
             self.llmControlProfile = LLMControlProfile.from_dict(self.llmControlProfile)
+        if not hasattr(self, "stats") or self.stats is None:
+            self.stats = CharacterStatistics()
+        elif isinstance(self.stats, dict):
+            self.stats = CharacterStatistics(**self.stats)
 
     @classmethod
     def from_character(
@@ -228,7 +235,6 @@ class MainCharacter(Character):
             achievements=copy.deepcopy(getattr(base_character, "achievements", None)),
             generalSkills=copy.deepcopy(getattr(base_character, "generalSkills", None)),
             spells=copy.deepcopy(getattr(base_character, "spells", None)),
-            party=int(getattr(base_character, "party", 0)),
             buffs=copy.deepcopy(getattr(base_character, "buffs", None)),
             stats=copy.deepcopy(getattr(base_character, "stats", None)),
             race=str(getattr(base_character, "race", "Human1") or "Human1"),

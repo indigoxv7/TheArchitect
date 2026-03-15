@@ -88,6 +88,7 @@ class PlayerService:
         normalized = []
         migrated = False
         used_ids: set[str] = set()
+        legacy_selected_ids: list[str] = []
         global_templates = list(self.context.all_characters.values())
 
         for entry in characters:
@@ -103,6 +104,7 @@ class PlayerService:
                 character = self._clone_character_for_player(entry, normalized)
                 migrated = True
 
+            legacy_party = getattr(character, "party", None)
             ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
             if callable(ensure_defaults):
                 ensure_defaults()
@@ -110,13 +112,48 @@ class PlayerService:
             player_instance_id = str(getattr(character, "playerInstanceId", "") or "")
             if not player_instance_id or player_instance_id in used_ids:
                 character.playerInstanceId = self._generate_player_instance_id(normalized, getattr(character, "name", "Character"))
+                player_instance_id = str(getattr(character, "playerInstanceId", "") or "")
                 migrated = True
-            used_ids.add(str(getattr(character, "playerInstanceId", "") or ""))
+
+            if legacy_party is not None:
+                try:
+                    if int(legacy_party) == 0:
+                        legacy_selected_ids.append(player_instance_id)
+                except Exception:
+                    pass
+                if hasattr(character, "party"):
+                    delattr(character, "party")
+                migrated = True
+
+            if isinstance(character, MainCharacter):
+                character.EnsureRuntimeDefaults()
+            elif hasattr(character, "stats"):
+                delattr(character, "stats")
+                migrated = True
+
+            used_ids.add(player_instance_id)
             normalized.append(character)
 
         if normalized != characters:
             player.characters = normalized
             migrated = True
+
+        valid_ids = {
+            str(getattr(character, "playerInstanceId", "") or "")
+            for character in player.characters
+            if str(getattr(character, "playerInstanceId", "") or "")
+        }
+        current_party = [
+            str(entry or "").strip()
+            for entry in getattr(player, "missionPartyCharacterIds", []) or []
+            if str(entry or "").strip() in valid_ids
+        ]
+        if current_party != list(getattr(player, "missionPartyCharacterIds", []) or []):
+            migrated = True
+        if not current_party and valid_ids:
+            current_party = [entry for entry in legacy_selected_ids if entry in valid_ids] or sorted(valid_ids)
+            migrated = True
+        player.missionPartyCharacterIds = current_party
         return migrated
 
     def _normalize_loaded_player(self, player: Player) -> bool:

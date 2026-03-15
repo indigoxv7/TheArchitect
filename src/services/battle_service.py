@@ -11,6 +11,7 @@ from src.domain.Character import Character, HealthState
 from src.domain.CharacterUtil import Attributes, EquipSlot, HitLocation, ItemType, PowerType
 from src.domain.Items import Consumable, Gear, Item, Weapon
 from src.domain.MainCharacter import MainCharacter
+from src.domain.Mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
 from src.domain.Race import CreatureSize
 from src.domain.Spells import Spell
 from src.domain.combat import (
@@ -37,6 +38,7 @@ from src.services.damage_calculator import DamageCalculator
 
 
 class BattleService:
+    HOURS_PER_EXCHANGE = 0.25
     STRATEGY_INJECTION_PATTERNS = (
         r"ignore\s+previous",
         r"system\s+prompt",
@@ -111,6 +113,9 @@ class BattleService:
         self.store.delete_battle_file(player_id)
         getattr(self.context, "active_battles", {}).pop(player_id, None)
 
+    def _default_objective_for_encounter(self, encounter: EncounterDefinition) -> MissionObjective:
+        return EliminationObjective(requiredEliminationFraction=1.0)
+
     def start_or_resume_battle(self, player_id: int, encounter_type: EncounterType) -> tuple[BattleState, bool]:
         existing = self.get_active_battle(player_id)
         if existing is not None and existing.phase != BattlePhase.RESOLVED:
@@ -127,15 +132,30 @@ class BattleService:
             encounter = self.encounter_service.create_portal_encounter(player)
             mission_menu_name = "portalMissionAction"
 
-        battle = self._build_battle_from_encounter(player, encounter, mission_menu_name)
+        battle = self._build_battle_from_encounter(
+            player,
+            encounter,
+            mission_menu_name,
+            mission_name=encounter.name,
+            mission_objective=self._default_objective_for_encounter(encounter),
+        )
         self.save_battle(battle)
         self._append_memory_event(battle, f"{battle.encounter.name} begins.")
         return battle, False
 
-    def _build_battle_from_encounter(self, player, encounter: EncounterDefinition, mission_menu_name: str) -> BattleState:
+    def _build_battle_from_encounter(
+        self,
+        player,
+        encounter: EncounterDefinition,
+        mission_menu_name: str,
+        mission_id: str = "",
+        mission_name: str = "",
+        mission_objective: MissionObjective | None = None,
+        mission_statistics: MissionStatistics | None = None,
+    ) -> BattleState:
         ally_units = self._build_ally_units(player)
         if not ally_units:
-            raise ValueError("No party members are assigned to Delta Team (party 0).")
+            raise ValueError("No characters are selected in the player's mission party.")
 
         enemy_units: list[CombatUnitState] = []
         enemy_stacks: list[EnemyStackState] = []
@@ -148,6 +168,8 @@ class BattleService:
         player_front = max(0, min(total_lines - 2, int(encounter.player_front_line)))
         enemy_front = max(player_front + 1, min(total_lines - 1, int(encounter.enemy_front_line)))
 
+        objective = mission_objective if mission_objective is not None else self._default_objective_for_encounter(encounter)
+        stats = mission_statistics if mission_statistics is not None else MissionStatistics()
         battle = BattleState(
             player_id=int(player.discordID),
             battle_id=f"{encounter.encounter_type.name.lower()}_{int(player.discordID)}",
@@ -165,16 +187,22 @@ class BattleService:
             enemy_stacks=enemy_stacks,
             orders=CommanderOrders(),
             mission_menu_name=mission_menu_name,
+            mission_id=str(mission_id or ""),
+            mission_name=str(mission_name or encounter.name or "Mission"),
+            mission_objective=objective,
+            mission_statistics=stats,
+            mission_objective_status=MissionObjectiveStatus.IN_PROGRESS,
         )
         self._solve_formations(battle)
+        self._initialize_mission_statistics(battle)
+        self._refresh_mission_state(battle, mission_complete=False)
         return battle
 
     def _party_members(self, player) -> list:
-        return [
-            character
-            for character in (getattr(player, "characters", []) or [])
-            if int(getattr(character, "party", 0) or 0) == 0
-        ]
+        get_mission_party = getattr(player, "GetMissionPartyCharacters", None)
+        if callable(get_mission_party):
+            return list(get_mission_party())
+        return list(getattr(player, "characters", []) or [])
 
     def _build_ally_units(self, player) -> list[CombatUnitState]:
         units = []
@@ -185,6 +213,7 @@ class BattleService:
                     team=BattleTeam.ALLY,
                     unit_id=f"ally_{index}_{getattr(character, 'playerInstanceId', '') or getattr(character, 'name', 'unit')}",
                     character_instance_id=str(getattr(character, "playerInstanceId", "") or ""),
+                    is_player_owned=True,
                 )
             )
         return units
@@ -289,6 +318,9 @@ class BattleService:
         template_character_id: str = "",
         name_override: str = "",
         notable: bool = True,
+        is_player_owned: bool = False,
+        is_boss: bool = False,
+        is_elite: bool = False,
     ) -> CombatUnitState:
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", Attributes()))
         gear = getattr(character, "gear", Gear())
@@ -304,7 +336,11 @@ class BattleService:
             max_health=100.0,
             health_state=getattr(getattr(character, "healthState", HealthState.HEALTHY), "name", "HEALTHY"),
             lane_width=lane_width_for_size(size),
+            starting_line=0,
             character_instance_id=character_instance_id,
+            is_player_owned=is_player_owned,
+            is_boss=is_boss,
+            is_elite=is_elite,
             template_character_id=template_character_id,
             race_id=str(getattr(character, "race", "Human1") or "Human1"),
             physical_power=float(getattr(attrs, "physicalPower", 5.0)),
@@ -345,7 +381,10 @@ class BattleService:
             total_health=float(max(1, int(count))) * unit_health,
             health_state="HEALTHY",
             lane_width=lane_width_for_size(size),
+            starting_line=0,
             template_character_id=template_character_id,
+            is_boss=False,
+            is_elite=False,
             race_id=race_id,
             level=int(getattr(character, "level", 0) or 0),
             physical_power=float(getattr(attrs, "physicalPower", 5.0)),
@@ -360,6 +399,9 @@ class BattleService:
         )
     def _active_allies(self, battle: BattleState) -> list:
         return [unit for unit in battle.ally_units if unit.alive]
+
+    def _active_non_player_allies(self, battle: BattleState) -> list:
+        return [unit for unit in battle.ally_units if unit.alive and not bool(getattr(unit, "is_player_owned", False))]
 
     def _active_enemies(self, battle: BattleState) -> list:
         return [unit for unit in battle.enemy_units if unit.alive] + [stack for stack in battle.enemy_stacks if stack.alive]
@@ -380,6 +422,12 @@ class BattleService:
     def _entity_lane_width(entity) -> int:
         return max(1, int(getattr(entity, "lane_width", 1) or 1))
 
+    @staticmethod
+    def _entity_count(entity) -> int:
+        if isinstance(entity, EnemyStackState):
+            return max(0, int(getattr(entity, "current_count", 0) or 0))
+        return 1 if float(getattr(entity, "health", 0.0) or 0.0) > 0.0 else 0
+
     def _entity_attack_count(self, entity) -> int:
         if isinstance(entity, EnemyStackState):
             return max(1, min(4, math.ceil(entity.current_count / 2)))
@@ -394,6 +442,15 @@ class BattleService:
                 return character
         return None
 
+    def _tracked_main_character(self, battle: BattleState, entity) -> MainCharacter | None:
+        if getattr(entity, "team", BattleTeam.ALLY) != BattleTeam.ALLY:
+            return None
+        character_instance_id = str(getattr(entity, "character_instance_id", "") or "")
+        if not character_instance_id:
+            return None
+        source = self._player_source_character(battle.player_id, character_instance_id)
+        return source if isinstance(source, MainCharacter) else None
+
     def _template_character(self, template_character_id: str, race_id: str):
         if template_character_id:
             character = self.character_service.get_character(template_character_id)
@@ -403,6 +460,111 @@ class BattleService:
         if race is not None:
             return getattr(race, "averageSpecimine", None)
         return None
+
+    def _capture_starting_positions(self, battle: BattleState):
+        for entity in list(battle.ally_units) + list(battle.enemy_units) + list(battle.enemy_stacks):
+            entity.starting_line = int(getattr(entity, "line", 0) or 0)
+
+    def _count_remaining_enemies(self, battle: BattleState) -> int:
+        total = 0
+        for entity in list(battle.enemy_units) + list(battle.enemy_stacks):
+            total += self._entity_count(entity)
+        return total
+
+    def _count_non_player_allies_remaining(self, battle: BattleState) -> int:
+        return sum(1 for entity in battle.ally_units if entity.alive and not bool(getattr(entity, "is_player_owned", False)))
+
+    def _initialize_mission_statistics(self, battle: BattleState):
+        battle.mission_statistics.totalStartingEnemies = sum(
+            1 for entity in battle.enemy_units if entity.alive
+        ) + sum(max(0, int(getattr(stack, "max_count", 0) or 0)) for stack in battle.enemy_stacks)
+        battle.mission_statistics.totalStartingAllies = sum(
+            1 for entity in battle.ally_units if not bool(getattr(entity, "is_player_owned", False))
+        )
+        battle.mission_statistics.enemiesRemaining = self._count_remaining_enemies(battle)
+        battle.mission_statistics.alliesRemaining = self._count_non_player_allies_remaining(battle)
+        battle.mission_statistics.timeInsideMissionHours = float(battle.exchange_count) * self.HOURS_PER_EXCHANGE
+        self._capture_starting_positions(battle)
+
+    def _refresh_dynamic_mission_statistics(self, battle: BattleState):
+        stats = battle.mission_statistics
+        stats.enemiesRemaining = self._count_remaining_enemies(battle)
+        stats.alliesRemaining = self._count_non_player_allies_remaining(battle)
+        stats.timeInsideMissionHours = float(battle.exchange_count) * self.HOURS_PER_EXCHANGE
+        for entity in battle.ally_units:
+            if bool(getattr(entity, "is_player_owned", False)):
+                continue
+            unit_id = str(getattr(entity, "unit_id", "") or "")
+            if not unit_id:
+                continue
+            stats.unitAliveStates[unit_id] = bool(entity.alive)
+            stats.unitDistancesMoved[unit_id] = max(
+                stats.unitDistancesMoved.get(unit_id, 0.0),
+                float(abs(int(getattr(entity, "line", 0) or 0) - int(getattr(entity, "starting_line", 0) or 0))),
+            )
+        if stats.startingImportantObjects > 0 and stats.importantObjectsRemaining <= 0:
+            stats.importantObjectsRemaining = 0
+
+    def _refresh_mission_state(self, battle: BattleState, mission_complete: bool):
+        self._refresh_dynamic_mission_statistics(battle)
+        status = battle.mission_objective.evaluate(battle.mission_statistics, mission_complete=mission_complete)
+        battle.mission_objective_status = status
+        if battle.phase != BattlePhase.RESOLVED:
+            if status == MissionObjectiveStatus.SUCCESS:
+                battle.phase = BattlePhase.RESOLVED
+                battle.outcome = BattleOutcome.VICTORY
+                battle.result_summary = f"Mission success: {battle.mission_objective.describe()}."
+            elif status == MissionObjectiveStatus.FAILURE:
+                battle.phase = BattlePhase.RESOLVED
+                battle.outcome = BattleOutcome.DEFEAT
+                battle.result_summary = f"Mission failed: {battle.mission_objective.describe()}."
+        elif status == MissionObjectiveStatus.SUCCESS and battle.outcome != BattleOutcome.DEFEAT:
+            battle.outcome = BattleOutcome.VICTORY
+            battle.result_summary = battle.result_summary or f"Mission success: {battle.mission_objective.describe()}."
+        elif mission_complete and status == MissionObjectiveStatus.FAILURE:
+            if battle.outcome != BattleOutcome.RETREAT:
+                battle.outcome = BattleOutcome.DEFEAT
+            battle.result_summary = f"Mission failed: {battle.mission_objective.describe()}."
+
+    def record_units_recruited(self, battle: BattleState, count: int):
+        battle.mission_statistics.unitsRecruited += max(0, int(count or 0))
+        self._refresh_mission_state(battle, mission_complete=False)
+        self.save_battle(battle)
+
+    def record_resources_gathered(self, battle: BattleState, amount: int):
+        battle.mission_statistics.basicResourcesGathered += max(0, int(amount or 0))
+        self._refresh_mission_state(battle, mission_complete=False)
+        self.save_battle(battle)
+
+    def record_package_delivery(self, battle: BattleState, item_id: str, allegiance_id: str, count: int = 1):
+        delivered_count = max(0, int(count or 0))
+        if delivered_count <= 0:
+            return
+        stats = battle.mission_statistics
+        stats.packagesDelivered += delivered_count
+        composite_key = f"{str(item_id or '').strip()}|{str(allegiance_id or '').strip()}"
+        stats.deliveredPackageCounts[composite_key] = stats.deliveredPackageCounts.get(composite_key, 0) + delivered_count
+        self._refresh_mission_state(battle, mission_complete=False)
+        self.save_battle(battle)
+
+    def set_important_object_counts(self, battle: BattleState, starting_count: int, remaining_count: int | None = None):
+        stats = battle.mission_statistics
+        stats.startingImportantObjects = max(0, int(starting_count or 0))
+        stats.importantObjectsRemaining = max(0, int(remaining_count if remaining_count is not None else starting_count or 0))
+        self._refresh_mission_state(battle, mission_complete=False)
+        self.save_battle(battle)
+
+    def record_ally_escape_progress(self, battle: BattleState, unit_id: str, distance: float, alive: bool = True):
+        key = str(unit_id or '').strip()
+        if not key:
+            return
+        battle.mission_statistics.unitDistancesMoved[key] = max(
+            battle.mission_statistics.unitDistancesMoved.get(key, 0.0),
+            max(0.0, float(distance or 0.0)),
+        )
+        battle.mission_statistics.unitAliveStates[key] = bool(alive)
+        self._refresh_mission_state(battle, mission_complete=False)
+        self.save_battle(battle)
 
     def _character_snapshot_for_entity(self, battle: BattleState, entity) -> Character:
         if getattr(entity, "team", BattleTeam.ALLY) == BattleTeam.ALLY and getattr(entity, "character_instance_id", ""):
@@ -495,11 +657,50 @@ class BattleService:
         self._set_entity_health(entity, after)
         return before - after
 
+    def _apply_damage_with_result(self, entity, amount: float) -> dict[str, Any]:
+        before_health = self._entity_health(entity)
+        before_count = self._entity_count(entity)
+        actual_damage = self._apply_damage(entity, amount)
+        after_count = self._entity_count(entity)
+        return {
+            "damage": actual_damage,
+            "defeated_units": max(0, before_count - after_count),
+            "target_down": before_health > 0.0 and self._entity_health(entity) <= 0.0,
+        }
+
     def _heal_entity(self, entity, amount: float) -> float:
         before = self._entity_health(entity)
         after = min(self._entity_max_health(entity), before + max(0.0, float(amount)))
         self._set_entity_health(entity, after)
         return after - before
+
+    def _record_damage_taken(self, battle: BattleState, entity, amount: float):
+        target = self._tracked_main_character(battle, entity)
+        if target is None:
+            return
+        target.stats.record_damage_taken(amount)
+
+    def _record_damage_done(self, battle: BattleState, entity, amount: float):
+        attacker = self._tracked_main_character(battle, entity)
+        if attacker is None:
+            return
+        attacker.stats.record_damage_done(amount)
+
+    def _record_spell_cast(self, battle: BattleState, entity):
+        attacker = self._tracked_main_character(battle, entity)
+        if attacker is None:
+            return
+        attacker.stats.record_spell_cast()
+
+    def _record_kill(self, battle: BattleState, attacker_entity, target_entity, count: int):
+        attacker = self._tracked_main_character(battle, attacker_entity)
+        if attacker is None:
+            return
+        is_boss = bool(getattr(target_entity, "is_boss", False))
+        is_elite = bool(getattr(target_entity, "is_elite", False))
+        attacker.stats.record_kill(self._entity_name(target_entity), count=count, is_boss=is_boss, is_elite=is_elite)
+        if is_boss:
+            battle.mission_statistics.bossesDefeated += count
 
     def _lane_distance(self, attacker, target) -> int:
         attacker_mid = getattr(attacker, "lane_start", 0) + (self._entity_lane_width(attacker) - 1) / 2.0
@@ -587,6 +788,7 @@ class BattleService:
                 use_spell = False
 
         if use_spell:
+            self._record_spell_cast(battle, attacker)
             hit, hit_chance = self.damage_calculator.roll_hit(
                 attacker_stat=float(getattr(attacker, "magic_power", 5.0)),
                 defender_stat=float(getattr(target, "magic_resistance", 5.0)),
@@ -603,8 +805,12 @@ class BattleService:
             )
             damage = breakdown.hpFinal if hit else 0.0
             if damage > 0:
-                self._apply_damage(target, damage)
-                highlights.append(f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage:.1f} damage.")
+                damage_result = self._apply_damage_with_result(target, damage)
+                self._record_damage_done(battle, attacker, damage_result["damage"])
+                self._record_damage_taken(battle, target, damage_result["damage"])
+                if damage_result["defeated_units"] > 0:
+                    self._record_kill(battle, attacker, target, damage_result["defeated_units"])
+                highlights.append(f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
             else:
                 highlights.append(f"{self._entity_name(attacker)} misses {self._entity_name(target)} with {getattr(spell, 'name', 'a spell')}.")
             return
@@ -629,8 +835,12 @@ class BattleService:
         )
         damage = max(0.0, result.hpFinal)
         if damage > 0:
-            self._apply_damage(target, damage)
-            highlights.append(f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage:.1f} damage.")
+            damage_result = self._apply_damage_with_result(target, damage)
+            self._record_damage_done(battle, attacker, damage_result["damage"])
+            self._record_damage_taken(battle, target, damage_result["damage"])
+            if damage_result["defeated_units"] > 0:
+                self._record_kill(battle, attacker, target, damage_result["defeated_units"])
+            highlights.append(f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
         else:
             highlights.append(f"{self._entity_name(attacker)} fails to injure {self._entity_name(target)}.")
 
@@ -901,6 +1111,8 @@ class BattleService:
                 self._apply_recentering(battle, player_progress, enemy_progress, highlights)
                 self._solve_formations(battle)
 
+        self._refresh_mission_state(battle, mission_complete=(battle.phase == BattlePhase.RESOLVED))
+
         for unit in battle.ally_units:
             if unit.notable and unit.health_state in {"UNCONSCIOUS", "DEAD"}:
                 triggers.append(BattleTrigger(BattleTriggerType.HERO_DOWN, f"{unit.name} is {unit.health_state.lower()}."))
@@ -944,6 +1156,7 @@ class BattleService:
             self._finalize_battle(battle, record_memory=True)
         return battle
     def _finalize_battle(self, battle: BattleState, record_memory: bool = True):
+        self._refresh_mission_state(battle, mission_complete=True)
         player = self.player_service.get_player_sync(battle.player_id)
         if player is not None:
             for unit in battle.ally_units:
@@ -955,7 +1168,7 @@ class BattleService:
                 if battle.outcome == BattleOutcome.DEFEAT and source.health <= 0:
                     state_name = "DEAD"
                 source.healthState = HealthState[state_name]
-                if getattr(source, "stats", None) is not None:
+                if isinstance(source, MainCharacter):
                     source.stats.missionCount = int(getattr(source.stats, "missionCount", 0) or 0) + 1
             self.player_service.persist_player(player)
         if record_memory:
@@ -1075,14 +1288,18 @@ class BattleService:
             target = self._select_target(battle, target_source, self._active_enemies(battle), battle.orders)
             if target is None:
                 raise ValueError("No valid enemy target for this consumable.")
-            self._apply_damage(target, amount)
-            message = f"Used {item.name} on {self._entity_name(target)} for {amount:.1f} damage."
+            damage_result = self._apply_damage_with_result(target, amount)
+            if damage_result["defeated_units"] > 0 and allies:
+                self._record_kill(battle, allies[0], target, damage_result["defeated_units"])
+            self._refresh_mission_state(battle, mission_complete=(battle.phase == BattlePhase.RESOLVED))
+            message = f"Used {item.name} on {self._entity_name(target)} for {damage_result['damage']:.1f} damage."
         else:
             allies = self._active_allies(battle)
             if not allies:
                 raise ValueError("No allied targets available.")
             target = min(allies, key=lambda entity: self._entity_health(entity) / max(1.0, self._entity_max_health(entity)))
             healed = self._heal_entity(target, amount * max(0.5, 1.0 + battle.orders.resource_efficiency_modifier))
+            self._refresh_mission_state(battle, mission_complete=(battle.phase == BattlePhase.RESOLVED))
             message = f"Used {item.name} on {self._entity_name(target)} and restored {healed:.1f} health."
         self.player_service.persist_player(player)
         self.save_battle(battle)
@@ -1192,6 +1409,7 @@ class BattleService:
         recent_summary = battle.recent_summaries[-1] if battle.recent_summaries else None
         return {
             "encounter_name": battle.encounter.name,
+            "mission_name": battle.mission_name or battle.encounter.name,
             "terrain": battle.encounter.terrain,
             "exchange": battle.exchange_count,
             "stance": battle.orders.stance.name,
@@ -1202,8 +1420,11 @@ class BattleService:
             "phase": battle.phase.name,
             "outcome": battle.outcome.name,
             "objective": battle.encounter.objective_text,
+            "objective_description": battle.mission_objective.describe(),
+            "objective_status": battle.mission_objective_status.value,
             "allow_retreat": battle.encounter.allow_retreat,
             "cached_victory_odds": odds,
+            "mission_statistics": battle.mission_statistics.to_dict(),
             "recent_highlights": recent_summary.highlights if recent_summary else [],
             "recent_triggers": [trigger.message for trigger in (recent_summary.triggers if recent_summary else [])],
             "allies": [

@@ -215,9 +215,20 @@ def _stats_to_dict(stats: CharacterStatistics | None) -> dict[str, Any] | None:
         return None
 
     return {
-        "kills": _coerce_int(stats.kills, 0),
-        "damageTaken": _coerce_int(stats.damageTaken, 0),
-        "missionCount": _coerce_int(stats.missionCount, 0),
+        "kills": _coerce_int(getattr(stats, "kills", 0), 0),
+        "damageTaken": _coerce_float(getattr(stats, "damageTaken", 0.0), 0.0),
+        "missionCount": _coerce_int(getattr(stats, "missionCount", 0), 0),
+        "damageDone": _coerce_float(getattr(stats, "damageDone", 0.0), 0.0),
+        "spellsCast": _coerce_int(getattr(stats, "spellsCast", 0), 0),
+        "injuriesTaken": _coerce_int(getattr(stats, "injuriesTaken", 0), 0),
+        "alliesProtected": _coerce_int(getattr(stats, "alliesProtected", 0), 0),
+        "bossesKilled": _coerce_int(getattr(stats, "bossesKilled", 0), 0),
+        "elitesKilled": _coerce_int(getattr(stats, "elitesKilled", 0), 0),
+        "unitsKilled": {
+            str(key): _coerce_int(value, 0)
+            for key, value in dict(getattr(stats, "unitsKilled", {}) or {}).items()
+            if str(key or "").strip() and _coerce_int(value, 0) > 0
+        },
     }
 
 
@@ -227,8 +238,15 @@ def _stats_from_dict(data: Any) -> CharacterStatistics | None:
 
     return CharacterStatistics(
         kills=_coerce_int(data.get("kills", 0), 0),
-        damageTaken=_coerce_int(data.get("damageTaken", 0), 0),
+        damageTaken=_coerce_float(data.get("damageTaken", 0.0), 0.0),
         missionCount=_coerce_int(data.get("missionCount", 0), 0),
+        damageDone=_coerce_float(data.get("damageDone", 0.0), 0.0),
+        spellsCast=_coerce_int(data.get("spellsCast", 0), 0),
+        injuriesTaken=_coerce_int(data.get("injuriesTaken", 0), 0),
+        alliesProtected=_coerce_int(data.get("alliesProtected", 0), 0),
+        bossesKilled=_coerce_int(data.get("bossesKilled", 0), 0),
+        elitesKilled=_coerce_int(data.get("elitesKilled", 0), 0),
+        unitsKilled=data.get("unitsKilled", {}),
     )
 
 
@@ -392,7 +410,6 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "characterType": "MainCharacter" if isinstance(character, MainCharacter) else "Character",
         "raceTier": str(character.raceTier or "Tier I"),
         "race": str(getattr(character, "race", "Human1") or "Human1"),
-        "party": _coerce_int(character.party, 0),
         "health": _coerce_int(character.health, 100),
         "healthState": character.healthState.name if isinstance(character.healthState, HealthState) else str(character.healthState),
         "activeAchievementTitle": str(getattr(character, "activeAchievementTitle", "") or ""),
@@ -403,7 +420,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "buffs": [_buff_to_dict(buff) for buff in (character.buffs or [])],
         "spells": _spells_to_list(getattr(character, "spells", [])),
         "generalSkills": _skills_to_list(getattr(character, "generalSkills", [])),
-        "stats": _stats_to_dict(getattr(character, "stats", None)),
+        "stats": _stats_to_dict(getattr(character, "stats", None)) if isinstance(character, MainCharacter) else None,
         "description": str(getattr(character, "description", "") or ""),
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
@@ -465,15 +482,14 @@ def character_from_state(
         "achievements": achievements,
         "generalSkills": general_skills,
         "spells": spells,
-        "party": _coerce_int(data.get("party", 0), 0),
         "buffs": buffs,
-        "stats": stats,
     }
 
     if character_type == "MainCharacter" or character_info is not None:
         character = MainCharacter(
             characterInfo=character_info if character_info is not None else CharacterInfo(),
             llmControlProfile=llm_control_profile if llm_control_profile is not None else LLMControlProfile(),
+            stats=stats,
             **character_kwargs,
         )
     else:

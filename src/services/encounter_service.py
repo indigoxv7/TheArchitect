@@ -44,11 +44,10 @@ class EncounterService:
             self._portal_templates.append(encounter)
 
     def _party_characters(self, player) -> list:
-        return [
-            character
-            for character in (getattr(player, "characters", []) or [])
-            if int(getattr(character, "party", 0) or 0) == 0
-        ]
+        get_mission_party = getattr(player, "GetMissionPartyCharacters", None)
+        if callable(get_mission_party):
+            return list(get_mission_party())
+        return list(getattr(player, "characters", []) or [])
 
     def _party_strength(self, player) -> float:
         total = 0.0

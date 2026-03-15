@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.domain.MainCharacter import MainCharacter
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
@@ -48,7 +49,6 @@ class TestCharacterService(unittest.TestCase):
                 "level": 4,
                 "raceTier": "Tier II",
                 "race": "Elf2",
-                "party": 1,
                 "health": 87,
                 "healthState": "INJURED",
                 "activeAchievementTitle": "Storm Caller",
@@ -114,7 +114,6 @@ class TestCharacterService(unittest.TestCase):
                     }
                 ],
                 "generalSkills": [{"name": "Stealth", "description": "Move quietly."}],
-                "stats": {"kills": 2, "damageTaken": 5, "missionCount": 1},
             }
 
             character_id, _ = character_service.create_character_from_dict(payload)
@@ -269,6 +268,44 @@ class TestCharacterService(unittest.TestCase):
             self.assertEqual(loaded.gear.head.itemId, ItemService.ERROR_ITEM_ID)
             self.assertEqual(loaded.gear.offhand.itemId, ItemService.ERROR_ITEM_ID)
             self.assertGreaterEqual(len(loaded.gear.inventory), 1)
+
+    def test_main_character_stats_round_trip(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, _item_service, character_service, _characters_dir = self._build_services(temp_dir)
+
+            payload = {
+                "name": "Seren",
+                "characterType": "MainCharacter",
+                "race": "Human1",
+                "stats": {
+                    "kills": 3,
+                    "damageTaken": 12.5,
+                    "missionCount": 2,
+                    "damageDone": 44.0,
+                    "spellsCast": 5,
+                    "injuriesTaken": 2,
+                    "alliesProtected": 1,
+                    "bossesKilled": 1,
+                    "elitesKilled": 2,
+                    "unitsKilled": {"Goblin Raider": 3},
+                },
+            }
+
+            character_id, created = character_service.create_character_from_dict(payload)
+            self.assertIsInstance(created, MainCharacter)
+            self.assertEqual(created.stats.damageDone, 44.0)
+            self.assertEqual(created.stats.spellsCast, 5)
+            self.assertEqual(created.stats.unitsKilled.get("Goblin Raider"), 3)
+
+            character_service.load_characters()
+            loaded = character_service.get_character(character_id)
+            self.assertIsInstance(loaded, MainCharacter)
+            self.assertEqual(loaded.stats.kills, 3)
+            self.assertEqual(loaded.stats.damageTaken, 12.5)
+            self.assertEqual(loaded.stats.missionCount, 2)
+            self.assertEqual(loaded.stats.bossesKilled, 1)
+            self.assertEqual(loaded.stats.elitesKilled, 2)
+            self.assertEqual(loaded.stats.unitsKilled.get("Goblin Raider"), 3)
 
 
 if __name__ == "__main__":

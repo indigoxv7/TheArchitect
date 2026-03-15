@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from src.domain.Character import Character
+from src.domain.MainCharacter import MainCharacter
+from src.domain.Mission import MissionObjectiveStatus
 from src.domain.CharacterUtil import Attributes
 from src.domain.Items import Gear
 from src.domain.Race import CreatureSize, Race
@@ -40,6 +42,14 @@ class _FakeOpenAIService:
         return SimpleNamespace(score=score, reasons=[f"score {score}"], risk_flags=[], confidence=0.75)
 
 
+class _DeterministicRng:
+    def random(self):
+        return 0.0
+
+    def uniform(self, _a, b):
+        return b
+
+
 class TestBattleService(unittest.TestCase):
     def _build_services(self, temp_dir: str, openai_service=None):
         context = GameContext()
@@ -74,7 +84,7 @@ class TestBattleService(unittest.TestCase):
         self.assertIsNotNone(sword)
         self.assertIsNotNone(bandage)
 
-        ally = Character(
+        ally = MainCharacter(
             name="Hero",
             race="Human1",
             level=3,
@@ -263,6 +273,65 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(battle.orders.strategy_score, 7)
             self.assertAlmostEqual(battle.orders.lane_discipline_modifier, 0.05)
             self.assertEqual(battle.orders.width_control_bonus, 0)
+
+    def test_main_character_stats_and_objective_status_update_from_combat(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            battle_service.damage_calculator._rng = _DeterministicRng()
+            if battle_service.spell_service.get_spell("Arc Bolt") is None:
+                battle_service.spell_service.create_spell_from_dict(
+                    {
+                        "name": "Arc Bolt",
+                        "level": 1,
+                        "power": 50,
+                        "affinity": "Mana",
+                        "casting_time": 1,
+                        "range": 30,
+                        "components": {"verbal": True, "somatic": True, "material": False},
+                        "duration": 0,
+                        "description": "A focused magical blast.",
+                    }
+                )
+
+            player = player_service.get_player_sync(111)
+            self.assertIsInstance(player.characters[0], MainCharacter)
+            player.characters[0].spells = [battle_service.spell_service.get_spell("Arc Bolt")]
+            player.SetMissionPartyCharacterIds([player.characters[0].playerInstanceId])
+
+            encounter = EncounterDefinition(
+                encounter_id="test_stats",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Stat Duel",
+                terrain="Ruins",
+                width=3,
+                total_lines=5,
+                objective_text="Eliminate the threat.",
+                allow_retreat=True,
+                enemy_entries=[EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(player, encounter, "test_stats")
+            battle.enemy_units[0].health = 10
+            battle.enemy_units[0].max_health = 10
+            battle.enemy_units[0].is_boss = True
+
+            highlights = []
+            battle_service._resolve_attack(battle, battle.enemy_units[0], battle.ally_units[0], battle.orders, highlights)
+            battle_service._resolve_attack(battle, battle.ally_units[0], battle.enemy_units[0], battle.orders, highlights)
+            battle_service._refresh_mission_state(battle, mission_complete=True)
+
+            hero = player.characters[0]
+            self.assertGreater(hero.stats.damageTaken, 0.0)
+            self.assertGreater(hero.stats.injuriesTaken, 0)
+            self.assertGreater(hero.stats.damageDone, 0.0)
+            self.assertEqual(hero.stats.spellsCast, 1)
+            self.assertEqual(hero.stats.kills, 1)
+            self.assertEqual(hero.stats.bossesKilled, 1)
+            self.assertEqual(hero.stats.unitsKilled.get("Goblin Raider"), 1)
+            self.assertEqual(battle.mission_statistics.bossesDefeated, 1)
+            self.assertEqual(battle.mission_objective_status, MissionObjectiveStatus.SUCCESS)
+
 
 
 if __name__ == "__main__":

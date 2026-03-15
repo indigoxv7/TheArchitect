@@ -268,9 +268,70 @@ class Achievement:
         self.bonuses = [value] if value is not None else []
 
 class CharacterStatistics:
-    def __init__(self, kills: int = 0, damageTaken: int = 0,  missionCount: int = 0):
-        self.kills = kills
-        self.damageTaken = damageTaken
-        self.missionCount = missionCount
+    def __init__(
+        self,
+        kills: int = 0,
+        damageTaken: float = 0.0,
+        missionCount: int = 0,
+        damageDone: float = 0.0,
+        spellsCast: int = 0,
+        injuriesTaken: int = 0,
+        alliesProtected: int = 0,
+        bossesKilled: int = 0,
+        elitesKilled: int = 0,
+        unitsKilled: dict[str, int] | None = None,
+    ):
+        self.kills = max(0, int(kills or 0))
+        self.damageTaken = max(0.0, float(damageTaken or 0.0))
+        self.missionCount = max(0, int(missionCount or 0))
+        self.damageDone = max(0.0, float(damageDone or 0.0))
+        self.spellsCast = max(0, int(spellsCast or 0))
+        self.injuriesTaken = max(0, int(injuriesTaken or 0))
+        self.alliesProtected = max(0, int(alliesProtected or 0))
+        self.bossesKilled = max(0, int(bossesKilled or 0))
+        self.elitesKilled = max(0, int(elitesKilled or 0))
+        normalized_units_killed: dict[str, int] = {}
+        if isinstance(unitsKilled, dict):
+            for key, value in unitsKilled.items():
+                name = str(key or '').strip()
+                if not name:
+                    continue
+                try:
+                    count = int(value)
+                except Exception:
+                    count = 0
+                if count > 0:
+                    normalized_units_killed[name] = count
+        self.unitsKilled = normalized_units_killed
 
+    def record_damage_done(self, amount: float):
+        amount = max(0.0, float(amount or 0.0))
+        if amount <= 0.0:
+            return
+        self.damageDone += amount
+
+    def record_damage_taken(self, amount: float):
+        amount = max(0.0, float(amount or 0.0))
+        if amount <= 0.0:
+            return
+        self.damageTaken += amount
+        self.injuriesTaken += 1
+
+    def record_spell_cast(self):
+        self.spellsCast += 1
+
+    def record_ally_protected(self, count: int = 1):
+        self.alliesProtected += max(0, int(count or 0))
+
+    def record_kill(self, unit_name: str, count: int = 1, is_boss: bool = False, is_elite: bool = False):
+        count = max(0, int(count or 0))
+        if count <= 0:
+            return
+        self.kills += count
+        name = str(unit_name or '').strip() or 'Unknown Unit'
+        self.unitsKilled[name] = self.unitsKilled.get(name, 0) + count
+        if is_boss:
+            self.bossesKilled += count
+        if is_elite:
+            self.elitesKilled += count
 

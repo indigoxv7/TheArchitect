@@ -137,7 +137,7 @@ class TestMainCharacter(unittest.TestCase):
         self.assertIn(generated.characterInfo.distinguishingMarksLocation, BodyPart.__members__)
 
     def test_main_character_from_character_preserves_base_fields(self):
-        base_character = Character(name="Avery", level=3, raceTier="Tier II", party=1, race="Elf2")
+        base_character = Character(name="Avery", level=3, raceTier="Tier II", race="Elf2")
         base_character.health = 73
         base_character.description = "Field commander"
         base_character.portraitURL = "https://example.com/portrait.png"
@@ -150,7 +150,6 @@ class TestMainCharacter(unittest.TestCase):
         self.assertEqual(main_character.level, 3)
         self.assertEqual(main_character.raceTier, "Tier II")
         self.assertEqual(main_character.race, "Elf2")
-        self.assertEqual(main_character.party, 1)
         self.assertEqual(main_character.health, 73)
         self.assertEqual(main_character.description, "Field commander")
         self.assertTrue(main_character.characterInfo.occupation)

@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.domain.Character import Character
 from src.domain.player_functions import Player, load_player
 
 
@@ -41,6 +42,23 @@ class TestPlayerSave(unittest.TestCase):
             loaded.nano = 77
             reloaded = load_player(str(save_path))
             self.assertEqual(reloaded.nano, 77)
+
+    def test_mission_party_ids_round_trip(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_path = Path(temp_dir) / "200.json"
+
+            first = Character(name="First Hero")
+            first.playerInstanceId = "FirstHero0"
+            second = Character(name="Second Hero")
+            second.playerInstanceId = "SecondHero1"
+            player = Player(200, characters=[first, second], missionPartyCharacterIds=["SecondHero1"])
+            player.AttachSavePath(str(save_path), enableAutoSave=False)
+            player.Save()
+
+            loaded = load_player(str(save_path))
+
+            self.assertEqual(loaded.missionPartyCharacterIds, ["SecondHero1"])
+            self.assertEqual(loaded.GetMissionPartyCharacterIds(), ["SecondHero1"])
 
 
 if __name__ == "__main__":

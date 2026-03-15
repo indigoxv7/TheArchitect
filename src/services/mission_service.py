@@ -1,6 +1,6 @@
 import re
 
-from src.domain.Mission import Mission
+from src.domain.Mission import DeliveryObjective, EscortObjective, Mission
 from src.persistence.missionbook_store import MissionbookStore
 from src.services.game_context import GameContext
 
@@ -39,6 +39,23 @@ class MissionService:
         return text
 
     def _validate_mission(self, mission: Mission):
+        if not getattr(mission, "objective", None):
+            raise ValueError("Mission must include an objective.")
+
+        if isinstance(mission.objective, DeliveryObjective):
+            if not mission.objective.requiredItemId:
+                raise ValueError("Delivery missions must specify an item to deliver.")
+            if self.allegiance_service.get_allegiance_by_id(mission.objective.targetAllegianceId) is None:
+                raise ValueError(f"Delivery target allegiance '{mission.objective.targetAllegianceId}' does not exist.")
+            if self.context.all_items.get(mission.objective.requiredItemId) is None:
+                raise ValueError(f"Delivery item '{mission.objective.requiredItemId}' does not exist.")
+        if isinstance(mission.objective, EscortObjective):
+            escort_unit_id = str(mission.objective.escortUnitId or "").strip()
+            if not escort_unit_id:
+                raise ValueError("Escort missions must specify a unit to escort.")
+            if self.unit_service.get_unit_by_id(escort_unit_id) is None:
+                raise ValueError(f"Escort unit '{escort_unit_id}' does not exist.")
+
         seen_allegiances: set[str] = set()
         for config in mission.allegianceConfigs:
             allegiance_id = str(config.allegianceId or "").strip()
@@ -92,7 +109,7 @@ class MissionService:
 
     def save_missionbook(self):
         payload = {
-            "format_version": 1,
+            "format_version": 2,
             "missions": [mission.to_dict() for mission in self.list_missions()],
         }
         self.store.save(payload)
@@ -155,7 +172,11 @@ class MissionService:
 
         lines = []
         for mission in missions[:max_lines]:
-            lines.append(f"- {mission.name} [{mission.missionId}] ({len(mission.allegianceConfigs)} allegiances)")
+            objective_name = getattr(getattr(mission, "objective", None), "objectiveType", None)
+            objective_text = getattr(objective_name, "value", "No Objective")
+            lines.append(
+                f"- {mission.name} [{mission.missionId}] ({objective_text}, {len(mission.allegianceConfigs)} allegiances)"
+            )
 
         if len(missions) > max_lines:
             lines.append(f"... and {len(missions) - max_lines} more")

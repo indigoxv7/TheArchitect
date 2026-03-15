@@ -47,9 +47,7 @@ class Character:
         achievements: list[Achievement] | None = None,
         generalSkills: list[GeneralSkills] | None = None,
         spells: list[Spell] | None = None,
-        party: int = 0,
         buffs: list[Buff] | None = None,
-        stats: CharacterStatistics | None = None,
         race: str = "Human1",
         playerInstanceId: str = "",
     ):
@@ -74,12 +72,10 @@ class Character:
                 self.AddAchievement(achievement)
         self.generalSkills = generalSkills if generalSkills is not None else []
         self.spells = spells if spells is not None else []
-        self.party = party
         self.health = 100
         self.healthState = HealthState.HEALTHY
         self.buffs = buffs if buffs is not None else []
         self.totalBonus = TotalBonus(None)
-        self.stats = stats if stats is not None else CharacterStatistics()
         self.finalAttributes = copy.deepcopy(self.attributes)
         self.finalAffinities = copy.deepcopy(self.affinities)
         self.CalculateBonus()
@@ -105,8 +101,6 @@ class Character:
             self.spells = []
         if not hasattr(self, "buffs") or self.buffs is None:
             self.buffs = []
-        if not hasattr(self, "stats") or self.stats is None:
-            self.stats = CharacterStatistics()
         if not hasattr(self, "health"):
             self.health = 100
         if not hasattr(self, "healthState"):
@@ -117,8 +111,10 @@ class Character:
             self.affinities = Affinities()
         if not hasattr(self, "gear") or self.gear is None:
             self.gear = Gear()
-        if not hasattr(self, "party"):
-            self.party = 0
+        if hasattr(self, "party"):
+            delattr(self, "party")
+        if self.__class__.__name__ != "MainCharacter" and hasattr(self, "stats"):
+            delattr(self, "stats")
         if not hasattr(self, "raceTier"):
             self.raceTier = "Tier I"
         if not hasattr(self, "totalBonus") or self.totalBonus is None:
