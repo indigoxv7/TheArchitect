@@ -11,11 +11,12 @@ from discord.ext import commands
 from src.persistence.active_battle_store import ActiveBattleStore
 from src.persistence.player_memory_store import PlayerMemoryStore
 from src.services.achievement_service import AchievementService
+from src.services.allegiance_service import AllegianceService
 from src.services.battle_runtime_service import BattleRuntimeService
 from src.services.battle_service import BattleService
 from src.services.character_service import CharacterService
-from src.services.game_context import GameContext
 from src.services.encounter_service import EncounterService
+from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
@@ -24,6 +25,7 @@ from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.player_service import PlayerService
 from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
+from src.services.unit_service import UnitService
 from src.services.whitelist_service import AdminWhitelistService
 from src.tools.admin_gui import start_admin_gui_thread
 
@@ -40,7 +42,9 @@ SPELLBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Spells", "spellbook.json")
 ITEMBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Items", "itembook.json")
 CHARACTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Characters")
 ACHIEVEMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Achievements", "achievementbook.json")
+ALLEGIANCEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Allegiances", "allegiancebook.json")
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
+UNITBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Units", "unitbook.json")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
@@ -66,11 +70,21 @@ spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
 character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
 achievement_service = AchievementService(achievementbook_path=ACHIEVEMENTBOOK_PATH, context=context)
+allegiance_service = AllegianceService(allegiancebook_path=ALLEGIANCEBOOK_PATH, context=context)
 race_service = RaceService(
     racebook_path=RACEBOOK_PATH,
     context=context,
     character_service=character_service,
     spell_service=spell_service,
+    item_service=item_service,
+)
+unit_service = UnitService(
+    unitbook_path=UNITBOOK_PATH,
+    context=context,
+    race_service=race_service,
+    character_service=character_service,
+    spell_service=spell_service,
+    item_service=item_service,
 )
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
@@ -126,9 +140,11 @@ def initialize_game():
     player_service.initialize_storage()
     spell_service.load_spellbook()
     achievement_service.load_achievementbook()
+    allegiance_service.load_allegiancebook()
     item_service.load_itembook(default_items=dict(context.all_items))
     character_service.load_characters()
     race_service.load_racebook()
+    unit_service.load_unitbook()
     memory_service.initialize()
     battle_service.initialize()
     menu_service.load_menus()
@@ -192,7 +208,8 @@ if __name__ == "__main__":
         achievement_service=achievement_service,
         player_service=player_service,
         race_service=race_service,
+        unit_service=unit_service,
+        allegiance_service=allegiance_service,
         memory_service=memory_service,
     )
     bot.run(TOKEN)
-

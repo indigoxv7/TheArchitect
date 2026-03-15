@@ -1,9 +1,15 @@
-import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.CharacterUtil import Attributes
 from src.domain.Race import CreatureSize
+from src.tools.catalog_selectors import CharacterSelectDialog, SpellSelectDialog
+from src.tools.gear_options_editor import (
+    build_gear_options_summary,
+    default_gear_options_payload,
+    normalize_gear_options_payload,
+    GearOptionsEditorDialog,
+)
 
 
 def _safe_int(value, default=0):
@@ -18,118 +24,6 @@ def _safe_float(value, default=0.0):
         return float(value)
     except Exception:
         return default
-
-
-def _parse_label_id(label: str) -> str:
-    text = str(label or "").strip()
-    if text.endswith("]") and "[" in text:
-        return text[text.rfind("[") + 1 : -1].strip()
-    return text
-
-
-class CharacterSelectDialog(tk.Toplevel):
-    def __init__(self, parent, character_service, on_select):
-        super().__init__(parent)
-        self.title("Select Character")
-        self.geometry("760x500")
-        self.character_service = character_service
-        self.on_select = on_select
-        self.filtered = []
-
-        search_row = ttk.Frame(self)
-        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
-        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
-        self.search_var = tk.StringVar()
-        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
-        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
-
-        self.listbox = tk.Listbox(self, height=20)
-        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
-
-        actions = ttk.Frame(self)
-        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
-        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
-        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
-
-        self._refresh_list()
-
-    def _refresh_list(self):
-        query = self.search_var.get().strip().lower()
-        self.filtered = []
-        self.listbox.delete(0, tk.END)
-        for character_id, character in self.character_service.list_characters():
-            name = str(getattr(character, "name", "") or "")
-            level = int(_safe_int(getattr(character, "level", 0), 0))
-            display = f"{name} [{character_id}] (Lv {level})"
-            if query and query not in display.lower():
-                continue
-            self.filtered.append((character_id, character))
-            self.listbox.insert(tk.END, display)
-
-    def _select(self):
-        selection = self.listbox.curselection()
-        if not selection:
-            messagebox.showerror("Select Character", "Select a character.")
-            return
-        index = int(selection[0])
-        if index < 0 or index >= len(self.filtered):
-            return
-        character_id, _ = self.filtered[index]
-        self.on_select(character_id)
-        self.destroy()
-
-
-class SpellSelectDialog(tk.Toplevel):
-    def __init__(self, parent, spell_service, on_select):
-        super().__init__(parent)
-        self.title("Select Spell")
-        self.geometry("760x500")
-        self.spell_service = spell_service
-        self.on_select = on_select
-        self.filtered = []
-
-        search_row = ttk.Frame(self)
-        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
-        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
-        self.search_var = tk.StringVar()
-        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
-        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
-
-        self.listbox = tk.Listbox(self, height=20)
-        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
-
-        actions = ttk.Frame(self)
-        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
-        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
-        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
-
-        self._refresh_list()
-
-    def _refresh_list(self):
-        query = self.search_var.get().strip().lower()
-        self.filtered = []
-        self.listbox.delete(0, tk.END)
-        for spell in self.spell_service.list_spells():
-            affinity = spell.affinity.value if hasattr(spell.affinity, "value") else spell.affinity
-            label = f"{spell.name} (Lv {spell.level}, {affinity})"
-            if query and query not in label.lower():
-                continue
-            self.filtered.append(spell)
-            self.listbox.insert(tk.END, label)
-
-    def _select(self):
-        selection = self.listbox.curselection()
-        if not selection:
-            messagebox.showerror("Select Spell", "Select a spell.")
-            return
-        index = int(selection[0])
-        if index < 0 or index >= len(self.filtered):
-            return
-        spell = self.filtered[index]
-        self.on_select(spell.name)
-        self.destroy()
 
 
 class RaceEditorFrame(ttk.Frame):
@@ -149,6 +43,7 @@ class RaceEditorFrame(ttk.Frame):
         self.average_specimine_character_id = ""
         self.famed_enemy_character_ids = []
         self.spell_names_by_level = [[] for _ in range(21)]
+        self.gear_options_draft = default_gear_options_payload()
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -219,6 +114,14 @@ class RaceEditorFrame(ttk.Frame):
             self.max_attr_vars[key] = max_var
             ttk.Entry(max_row, textvariable=max_var).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+        gear_frame = ttk.LabelFrame(self, text="Gear Options")
+        gear_frame.pack(fill=tk.BOTH, expand=False, pady=6)
+        self.gear_summary = tk.Text(gear_frame, height=10, wrap=tk.WORD)
+        self.gear_summary.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        gear_actions = ttk.Frame(gear_frame)
+        gear_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
+        ttk.Button(gear_actions, text="Edit Gear Options", command=self._edit_gear_options).pack(side=tk.LEFT)
+
         spell_frame = ttk.LabelFrame(self, text="Spell List By Level")
         spell_frame.pack(fill=tk.BOTH, expand=False, pady=6)
 
@@ -275,6 +178,7 @@ class RaceEditorFrame(ttk.Frame):
         self.average_specimine_character_id = ""
         self.famed_enemy_character_ids = []
         self.spell_names_by_level = [[] for _ in range(21)]
+        self.gear_options_draft = default_gear_options_payload()
 
         self.vars["name"].set("")
         self.vars["detailedDescription"].set("")
@@ -290,6 +194,7 @@ class RaceEditorFrame(ttk.Frame):
 
         self._refresh_spell_level_listbox()
         self._refresh_famed_enemy_listbox()
+        self._refresh_gear_summary()
 
     def _filtered_races(self):
         query = self.search_var.get().strip().lower()
@@ -355,8 +260,15 @@ class RaceEditorFrame(ttk.Frame):
             if character_id:
                 self.famed_enemy_character_ids.append(character_id)
 
+        gear_options = getattr(race, "gearOptions", None)
+        if gear_options is not None:
+            self.gear_options_draft = normalize_gear_options_payload(gear_options.to_dict())
+        else:
+            self.gear_options_draft = default_gear_options_payload()
+
         self._refresh_spell_level_listbox()
         self._refresh_famed_enemy_listbox()
+        self._refresh_gear_summary()
 
     def _character_display_label(self, character_id: str) -> str:
         character = self.app.character_service.get_character(character_id)
@@ -375,6 +287,17 @@ class RaceEditorFrame(ttk.Frame):
     def _clear_average_specimine(self):
         self.average_specimine_character_id = ""
         self.vars["averageSpecimine"].set("<None>")
+
+    def _edit_gear_options(self):
+        GearOptionsEditorDialog(self, self.app.item_service, self.gear_options_draft, self._on_gear_options_saved)
+
+    def _on_gear_options_saved(self, payload):
+        self.gear_options_draft = normalize_gear_options_payload(payload)
+        self._refresh_gear_summary()
+
+    def _refresh_gear_summary(self):
+        self.gear_summary.delete("1.0", tk.END)
+        self.gear_summary.insert(tk.END, build_gear_options_summary(self.app.item_service, self.gear_options_draft))
 
     def _current_spell_level_index(self) -> int:
         return max(0, min(20, _safe_int(self.vars["spellLevel"].get(), 0)))
@@ -462,6 +385,7 @@ class RaceEditorFrame(ttk.Frame):
             "minAverageAttributes": self._collect_attributes(self.min_attr_vars),
             "spellList": spell_list_payload,
             "famedEnemyCharacterIds": list(self.famed_enemy_character_ids),
+            "gearOptions": normalize_gear_options_payload(self.gear_options_draft),
         }
 
     def _save(self):

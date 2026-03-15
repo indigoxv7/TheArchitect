@@ -1,0 +1,36 @@
+{
+    "format_version": 1,
+    "units": [
+        {
+            "unitId": "GoblinAssassin0",
+            "baseRaceId": "Goblin0",
+            "name": "Goblin Assassin",
+            "detailedDescription": "Goblin assassins are devious creatures even by goblin standards. They favor poisons and stealth, and never fight fair as a point of professional pride.",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1"
+                ],
+                "handsOptions": [
+                    "Gloves6"
+                ],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5",
+                    "Sword14"
+                ],
+                "offhandOptions": [
+                    "Dagger5"
+                ],
+                "inventoryOptions": [
+                    "Paperclip10"
+                ]
+            }
+        }
+    ]
+}

@@ -44,3 +44,11 @@ class GameContext:
     # Global racebook runtime state
     all_races: dict[str, object] = field(default_factory=dict)
     racebook_overview: str = "No races in racebook yet."
+
+    # Global unitbook runtime state
+    all_units: dict[str, object] = field(default_factory=dict)
+    unitbook_overview: str = "No units in unitbook yet."
+
+    # Global allegiancebook runtime state
+    all_allegiances: dict[str, object] = field(default_factory=dict)
+    allegiancebook_overview: str = "No allegiances in allegiancebook yet."

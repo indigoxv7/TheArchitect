@@ -53,7 +53,25 @@
                 [],
                 []
             ],
-            "famedEnemyCharacterIds": []
+            "famedEnemyCharacterIds": [],
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
         },
         {
             "raceId": "Human1",
@@ -106,7 +124,19 @@
                 [],
                 []
             ],
-            "famedEnemyCharacterIds": []
+            "famedEnemyCharacterIds": [],
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [],
+                "primaryWeaponOptions": [],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
         }
     ]
 }

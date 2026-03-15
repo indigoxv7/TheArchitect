@@ -6,10 +6,11 @@ from src.services.game_context import GameContext
 
 
 class RaceService:
-    def __init__(self, racebook_path: str, context: GameContext, character_service, spell_service):
+    def __init__(self, racebook_path: str, context: GameContext, character_service, spell_service, item_service):
         self.context = context
         self.character_service = character_service
         self.spell_service = spell_service
+        self.item_service = item_service
         self.store = RacebookStore(racebook_path)
 
     @staticmethod
@@ -51,6 +52,12 @@ class RaceService:
             return None
         return self.spell_service.get_spell(key)
 
+    def _resolve_item(self, item_identifier: str):
+        key = str(item_identifier or "").strip()
+        if not key:
+            return None
+        return self.item_service.get_item(key)
+
     def _resolve_character_id(self, character_obj) -> str | None:
         if character_obj is None:
             return None
@@ -71,6 +78,13 @@ class RaceService:
         if len(matches) == 1:
             return matches[0]
         return None
+
+    @staticmethod
+    def _resolve_item_id(item_obj) -> str | None:
+        if item_obj is None:
+            return None
+        item_id = str(getattr(item_obj, "itemId", "") or "").strip()
+        return item_id or None
 
     def resolve_character_id(self, character_obj) -> str | None:
         return self._resolve_character_id(character_obj)
@@ -99,6 +113,7 @@ class RaceService:
                     race_data,
                     resolve_character=self._resolve_character,
                     resolve_spell=self._resolve_spell,
+                    resolve_item=self._resolve_item,
                 )
             except Exception:
                 continue
@@ -119,7 +134,13 @@ class RaceService:
             self.context.racebook_overview = self.build_racebook_overview()
 
     def save_racebook(self):
-        races = [race.to_dict(resolve_character_id=self._resolve_character_id) for race in self.list_races()]
+        races = [
+            race.to_dict(
+                resolve_character_id=self._resolve_character_id,
+                resolve_item_id=self._resolve_item_id,
+            )
+            for race in self.list_races()
+        ]
         payload = {"format_version": 1, "races": races}
         self.store.save(payload)
         self.context.racebook_overview = self.build_racebook_overview()
@@ -150,6 +171,7 @@ class RaceService:
             data,
             resolve_character=self._resolve_character,
             resolve_spell=self._resolve_spell,
+            resolve_item=self._resolve_item,
         )
 
         if not race.raceId:
@@ -166,7 +188,10 @@ class RaceService:
         if existing is None:
             raise ValueError(f"Race '{race_identifier}' does not exist or is ambiguous.")
 
-        merged = existing.to_dict(resolve_character_id=self._resolve_character_id)
+        merged = existing.to_dict(
+            resolve_character_id=self._resolve_character_id,
+            resolve_item_id=self._resolve_item_id,
+        )
         merged.update(patch or {})
         if not str(merged.get("name", "")).strip():
             merged["name"] = existing.name
@@ -177,6 +202,7 @@ class RaceService:
             merged,
             resolve_character=self._resolve_character,
             resolve_spell=self._resolve_spell,
+            resolve_item=self._resolve_item,
         )
         updated.raceId = existing.raceId
 

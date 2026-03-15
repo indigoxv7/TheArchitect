@@ -1,4 +1,4 @@
-﻿import tempfile
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -33,6 +33,7 @@ class TestRaceService(unittest.TestCase):
             context=context,
             character_service=character_service,
             spell_service=spell_service,
+            item_service=item_service,
         )
         race_service.load_racebook()
 
@@ -42,7 +43,7 @@ class TestRaceService(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             (
                 context,
-                _item_service,
+                item_service,
                 spell_service,
                 character_service,
                 race_service,
@@ -77,6 +78,10 @@ class TestRaceService(unittest.TestCase):
                     "description": "Hardened skin.",
                 }
             )
+            item_service.create_item_from_dict({"name": "Goblin Hood", "slot": "HEAD", "itemType": "ARMOR"})
+            item_service.create_item_from_dict({"name": "Rusty Knife", "slot": "HANDS", "itemType": "MELEE_WEAPON"})
+            hood = item_service.get_item("Goblin Hood")
+            knife = item_service.get_item("Rusty Knife")
 
             avg_id, _avg_character = character_service.create_character_from_dict({"name": "Average Goblin", "level": 2})
             enemy_id, _enemy_character = character_service.create_character_from_dict({"name": "Knight Captain", "level": 5})
@@ -107,6 +112,11 @@ class TestRaceService(unittest.TestCase):
                     },
                     "spellList": [["Spark"], [], ["Stone Skin"]],
                     "famedEnemyCharacterIds": [enemy_id],
+                    "gearOptions": {
+                        "headOptions": [hood.itemId],
+                        "primaryWeaponOptions": [knife.itemId],
+                        "inventoryOptions": [knife.itemId],
+                    },
                 }
             )
 
@@ -119,6 +129,7 @@ class TestRaceService(unittest.TestCase):
             self.assertEqual(getattr(race.spellList[0][0], "name", ""), "Spark")
             self.assertEqual(getattr(race.spellList[2][0], "name", ""), "Stone Skin")
             self.assertEqual(getattr(race.FamedEnemyList[0], "name", ""), "Knight Captain")
+            self.assertEqual(getattr(race.gearOptions.headOptions[0], "itemId", ""), hood.itemId)
 
             original_race_id = race.raceId
             race_service.edit_race_from_patch(
@@ -127,6 +138,9 @@ class TestRaceService(unittest.TestCase):
                     "name": "Goblin Renamed",
                     "beifDescription": "A quick and wiry raider.",
                     "spellList": [[], ["Spark"]],
+                    "gearOptions": {
+                        "primaryWeaponOptions": [knife.itemId],
+                    },
                 },
             )
 
@@ -136,6 +150,7 @@ class TestRaceService(unittest.TestCase):
             self.assertEqual(edited.name, "Goblin Renamed")
             self.assertEqual(edited.beifDescription, "A quick and wiry raider.")
             self.assertEqual(getattr(edited.spellList[1][0], "name", ""), "Spark")
+            self.assertEqual(getattr(edited.gearOptions.primaryWeaponOptions[0], "itemId", ""), knife.itemId)
 
             self.assertIn(original_race_id, context.racebook_overview)
 
@@ -158,6 +173,7 @@ class TestRaceService(unittest.TestCase):
                 context=reloaded_context,
                 character_service=reloaded_character_service,
                 spell_service=reloaded_spell_service,
+                item_service=reloaded_item_service,
             )
             reloaded_race_service.load_racebook()
 
@@ -167,6 +183,7 @@ class TestRaceService(unittest.TestCase):
             self.assertEqual(getattr(loaded.averageSpecimine, "name", ""), "Average Goblin")
             self.assertEqual(getattr(loaded.spellList[1][0], "name", ""), "Spark")
             self.assertEqual(getattr(loaded.FamedEnemyList[0], "name", ""), "Knight Captain")
+            self.assertEqual(getattr(loaded.gearOptions.primaryWeaponOptions[0], "itemId", ""), knife.itemId)
 
     def test_duplicate_race_names_get_unique_ids(self):
         with tempfile.TemporaryDirectory() as temp_dir:

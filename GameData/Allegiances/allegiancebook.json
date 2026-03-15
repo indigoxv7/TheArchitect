@@ -1,0 +1,19 @@
+{
+    "format_version": 1,
+    "allegiances": [
+        {
+            "allegianceId": "Bandit0",
+            "name": "Bandit",
+            "defaultPolicy": "HOSTILE_BY_DEFAULT",
+            "relationships": {}
+        },
+        {
+            "allegianceId": "Wildlife1",
+            "name": "Wildlife",
+            "defaultPolicy": "NEUTRAL_BY_DEFAULT",
+            "relationships": {
+                "Bandit0": "ENEMIES"
+            }
+        }
+    ]
+}

@@ -6,6 +6,7 @@ from typing import Any, Callable
 from src.domain.Character import Character
 from src.domain.CharacterUtil import Attributes
 from src.domain.Spells import Spell
+from src.domain.gear_options import GearOptions
 
 
 class CreatureSize(Enum):
@@ -29,6 +30,7 @@ class Race:
         minAverageAttributes: Attributes | None = None,
         spellList: list[list[Spell]] | None = None,
         FamedEnemyList: list[Character] | None = None,
+        gearOptions: GearOptions | None = None,
         raceId: str = "",
     ):
         self.name = str(name or "")
@@ -41,6 +43,7 @@ class Race:
         self.minAverageAttributes = minAverageAttributes if minAverageAttributes is not None else Attributes()
         self.spellList = self._normalize_spell_list(spellList)
         self.FamedEnemyList = [entry for entry in (FamedEnemyList or []) if entry is not None]
+        self.gearOptions = gearOptions if isinstance(gearOptions, GearOptions) else GearOptions()
         self.raceId = str(raceId or "")
 
     @staticmethod
@@ -118,7 +121,11 @@ class Race:
             magicResistance=_coerce(data.get("magicResistance", 5.0)),
         )
 
-    def to_dict(self, resolve_character_id: Callable[[Character], str | None] | None = None) -> dict[str, Any]:
+    def to_dict(
+        self,
+        resolve_character_id: Callable[[Character], str | None] | None = None,
+        resolve_item_id: Callable[[Any], str | None] | None = None,
+    ) -> dict[str, Any]:
         average_id = None
         if callable(resolve_character_id) and self.averageSpecimine is not None:
             average_id = resolve_character_id(self.averageSpecimine)
@@ -150,6 +157,7 @@ class Race:
             "minAverageAttributes": self._attributes_to_dict(self.minAverageAttributes),
             "spellList": spell_names,
             "famedEnemyCharacterIds": famed_ids,
+            "gearOptions": self.gearOptions.to_dict(resolve_item_id=resolve_item_id),
         }
 
     @classmethod
@@ -158,6 +166,7 @@ class Race:
         data: dict[str, Any],
         resolve_character: Callable[[str], Character | None] | None = None,
         resolve_spell: Callable[[str], Spell | None] | None = None,
+        resolve_item: Callable[[str], Any] | None = None,
     ) -> "Race":
         if not isinstance(data, dict):
             raise ValueError("Race data must be a dictionary.")
@@ -222,5 +231,6 @@ class Race:
             minAverageAttributes=cls._attributes_from_dict(data.get("minAverageAttributes")),
             spellList=spell_list,
             FamedEnemyList=famed_enemies,
+            gearOptions=GearOptions.from_dict(data.get("gearOptions"), resolve_item=resolve_item),
             raceId=str(data.get("raceId", "") or ""),
         )
