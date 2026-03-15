@@ -21,6 +21,7 @@ from src.domain.Spells import AffinityTypes
 from src.domain.character_io import character_from_state, character_to_state
 from src.services.main_character_generator import generate_main_character_from_scratch
 from src.tools.allegiance_editor import AllegianceEditorFrame
+from src.tools.environment_editor import EnvironmentEditorFrame
 from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.mission_editor import MissionEditorFrame
 from src.tools.race_editor import RaceEditorFrame
@@ -201,7 +202,7 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, memory_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
@@ -211,6 +212,7 @@ class AdminEditorApp:
         self.unit_service = unit_service
         self.allegiance_service = allegiance_service
         self.mission_service = mission_service
+        self.environment_service = environment_service
         self.memory_service = memory_service
 
         self.root = tk.Tk()
@@ -230,6 +232,7 @@ class AdminEditorApp:
         self.unit_frame = UnitEditorFrame(self.container, self)
         self.allegiance_frame = AllegianceEditorFrame(self.container, self)
         self.mission_frame = MissionEditorFrame(self.container, self)
+        self.environment_frame = EnvironmentEditorFrame(self.container, self)
         self.memory_frame = MainCharacterMemoryFrame(self.container, self)
 
         self._build_home()
@@ -246,6 +249,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Units", command=self.show_unit_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Allegiances", command=self.show_allegiance_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Missions", command=self.show_mission_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Edit Environment", command=self.show_environment_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Main Character Memory", command=self.show_memory_editor).pack(fill=tk.X, pady=6)
 
     def _show(self, frame):
@@ -260,6 +264,7 @@ class AdminEditorApp:
             self.unit_frame,
             self.allegiance_frame,
             self.mission_frame,
+            self.environment_frame,
             self.memory_frame,
         ):
             child.pack_forget()
@@ -303,6 +308,10 @@ class AdminEditorApp:
     def show_mission_editor(self):
         self.mission_frame.refresh_mission_list(reset_form=True)
         self._show(self.mission_frame)
+
+    def show_environment_editor(self):
+        self.environment_frame.refresh_all(reset_forms=True)
+        self._show(self.environment_frame)
 
     def show_memory_editor(self):
         self.memory_frame.refresh_player_list(reset_form=True)
@@ -2686,10 +2695,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, memory_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, memory_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")

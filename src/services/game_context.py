@@ -57,3 +57,13 @@ class GameContext:
     all_missions: dict[str, object] = field(default_factory=dict)
     missionbook_overview: str = "No missions in missionbook yet."
 
+    # Global environment runtime state
+    all_environment_effects: dict[str, object] = field(default_factory=dict)
+    effectbook_overview: str = "No effects in effectbook yet."
+    all_terrains: dict[str, object] = field(default_factory=dict)
+    terrainbook_overview: str = "No terrains in terrainbook yet."
+    all_climates: dict[str, object] = field(default_factory=dict)
+    climatebook_overview: str = "No climates in climatebook yet."
+    all_biomes: dict[str, object] = field(default_factory=dict)
+    biomebook_overview: str = "No biomes in biomebook yet."
+

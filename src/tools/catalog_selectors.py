@@ -275,3 +275,164 @@ class AllegianceSelectDialog(tk.Toplevel):
         self.on_select(allegiance.allegianceId)
         self.destroy()
 
+
+class EffectSelectDialog(tk.Toplevel):
+    def __init__(self, parent, environment_service, on_select, exclude_ids=None):
+        super().__init__(parent)
+        self.title("Select Effect")
+        self.geometry("760x500")
+        self.environment_service = environment_service
+        self.on_select = on_select
+        self.exclude_ids = {str(entry or "").strip() for entry in (exclude_ids or []) if str(entry or "").strip()}
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for effect in self.environment_service.list_effects():
+            if effect.effectId in self.exclude_ids:
+                continue
+            label = self.environment_service.get_effect_label(effect)
+            if query and query not in label.lower():
+                continue
+            self.filtered.append(effect)
+            self.listbox.insert(tk.END, label)
+
+    def _select(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Select Effect", "Select an effect.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        effect = self.filtered[index]
+        self.on_select(effect.effectId)
+        self.destroy()
+
+
+class TerrainSelectDialog(tk.Toplevel):
+    def __init__(self, parent, environment_service, on_select, exclude_ids=None):
+        super().__init__(parent)
+        self.title("Select Terrain")
+        self.geometry("760x500")
+        self.environment_service = environment_service
+        self.on_select = on_select
+        self.exclude_ids = {str(entry or "").strip() for entry in (exclude_ids or []) if str(entry or "").strip()}
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for terrain in self.environment_service.list_terrains():
+            if terrain.terrainId in self.exclude_ids:
+                continue
+            label = self.environment_service.get_terrain_label(terrain)
+            if query and query not in label.lower():
+                continue
+            self.filtered.append(terrain)
+            self.listbox.insert(tk.END, label)
+
+    def _select(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Select Terrain", "Select a terrain.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        terrain = self.filtered[index]
+        self.on_select(terrain.terrainId)
+        self.destroy()
+
+
+class ClimateSelectDialog(tk.Toplevel):
+    def __init__(self, parent, environment_service, on_select, exclude_ids=None):
+        super().__init__(parent)
+        self.title("Select Climate")
+        self.geometry("760x500")
+        self.environment_service = environment_service
+        self.on_select = on_select
+        self.exclude_ids = {str(entry or "").strip() for entry in (exclude_ids or []) if str(entry or "").strip()}
+        self.filtered = []
+
+        search_row = ttk.Frame(self)
+        search_row.pack(fill=tk.X, padx=10, pady=(10, 6))
+        ttk.Label(search_row, text="Search", width=10).pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_row, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        search_entry.bind("<KeyRelease>", lambda _e: self._refresh_list())
+
+        self.listbox = tk.Listbox(self, height=20)
+        self.listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+
+        actions = ttk.Frame(self)
+        actions.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ttk.Button(actions, text="Select", command=self._select).pack(side=tk.LEFT)
+        ttk.Button(actions, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=6)
+
+        self._refresh_list()
+
+    def _refresh_list(self):
+        query = self.search_var.get().strip().lower()
+        self.filtered = []
+        self.listbox.delete(0, tk.END)
+        for climate in self.environment_service.list_climates():
+            if climate.climateId in self.exclude_ids:
+                continue
+            label = self.environment_service.get_climate_label(climate)
+            if query and query not in label.lower():
+                continue
+            self.filtered.append(climate)
+            self.listbox.insert(tk.END, label)
+
+    def _select(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            messagebox.showerror("Select Climate", "Select a climate.")
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.filtered):
+            return
+        climate = self.filtered[index]
+        self.on_select(climate.climateId)
+        self.destroy()

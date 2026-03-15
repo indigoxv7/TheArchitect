@@ -16,6 +16,7 @@ from src.services.battle_runtime_service import BattleRuntimeService
 from src.services.battle_service import BattleService
 from src.services.character_service import CharacterService
 from src.services.encounter_service import EncounterService
+from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
@@ -47,6 +48,7 @@ ALLEGIANCEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Allegiances", "allegian
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 UNITBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Units", "unitbook.json")
 MISSIONBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Missions", "missionbook.json")
+ENVIRONMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Environment", "environmentbook.json")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
@@ -94,6 +96,7 @@ mission_service = MissionService(
     allegiance_service=allegiance_service,
     unit_service=unit_service,
 )
+environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
     emoji_placeholders=EMOJI_PLACEHOLDERS,
@@ -154,6 +157,7 @@ def initialize_game():
     race_service.load_racebook()
     unit_service.load_unitbook()
     mission_service.load_missionbook()
+    environment_service.load_environmentbook()
     memory_service.initialize()
     battle_service.initialize()
     menu_service.load_menus()
@@ -220,6 +224,7 @@ if __name__ == "__main__":
         unit_service=unit_service,
         allegiance_service=allegiance_service,
         mission_service=mission_service,
+        environment_service=environment_service,
         memory_service=memory_service,
     )
     bot.run(TOKEN)
