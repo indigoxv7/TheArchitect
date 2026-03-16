@@ -14,6 +14,7 @@ from src.services.achievement_service import AchievementService
 from src.services.allegiance_service import AllegianceService
 from src.services.battle_runtime_service import BattleRuntimeService
 from src.services.battle_service import BattleService
+from src.services.campaign_service import CampaignService
 from src.services.character_service import CharacterService
 from src.services.encounter_service import EncounterService
 from src.services.environment_service import EnvironmentService
@@ -49,6 +50,7 @@ ALLEGIANCEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Allegiances", "allegian
 RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 UNITBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Units", "unitbook.json")
 MISSIONBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Missions", "missionbook.json")
+CAMPAIGNBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Campaigns", "campaignbook.json")
 ENVIRONMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Environment", "environmentbook.json")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
@@ -98,6 +100,7 @@ mission_service = MissionService(
     allegiance_service=allegiance_service,
     unit_service=unit_service,
 )
+campaign_service = CampaignService(campaignbook_path=CAMPAIGNBOOK_PATH, context=context, mission_service=mission_service)
 environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
@@ -131,6 +134,7 @@ battle_service = BattleService(
     memory_service=memory_service,
 )
 battle_runtime_service = BattleRuntimeService(battle_service=battle_service)
+player_service.set_campaign_service(campaign_service)
 _is_initialized = False
 
 menu_runtime_service = MenuRuntimeService(
@@ -159,6 +163,7 @@ def initialize_game():
     race_service.load_racebook()
     unit_service.load_unitbook()
     mission_service.load_missionbook()
+    campaign_service.load_campaignbook()
     environment_service.load_environmentbook()
     memory_service.initialize()
     battle_service.initialize()
@@ -226,6 +231,7 @@ if __name__ == "__main__":
         unit_service=unit_service,
         allegiance_service=allegiance_service,
         mission_service=mission_service,
+        campaign_service=campaign_service,
         environment_service=environment_service,
         memory_service=memory_service,
         power_rating_service=power_rating_service,

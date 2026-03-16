@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+﻿from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
@@ -57,6 +57,10 @@ class GameContext:
     all_missions: dict[str, object] = field(default_factory=dict)
     missionbook_overview: str = "No missions in missionbook yet."
 
+    # Global campaignbook runtime state
+    all_campaigns: dict[str, object] = field(default_factory=dict)
+    campaignbook_overview: str = "No campaigns in campaignbook yet."
+
     # Global environment runtime state
     all_environment_effects: dict[str, object] = field(default_factory=dict)
     effectbook_overview: str = "No effects in effectbook yet."
@@ -66,4 +70,3 @@ class GameContext:
     climatebook_overview: str = "No climates in climatebook yet."
     all_biomes: dict[str, object] = field(default_factory=dict)
     biomebook_overview: str = "No biomes in biomebook yet."
-

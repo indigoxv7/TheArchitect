@@ -40,9 +40,13 @@ class PlayerService:
             roster_path=existing_players_roster_path,
             player_save_directory=player_save_directory,
         )
+        self.campaign_service = None
 
     def set_guild(self, guild_obj):
         self.context.guild = guild_obj
+
+    def set_campaign_service(self, campaign_service):
+        self.campaign_service = campaign_service
 
     @staticmethod
     def get_int_from_string_end(string: str) -> Optional[int]:
@@ -74,7 +78,9 @@ class PlayerService:
         ensure_defaults = getattr(clone, "EnsureRuntimeDefaults", None)
         if callable(ensure_defaults):
             ensure_defaults()
-        clone.playerInstanceId = self._generate_player_instance_id(existing_characters or [], getattr(clone, "name", "Character"))
+        clone.playerInstanceId = self._generate_player_instance_id(
+            existing_characters or [], getattr(clone, "name", "Character")
+        )
         return clone
 
     def clone_character_from_template(self, character_identifier: str, existing_characters: list | None = None):
@@ -111,7 +117,9 @@ class PlayerService:
 
             player_instance_id = str(getattr(character, "playerInstanceId", "") or "")
             if not player_instance_id or player_instance_id in used_ids:
-                character.playerInstanceId = self._generate_player_instance_id(normalized, getattr(character, "name", "Character"))
+                character.playerInstanceId = self._generate_player_instance_id(
+                    normalized, getattr(character, "name", "Character")
+                )
                 player_instance_id = str(getattr(character, "playerInstanceId", "") or "")
                 migrated = True
 
@@ -159,6 +167,8 @@ class PlayerService:
     def _normalize_loaded_player(self, player: Player) -> bool:
         player._ensure_runtime_defaults()
         migrated = self._normalize_player_characters(player)
+        if self.campaign_service is not None:
+            migrated = self.campaign_service.ensure_player_progress(player) or migrated
         return migrated
 
     async def get_name_from_id(self, guild_obj, discord_id: int) -> str:

@@ -5,6 +5,7 @@ import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
+from src.domain.Campaign import CampaignProgress
 from src.domain.faction_functions import Faction
 from src.domain.CharacterUtil import TitlePreference
 
@@ -18,8 +19,10 @@ LEGACY_MODULE_MAP = {
     "faction_functions": "src.domain.faction_functions",
     "GeneralSkills": "src.domain.GeneralSkills",
     "Globals": "src.config.Globals",
+    "Campaign": "src.domain.Campaign",
     "src.thearchitect.domain.player_functions": "src.domain.player_functions",
     "src.thearchitect.ui.menu_functions": "src.ui.menu_functions",
+    "src.thearchitect.domain.Campaign": "src.domain.Campaign",
     "MainCharacter": "src.domain.MainCharacter",
     "src.thearchitect.domain.MainCharacter": "src.domain.MainCharacter",
 }
@@ -37,7 +40,7 @@ class Player:
     ENERGY_REGEN_RATE_PER_SECOND = 1.0 / 60.0
     _NON_PERSISTENT_FIELDS = {"_auto_save_enabled", "_save_path", "_is_initializing"}
 
-    intChoice: int  # a value which should be set by player choice and then is used by the menu command system to make an action.
+    intChoice: int
 
     def __init__(
         self,
@@ -51,6 +54,7 @@ class Player:
         energyLastCalculatedTime: Optional[float] = None,
         inventory=None,
         missionPartyCharacterIds=None,
+        campaignProgressById=None,
         energyRegenRatePerSecond: float = ENERGY_REGEN_RATE_PER_SECOND,
     ):
         object.__setattr__(self, "_auto_save_enabled", False)
@@ -60,22 +64,24 @@ class Player:
         if energyLastCalculatedTime is None:
             energyLastCalculatedTime = time.time()
 
-        self.discordID = discord_id  # Discord user ID
-        self.playerName = "PlayerName"  # will be filled in immediately after player creation/loading.
-        self.nano = nano  # Placeholder for player's 'nano' currency or points
-        # Energy allows the player to perform actions.
+        self.discordID = discord_id
+        self.playerName = "PlayerName"
+        self.nano = nano
         self.energy = float(energy)
-        self.energyCap = energyCap  # Maximum amount of energy that the player can currently store.
-        self.energyLastCalculatedTime = energyLastCalculatedTime  # used to calculate regenerated energy since last check.
+        self.energyCap = energyCap
+        self.energyLastCalculatedTime = energyLastCalculatedTime
         self.energyRegenRatePerSecond = energyRegenRatePerSecond
-        self.titlePreference = titlePreference  # use Enum TitlePreference.Masculine or TitlePreference.Feminine
-        self.characters = characters if characters is not None else []  # List of character objects
+        self.titlePreference = titlePreference
+        self.characters = characters if characters is not None else []
         self.faction = faction
         self.achievementTitle = ""
         self.isNewPlayer = False
         self.partyNames = ["Delta Team", "2", "3", "4"]
         self.inventory = inventory if inventory is not None else []
-        self.missionPartyCharacterIds = [str(entry or "").strip() for entry in (missionPartyCharacterIds or []) if str(entry or "").strip()]
+        self.missionPartyCharacterIds = [
+            str(entry or "").strip() for entry in (missionPartyCharacterIds or []) if str(entry or "").strip()
+        ]
+        self.campaignProgressById = self._normalize_campaign_progress_map(campaignProgressById)
 
         self.intChoice = 0
 
@@ -103,7 +109,6 @@ class Player:
             return
         save_player(self, self._save_path)
 
-    # Returns the up-to-date integer energy amount and updates the stored energy/timestamp.
     def GetCurrentEnergy(self, currentTime: Optional[float] = None, persist: bool = True) -> int:
         if currentTime is None:
             currentTime = time.time()
@@ -112,7 +117,6 @@ class Player:
         regenerated = elapsed * float(self.energyRegenRatePerSecond)
         newEnergy = min(float(self.energyCap), float(self.energy) + regenerated)
 
-        # Avoid double-save while updating related fields together.
         object.__setattr__(self, "energy", newEnergy)
         object.__setattr__(self, "energyLastCalculatedTime", currentTime)
 
@@ -120,6 +124,26 @@ class Player:
             self.Save()
 
         return int(self.energy)
+
+    @staticmethod
+    def _normalize_campaign_progress_map(value) -> dict[str, CampaignProgress]:
+        if not isinstance(value, dict):
+            return {}
+        normalized: dict[str, CampaignProgress] = {}
+        for campaign_id, progress in value.items():
+            key = str(campaign_id or "").strip()
+            if not key:
+                continue
+            if isinstance(progress, CampaignProgress):
+                progress.EnsureRuntimeDefaults()
+                progress.campaignId = key
+                normalized[key] = progress
+                continue
+            if isinstance(progress, dict):
+                coerced = CampaignProgress.from_dict(progress)
+                coerced.campaignId = key
+                normalized[key] = coerced
+        return normalized
 
     def _ensure_runtime_defaults(self):
         if not hasattr(self, "energy"):
@@ -142,6 +166,9 @@ class Player:
             self.missionPartyCharacterIds = [
                 str(entry or "").strip() for entry in self.missionPartyCharacterIds if str(entry or "").strip()
             ]
+        if not hasattr(self, "campaignProgressById") or self.campaignProgressById is None:
+            self.campaignProgressById = {}
+        self.campaignProgressById = self._normalize_campaign_progress_map(self.campaignProgressById)
 
         for character in self.characters:
             ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
@@ -183,6 +210,12 @@ class Player:
         selected_ids = set(self.GetMissionPartyCharacterIds())
         return [character for character in self.characters if self._character_identity(character) in selected_ids]
 
+    def GetCampaignProgress(self, campaignId: str) -> CampaignProgress | None:
+        key = str(campaignId or "").strip()
+        if not key:
+            return None
+        return self.campaignProgressById.get(key)
+
     def GetCharacterText(self):
         cString = ""
         selected_ids = set(self.GetMissionPartyCharacterIds())
@@ -214,7 +247,6 @@ class Player:
             return "Selected for Mission" if self.IsCharacterInMissionParty(self.characters[characterIndex]) else "Reserve"
         return ""
 
-    # Returns the requested character index. If no such index exists, return the last character in the list.
     def GetCharacter(self, index: int):
         if len(self.characters) > index:
             return self.characters[index]
@@ -308,9 +340,3 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
-
-
-
-
-
-

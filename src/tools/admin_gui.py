@@ -1,4 +1,4 @@
-import json
+﻿import json
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -21,6 +21,7 @@ from src.domain.Spells import AffinityTypes, Spell
 from src.domain.character_io import character_from_state, character_to_state
 from src.services.main_character_generator import generate_main_character_from_scratch
 from src.tools.allegiance_editor import AllegianceEditorFrame
+from src.tools.campaign_editor import CampaignEditorFrame, PlayerCampaignProgressDialog
 from src.tools.environment_editor import EnvironmentEditorFrame
 from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.mission_editor import MissionEditorFrame
@@ -202,7 +203,7 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
@@ -212,6 +213,7 @@ class AdminEditorApp:
         self.unit_service = unit_service
         self.allegiance_service = allegiance_service
         self.mission_service = mission_service
+        self.campaign_service = campaign_service
         self.environment_service = environment_service
         self.memory_service = memory_service
         self.power_rating_service = power_rating_service
@@ -233,6 +235,7 @@ class AdminEditorApp:
         self.unit_frame = UnitEditorFrame(self.container, self)
         self.allegiance_frame = AllegianceEditorFrame(self.container, self)
         self.mission_frame = MissionEditorFrame(self.container, self)
+        self.campaign_frame = CampaignEditorFrame(self.container, self)
         self.environment_frame = EnvironmentEditorFrame(self.container, self)
         self.memory_frame = MainCharacterMemoryFrame(self.container, self)
 
@@ -250,6 +253,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Units", command=self.show_unit_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Allegiances", command=self.show_allegiance_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Missions", command=self.show_mission_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Edit Campaigns", command=self.show_campaign_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Environment", command=self.show_environment_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Main Character Memory", command=self.show_memory_editor).pack(fill=tk.X, pady=6)
 
@@ -265,6 +269,7 @@ class AdminEditorApp:
             self.unit_frame,
             self.allegiance_frame,
             self.mission_frame,
+            self.campaign_frame,
             self.environment_frame,
             self.memory_frame,
         ):
@@ -309,6 +314,10 @@ class AdminEditorApp:
     def show_mission_editor(self):
         self.mission_frame.refresh_mission_list(reset_form=True)
         self._show(self.mission_frame)
+
+    def show_campaign_editor(self):
+        self.campaign_frame.refresh_campaign_list(reset_form=True)
+        self._show(self.campaign_frame)
 
     def show_environment_editor(self):
         self.environment_frame.refresh_all(reset_forms=True)
@@ -2436,7 +2445,10 @@ class PlayerEditorFrame(ttk.Frame):
         self.summary_var = tk.StringVar(value="No player selected.")
         ttk.Label(self, textvariable=self.summary_var, justify=tk.LEFT, anchor="w").pack(fill=tk.X, pady=(2, 8))
 
-        ttk.Button(self, text="Save Player", command=self._save).pack(fill=tk.X, pady=8)
+        action_row = ttk.Frame(self)
+        action_row.pack(fill=tk.X, pady=8)
+        ttk.Button(action_row, text="Edit Campaign Progress", command=self._edit_campaign_progress).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        ttk.Button(action_row, text="Save Player", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
         self._clear_form()
 
     def _row_entry(self, label, var, state="normal"):
@@ -2620,8 +2632,9 @@ class PlayerEditorFrame(ttk.Frame):
         for item in self.inventory_draft:
             self.inventory_listbox.insert(tk.END, self._item_label(item))
 
+        campaign_count = len(getattr(self.current_player, "campaignProgressById", {}) or {}) if self.current_player is not None else 0
         self.summary_var.set(
-            f"Characters: {len(self.characters_draft)} | Mission Party: {len(ordered_party_ids)} | Inventory Items: {len(self.inventory_draft)}"
+            f"Characters: {len(self.characters_draft)} | Mission Party: {len(ordered_party_ids)} | Inventory Items: {len(self.inventory_draft)} | Campaigns: {campaign_count}"
         )
 
     def _add_character(self):
@@ -2696,6 +2709,15 @@ class PlayerEditorFrame(ttk.Frame):
         self.inventory_draft.pop(index)
         self._refresh_lists()
 
+    def _edit_campaign_progress(self):
+        if self.current_player is None:
+            messagebox.showerror("Player Editor", "Select a player before editing campaign progress.")
+            return
+        if not self.app.campaign_service.list_campaigns():
+            messagebox.showerror("Player Editor", "Create at least one campaign before editing campaign progress.")
+            return
+        PlayerCampaignProgressDialog(self, self.app, self.current_player, on_saved=self._refresh_lists)
+
     def _save(self):
         if self.current_player is None or self.current_player_id is None:
             messagebox.showerror("Player Editor", "Select a player before saving.")
@@ -2748,10 +2770,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, environment_service, memory_service, power_rating_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")
@@ -2759,6 +2781,7 @@ def start_admin_gui_thread(spell_service, item_service, character_service, achie
     thread = threading.Thread(target=_run_gui, name="AdminEditorGUI", daemon=True)
     thread.start()
     return thread
+
 
 
 

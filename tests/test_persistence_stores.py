@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.persistence.campaignbook_store import CampaignbookStore
 from src.persistence.character_store import CharacterStore
 from src.persistence.menu_store import MenuStore
 from src.persistence.racebook_store import RacebookStore
@@ -72,6 +73,7 @@ class TestPersistenceStores(unittest.TestCase):
 
             store.delete_character_file("TestCharacter0")
             self.assertEqual(store.list_character_ids(), [])
+
     def test_racebook_store_load_save_behavior(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             racebook_path = Path(temp_dir) / "racebook.json"
@@ -90,6 +92,24 @@ class TestPersistenceStores(unittest.TestCase):
             reloaded = store.load()
             self.assertEqual(reloaded.get("races", [])[0].get("raceId"), "Human0")
 
+    def test_campaignbook_store_load_save_behavior(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            campaignbook_path = Path(temp_dir) / "campaignbook.json"
+            store = CampaignbookStore(str(campaignbook_path))
+
+            loaded = store.load()
+            self.assertEqual(loaded.get("format_version"), 1)
+            self.assertEqual(loaded.get("campaigns"), [])
+
+            payload = {
+                "format_version": 1,
+                "campaigns": [{"campaignId": "Frontier0", "name": "Frontier Arc"}],
+            }
+            store.save(payload)
+
+            reloaded = store.load()
+            self.assertEqual(reloaded.get("campaigns", [])[0].get("campaignId"), "Frontier0")
+
     def test_menu_store_loads_required_menu_set(self):
         store = MenuStore("GameData/Menus")
         menus = store.load_menus()
@@ -99,4 +119,3 @@ class TestPersistenceStores(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

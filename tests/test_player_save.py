@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.domain.Campaign import CampaignProgress
 from src.domain.Character import Character
 from src.domain.player_functions import Player, load_player
 
@@ -38,7 +39,6 @@ class TestPlayerSave(unittest.TestCase):
             loaded = load_player(str(save_path))
             self.assertEqual(loaded.nano, 42)
 
-            # Loaded player keeps autosave enabled and should persist changes immediately.
             loaded.nano = 77
             reloaded = load_player(str(save_path))
             self.assertEqual(reloaded.nano, 77)
@@ -59,6 +59,27 @@ class TestPlayerSave(unittest.TestCase):
 
             self.assertEqual(loaded.missionPartyCharacterIds, ["SecondHero1"])
             self.assertEqual(loaded.GetMissionPartyCharacterIds(), ["SecondHero1"])
+
+    def test_campaign_progress_round_trip(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_path = Path(temp_dir) / "300.json"
+            progress = CampaignProgress(
+                campaignId="FrontierArc0",
+                unlockedMissionIds=["Prologue0", "Raid1"],
+                completedMissionIds=["Prologue0"],
+                appliedUnlockIds=["FrontierArc0Unlock0"],
+            )
+            player = Player(300, campaignProgressById={"FrontierArc0": progress})
+            player.AttachSavePath(str(save_path), enableAutoSave=False)
+            player.Save()
+
+            loaded = load_player(str(save_path))
+            loaded_progress = loaded.GetCampaignProgress("FrontierArc0")
+
+            self.assertIsNotNone(loaded_progress)
+            self.assertEqual(loaded_progress.unlockedMissionIds, ["Prologue0", "Raid1"])
+            self.assertEqual(loaded_progress.completedMissionIds, ["Prologue0"])
+            self.assertEqual(loaded_progress.appliedUnlockIds, ["FrontierArc0Unlock0"])
 
 
 if __name__ == "__main__":
