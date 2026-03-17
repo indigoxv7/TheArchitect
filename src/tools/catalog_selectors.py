@@ -115,13 +115,14 @@ class SpellSelectDialog(tk.Toplevel):
 
 
 class ItemSelectDialog(tk.Toplevel):
-    def __init__(self, parent, item_service, on_select, allowed_slots=None):
+    def __init__(self, parent, item_service, on_select, allowed_slots=None, item_filter=None):
         super().__init__(parent)
         self.title("Select Item")
         self.geometry("760x500")
         self.item_service = item_service
         self.on_select = on_select
         self.allowed_slots = set(allowed_slots or []) if allowed_slots is not None else None
+        self.item_filter = item_filter if callable(item_filter) else None
         self.filtered = []
 
         search_row = ttk.Frame(self)
@@ -148,6 +149,8 @@ class ItemSelectDialog(tk.Toplevel):
         self.listbox.delete(0, tk.END)
         for item in self.item_service.list_items():
             if self.allowed_slots is not None and not any(item.can_equip_in(slot) for slot in self.allowed_slots):
+                continue
+            if self.item_filter is not None and not self.item_filter(item):
                 continue
             label = self.item_service.get_item_label(item)
             if query and query not in label.lower():

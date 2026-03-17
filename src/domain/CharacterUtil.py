@@ -90,6 +90,13 @@ class TitlePreference(Enum):
     Feminine = False
 
 
+class FriendlyFireTolerance(Enum):
+    NO_FRIENDLY_FIRE = "No friendly fire"
+    AVOID_INTENTIONAL_ALLOW_RISK = "Avoid intentional but allow risk"
+    FRIENDLY_FIRE_IF_CAN_HIT_ENEMY_TOO = "Friendly fire if can hit enemy too"
+    FRIENDLY_FIRE_FOR_FUN = "Friendly fire for fun"
+
+
 def AffinityFormula(affinity: float, factor: float):
     return affinity * (1+factor*(1-(affinity/100)))
 

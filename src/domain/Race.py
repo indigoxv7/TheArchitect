@@ -5,6 +5,7 @@ from typing import Any, Callable
 
 from src.domain.Character import Character
 from src.domain.CharacterUtil import Attributes
+from src.domain.Items import Weapon
 from src.domain.Spells import Spell
 from src.domain.gear_options import GearOptions
 
@@ -31,6 +32,7 @@ class Race:
         spellList: list[list[Spell]] | None = None,
         FamedEnemyList: list[Character] | None = None,
         gearOptions: GearOptions | None = None,
+        naturalWeapons: list[Weapon] | None = None,
         raceId: str = "",
     ):
         self.name = str(name or "")
@@ -44,6 +46,7 @@ class Race:
         self.spellList = self._normalize_spell_list(spellList)
         self.FamedEnemyList = [entry for entry in (FamedEnemyList or []) if entry is not None]
         self.gearOptions = gearOptions if isinstance(gearOptions, GearOptions) else GearOptions()
+        self.naturalWeapons = [weapon for weapon in (naturalWeapons or []) if isinstance(weapon, Weapon)]
         self.raceId = str(raceId or "")
 
     @staticmethod
@@ -158,6 +161,11 @@ class Race:
             "spellList": spell_names,
             "famedEnemyCharacterIds": famed_ids,
             "gearOptions": self.gearOptions.to_dict(resolve_item_id=resolve_item_id),
+            "naturalWeaponItemIds": [
+                item_id
+                for item_id in [resolve_item_id(weapon) if callable(resolve_item_id) else None for weapon in self.naturalWeapons]
+                if item_id
+            ],
         }
 
     @classmethod
@@ -220,6 +228,20 @@ class Race:
 
         beif_description = str(data.get("beifDescription", data.get("briefDescription", "")) or "")
 
+        natural_weapons: list[Weapon] = []
+        raw_natural_weapon_ids = data.get("naturalWeaponItemIds", data.get("naturalWeapons", []))
+        if isinstance(raw_natural_weapon_ids, list) and callable(resolve_item):
+            for entry in raw_natural_weapon_ids:
+                if isinstance(entry, Weapon):
+                    natural_weapons.append(entry)
+                    continue
+                item_id = str(entry or "").strip()
+                if not item_id:
+                    continue
+                resolved_item = resolve_item(item_id)
+                if isinstance(resolved_item, Weapon):
+                    natural_weapons.append(resolved_item)
+
         return cls(
             name=name,
             detailedDescription=str(data.get("detailedDescription", "") or ""),
@@ -232,5 +254,6 @@ class Race:
             spellList=spell_list,
             FamedEnemyList=famed_enemies,
             gearOptions=GearOptions.from_dict(data.get("gearOptions"), resolve_item=resolve_item),
+            naturalWeapons=natural_weapons,
             raceId=str(data.get("raceId", "") or ""),
         )

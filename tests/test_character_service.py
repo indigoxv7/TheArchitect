@@ -51,6 +51,7 @@ class TestCharacterService(unittest.TestCase):
                 "race": "Elf2",
                 "health": 87,
                 "healthState": "INJURED",
+                "friendlyFireTolerance": "Avoid intentional but allow risk",
                 "activeAchievementTitle": "Storm Caller",
                 "attributes": {
                     "physicalPower": 7,
@@ -143,6 +144,7 @@ class TestCharacterService(unittest.TestCase):
             self.assertEqual(loaded.race, "Elf2")
             self.assertEqual(loaded.health, 87)
             self.assertEqual(loaded.healthState.name, "INJURED")
+            self.assertEqual(getattr(loaded.friendlyFireTolerance, "value", ""), "Avoid intentional but allow risk")
             self.assertEqual(loaded.gear.head.itemId, helm.itemId)
             self.assertEqual(loaded.gear.primaryWeapon.itemId, sword.itemId)
             self.assertEqual(len(loaded.gear.inventory), 2)

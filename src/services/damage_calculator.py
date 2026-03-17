@@ -183,12 +183,14 @@ class DamageCalculator:
         defender: Character,
         spell_power: float,
         hit_chance: float | None = None,
+        did_hit: bool | None = None,
     ) -> MagicDamageBreakdown:
         attacker_magic_power = max(0.0001, float(getattr(attacker.finalAttributes, "magicPower", 5.0)))
         defender_magic_resistance = max(0.0, float(getattr(defender.finalAttributes, "magicResistance", 5.0)))
         if hit_chance is None:
             hit_chance = self.calculate_hit_chance(attacker_magic_power, defender_magic_resistance)
-        did_hit = self._rng.random() <= hit_chance
+        if did_hit is None:
+            did_hit = self._rng.random() <= hit_chance
         power_multiplier = (attacker_magic_power / 5.0) ** self._config.alpha
         resistance_multiplier = max(0.05, 1.0 - (defender_magic_resistance / (defender_magic_resistance + 12.0)))
         hp_final = 0.0

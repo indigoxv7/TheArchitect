@@ -13,6 +13,7 @@ from src.domain.CharacterUtil import (
     ConsumableKind,
     DamageType,
     EquipSlot,
+    FriendlyFireTolerance,
     ItemType,
     PowerType,
     TitlePreference,
@@ -22,6 +23,7 @@ from src.domain.character_io import character_from_state, character_to_state
 from src.services.main_character_generator import generate_main_character_from_scratch
 from src.tools.allegiance_editor import AllegianceEditorFrame
 from src.tools.campaign_editor import CampaignEditorFrame, PlayerCampaignProgressDialog
+from src.tools.combat_simulator_editor import CombatSimulatorFrame
 from src.tools.environment_editor import EnvironmentEditorFrame
 from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.mission_editor import MissionEditorFrame
@@ -204,7 +206,7 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
 
 
 class AdminEditorApp:
-    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service):
+    def __init__(self, spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service, combat_simulator_service):
         self.spell_service = spell_service
         self.item_service = item_service
         self.character_service = character_service
@@ -218,6 +220,7 @@ class AdminEditorApp:
         self.environment_service = environment_service
         self.memory_service = memory_service
         self.power_rating_service = power_rating_service
+        self.combat_simulator_service = combat_simulator_service
 
         self.root = tk.Tk()
         self.root.title("TheArchitect Admin Editor")
@@ -239,6 +242,7 @@ class AdminEditorApp:
         self.campaign_frame = ScrollableEditorHost(self.container, CampaignEditorFrame, self)
         self.environment_frame = ScrollableEditorHost(self.container, EnvironmentEditorFrame, self)
         self.memory_frame = ScrollableEditorHost(self.container, MainCharacterMemoryFrame, self)
+        self.combat_simulator_frame = ScrollableEditorHost(self.container, CombatSimulatorFrame, self)
 
         self._build_home()
         self.show_home()
@@ -257,6 +261,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Campaigns", command=self.show_campaign_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Environment", command=self.show_environment_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Main Character Memory", command=self.show_memory_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Combat Simulator", command=self.show_combat_simulator).pack(fill=tk.X, pady=6)
 
     def _show(self, frame):
         for child in (
@@ -273,6 +278,7 @@ class AdminEditorApp:
             self.campaign_frame,
             self.environment_frame,
             self.memory_frame,
+            self.combat_simulator_frame,
         ):
             child.pack_forget()
         frame.pack(fill=tk.BOTH, expand=True)
@@ -329,6 +335,9 @@ class AdminEditorApp:
     def show_memory_editor(self):
         self.memory_frame.refresh_player_list(reset_form=True)
         self._show(self.memory_frame)
+
+    def show_combat_simulator(self):
+        self._show(self.combat_simulator_frame)
 
     def run(self):
         self.root.mainloop()
@@ -1857,6 +1866,7 @@ class CharacterEditorFrame(ttk.Frame):
             "race": tk.StringVar(value="Human1"),
             "health": tk.StringVar(value="100"),
             "healthState": tk.StringVar(value=HealthState.HEALTHY.name),
+            "friendlyFireTolerance": tk.StringVar(value=FriendlyFireTolerance.NO_FRIENDLY_FIRE.value),
         }
         self._row_entry("Name", self.vars["name"])
         self._row_entry("Description", self.vars["description"])
@@ -1874,6 +1884,7 @@ class CharacterEditorFrame(ttk.Frame):
 
         self._row_entry("Health", self.vars["health"])
         self._row_combo("Health State", self.vars["healthState"], [e.name for e in HealthState])
+        self._row_combo("Friendly Fire", self.vars["friendlyFireTolerance"], [entry.value for entry in FriendlyFireTolerance])
 
         actions = ttk.Frame(self)
         actions.pack(fill=tk.X, pady=8)
@@ -1963,6 +1974,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.vars["race"].set("Human1")
         self.vars["health"].set("100")
         self.vars["healthState"].set(HealthState.HEALTHY.name)
+        self.vars["friendlyFireTolerance"].set(FriendlyFireTolerance.NO_FRIENDLY_FIRE.value)
         self.attributes_draft = self._default_attributes()
         self.gear_draft = self._default_gear()
         self.buffs_draft = []
@@ -2014,6 +2026,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.vars["race"].set(str(state.get("race", "Human1") or "Human1"))
         self.vars["health"].set(str(state.get("health", 100)))
         self.vars["healthState"].set(str(state.get("healthState", HealthState.HEALTHY.name)))
+        self.vars["friendlyFireTolerance"].set(str(state.get("friendlyFireTolerance", FriendlyFireTolerance.NO_FRIENDLY_FIRE.value) or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value))
         attrs = state.get("attributes", {})
         self.attributes_draft = {
             "physical_power": _safe_int(attrs.get("physicalPower", 5), 5),
@@ -2050,6 +2063,7 @@ class CharacterEditorFrame(ttk.Frame):
             f"Portrait URL: {self.vars['portraitURL'].get().strip()}",
             f"Footer Image URL: {self.vars['footerImageURL'].get().strip()}",
             f"Race ID: {self.vars['race'].get().strip() or 'Human1'}",
+            f"Friendly Fire: {self.vars['friendlyFireTolerance'].get().strip() or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value}",
         ]
 
         if self.is_main_character:
@@ -2216,6 +2230,7 @@ class CharacterEditorFrame(ttk.Frame):
             "description": self.vars["description"].get().strip(),
             "portraitURL": self.vars["portraitURL"].get().strip(),
             "footerImageURL": self.vars["footerImageURL"].get().strip(),
+            "friendlyFireTolerance": self.vars["friendlyFireTolerance"].get().strip() or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value,
             "attributes": {
                 "physicalPower": _safe_float(self.attributes_draft.get("physical_power", 5), 5),
                 "physicalStamina": _safe_float(self.attributes_draft.get("physical_stamina", 5), 5),
@@ -2773,10 +2788,10 @@ class PlayerEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
 
-def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service):
+def start_admin_gui_thread(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service, combat_simulator_service):
     def _run_gui():
         try:
-            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service)
+            app = AdminEditorApp(spell_service, item_service, character_service, achievement_service, player_service, race_service, unit_service, allegiance_service, mission_service, campaign_service, environment_service, memory_service, power_rating_service, combat_simulator_service)
             app.run()
         except Exception as exc:
             print(f"Admin GUI failed to start: {exc}")

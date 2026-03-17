@@ -117,6 +117,7 @@ class TestRaceService(unittest.TestCase):
                         "primaryWeaponOptions": [knife.itemId],
                         "inventoryOptions": [knife.itemId],
                     },
+                    "naturalWeaponItemIds": [knife.itemId],
                 }
             )
 
@@ -130,6 +131,7 @@ class TestRaceService(unittest.TestCase):
             self.assertEqual(getattr(race.spellList[2][0], "name", ""), "Stone Skin")
             self.assertEqual(getattr(race.FamedEnemyList[0], "name", ""), "Knight Captain")
             self.assertEqual(getattr(race.gearOptions.headOptions[0], "itemId", ""), hood.itemId)
+            self.assertEqual(getattr(race.naturalWeapons[0], "itemId", ""), knife.itemId)
 
             original_race_id = race.raceId
             race_service.edit_race_from_patch(
@@ -184,6 +186,7 @@ class TestRaceService(unittest.TestCase):
             self.assertEqual(getattr(loaded.spellList[1][0], "name", ""), "Spark")
             self.assertEqual(getattr(loaded.FamedEnemyList[0], "name", ""), "Knight Captain")
             self.assertEqual(getattr(loaded.gearOptions.primaryWeaponOptions[0], "itemId", ""), knife.itemId)
+            self.assertEqual(getattr(loaded.naturalWeapons[0], "itemId", ""), knife.itemId)
 
     def test_duplicate_race_names_get_unique_ids(self):
         with tempfile.TemporaryDirectory() as temp_dir:

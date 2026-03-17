@@ -45,13 +45,28 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(created.powerLevel, 12.5)
 
             created_id = created.itemId
-            service.edit_item_from_patch(created_id, {"name": "Test Sword", "tier": 3})
+            service.edit_item_from_patch(created_id, {
+                "name": "Test Sword",
+                "tier": 3,
+                "damageType": ["PIERCING"],
+                "damageMin": 21,
+                "damageMax": 29,
+                "armorMultiplier": 1.5,
+                "ignoreArmorFraction": 0.25,
+                "penetrationBase": 14,
+            })
 
             self.assertIsNone(service.get_item("Test Blade"))
             edited = service.get_item(created_id)
             self.assertIsNotNone(edited)
             self.assertEqual(edited.name, "Test Sword")
             self.assertEqual(edited.tier, 3)
+            self.assertEqual(edited.damageType[0].name, "PIERCING")
+            self.assertEqual(edited.damageMin, 21)
+            self.assertEqual(edited.damageMax, 29)
+            self.assertEqual(edited.armorMultiplier, 1.5)
+            self.assertEqual(edited.ignoreArmorFraction, 0.25)
+            self.assertEqual(edited.penetrationBase, 14)
 
             reloaded_context = GameContext()
             reloaded_service = ItemService(str(path), reloaded_context)
@@ -61,6 +76,12 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(loaded.slot.name, "PRIMARY_WEAPON")
             self.assertEqual(loaded.name, "Test Sword")
             self.assertEqual(loaded.powerLevel, 12.5)
+            self.assertEqual(loaded.damageType[0].name, "PIERCING")
+            self.assertEqual(loaded.damageMin, 21)
+            self.assertEqual(loaded.damageMax, 29)
+            self.assertEqual(loaded.armorMultiplier, 1.5)
+            self.assertEqual(loaded.ignoreArmorFraction, 0.25)
+            self.assertEqual(loaded.penetrationBase, 14)
 
     def test_legacy_itembook_without_ids_auto_migrates(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -187,6 +208,70 @@ class TestItemService(unittest.TestCase):
             loaded = reloaded_service.get_item(created.itemId)
             self.assertIsInstance(loaded, Consumable)
             self.assertEqual(loaded.damageType[0].name, "FIRE")
+
+
+    def test_edit_subclass_specific_fields_for_armor_and_consumable(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service, _context, path = self._make_service(temp_dir)
+            service.load_itembook()
+
+            service.create_item_from_dict({
+                "name": "Tower Shield",
+                "itemClass": "Armor",
+                "slot": "OFFHAND",
+                "itemType": "ARMOR",
+                "maxArmor": 18,
+                "currentArmor": 18,
+                "statBonuses": [],
+            })
+            service.create_item_from_dict({
+                "name": "Ice Bomb",
+                "itemClass": "Consumable",
+                "consumableKind": "BOMB",
+                "effectPowerType": "CONSUMABLE_POWER",
+                "effectPower": 16,
+                "damageType": ["COLD"],
+                "spellName": "",
+                "statBonuses": [],
+            })
+
+            shield = service.get_item("Tower Shield")
+            bomb = service.get_item("Ice Bomb")
+            self.assertIsInstance(shield, Armor)
+            self.assertIsInstance(bomb, Consumable)
+
+            service.edit_item_from_patch(shield.itemId, {
+                "maxArmor": 27,
+                "currentArmor": 21,
+            })
+            service.edit_item_from_patch(bomb.itemId, {
+                "effectPower": 24,
+                "damageType": ["FIRE"],
+                "consumableKind": "POTION",
+            })
+
+            updated_shield = service.get_item(shield.itemId)
+            updated_bomb = service.get_item(bomb.itemId)
+            self.assertIsInstance(updated_shield, Armor)
+            self.assertIsInstance(updated_bomb, Consumable)
+            self.assertEqual(updated_shield.maxArmor, 27)
+            self.assertEqual(updated_shield.currentArmor, 21)
+            self.assertEqual(updated_bomb.effectPower, 24)
+            self.assertEqual(updated_bomb.damageType[0].name, "FIRE")
+            self.assertEqual(updated_bomb.consumableKind.name, "POTION")
+
+            reloaded_context = GameContext()
+            reloaded_service = ItemService(str(path), reloaded_context)
+            reloaded_service.load_itembook()
+            loaded_shield = reloaded_service.get_item(shield.itemId)
+            loaded_bomb = reloaded_service.get_item(bomb.itemId)
+            self.assertIsInstance(loaded_shield, Armor)
+            self.assertIsInstance(loaded_bomb, Consumable)
+            self.assertEqual(loaded_shield.maxArmor, 27)
+            self.assertEqual(loaded_shield.currentArmor, 21)
+            self.assertEqual(loaded_bomb.effectPower, 24)
+            self.assertEqual(loaded_bomb.damageType[0].name, "FIRE")
+            self.assertEqual(loaded_bomb.consumableKind.name, "POTION")
 
 
 if __name__ == "__main__":

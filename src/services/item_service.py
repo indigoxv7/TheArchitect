@@ -203,8 +203,44 @@ class ItemService:
             return text[text.rfind("[") + 1 : -1].strip()
         return text
 
+    @staticmethod
+    def _synchronize_subclass_payload(payload: dict) -> dict:
+        if not isinstance(payload, dict):
+            return payload
+
+        item_class = str(payload.get("itemClass", "") or "").strip().lower()
+        item_type = str(payload.get("itemType", "") or "").strip().upper()
+
+        if item_class == "weapon" or item_type in {"MELEE_WEAPON", "MELEE_THROWABLE", "RANGED_WEAPON"}:
+            damage_types = payload.get("damageType", [])
+            payload["weaponStats"] = {
+                "damageTypes": list(damage_types) if isinstance(damage_types, list) else [],
+                "damageMin": payload.get("damageMin", 0.0),
+                "damageMax": payload.get("damageMax", payload.get("damageMin", 0.0)),
+                "armorMultiplier": payload.get("armorMultiplier", 1.0),
+                "ignoreArmorFraction": payload.get("ignoreArmorFraction", 0.0),
+                "penetrationBase": payload.get("penetrationBase", 0.0),
+            }
+        elif item_class == "armor" or item_type == "ARMOR":
+            current_armor = payload.get("currentArmor", payload.get("durability", 0.0))
+            payload["armorStats"] = {
+                "maxArmor": payload.get("maxArmor", current_armor),
+                "currentArmor": current_armor,
+            }
+        elif item_class == "consumable" or item_type == "CONSUMABLE":
+            damage_types = payload.get("damageType", [])
+            payload["consumableStats"] = {
+                "consumableKind": payload.get("consumableKind", "NONE"),
+                "effectPowerType": payload.get("effectPowerType", "CONSUMABLE_POWER"),
+                "effectPower": payload.get("effectPower", 0.0),
+                "spellName": payload.get("spellName", ""),
+                "damageTypes": list(damage_types) if isinstance(damage_types, list) else [],
+            }
+        return payload
+
     def create_item_from_dict(self, data: dict):
-        item = Item.from_dict(data)
+        normalized = self._synchronize_subclass_payload(dict(data or {}))
+        item = Item.from_dict(normalized)
         self._assign_item_id_if_missing(item)
 
         if item.itemId in self.context.all_items and not self._is_error_item_id(item.itemId):
@@ -227,6 +263,7 @@ class ItemService:
             merged["name"] = existing.name
 
         merged["itemId"] = existing.itemId
+        merged = self._synchronize_subclass_payload(merged)
 
         updated = Item.from_dict(merged)
         updated.itemId = existing.itemId

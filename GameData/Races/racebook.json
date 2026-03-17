@@ -71,7 +71,10 @@
                 ],
                 "offhandOptions": [],
                 "inventoryOptions": []
-            }
+            },
+            "naturalWeaponItemIds": [
+                "Fists16"
+            ]
         },
         {
             "raceId": "Human1",
@@ -136,7 +139,10 @@
                 "primaryWeaponOptions": [],
                 "offhandOptions": [],
                 "inventoryOptions": []
-            }
+            },
+            "naturalWeaponItemIds": [
+                "Fists16"
+            ]
         }
     ]
 }

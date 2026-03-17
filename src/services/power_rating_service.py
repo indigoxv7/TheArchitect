@@ -19,6 +19,7 @@ from src.domain.CharacterUtil import (
 )
 from src.domain.Items import Armor, Consumable, Gear, Item, Weapon
 from src.domain.Spells import Spell
+from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
 
 
@@ -58,9 +59,10 @@ class PowerRatingService:
     _DICE_PATTERN = re.compile(r"^\s*(\d+)\s*d\s*(\d+)(?:\s*([+-])\s*(\d+(?:\.\d+)?))?\s*$", re.IGNORECASE)
     _LEADING_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
-    def __init__(self, spell_service=None, item_service=None, sample_count: int = DEFAULT_SAMPLE_COUNT, seed: int = 1337):
+    def __init__(self, spell_service=None, item_service=None, race_service=None, sample_count: int = DEFAULT_SAMPLE_COUNT, seed: int = 1337):
         self.spell_service = spell_service
         self.item_service = item_service
+        self.race_service = race_service
         self.sample_count = max(25, int(sample_count or self.DEFAULT_SAMPLE_COUNT))
         self.seed = int(seed)
 
@@ -236,6 +238,9 @@ class PowerRatingService:
         gear = getattr(character, "gear", None)
         equipped_items = list(getattr(gear, "GetAllEquipped", lambda: [])()) if gear is not None else []
         equipped_power = sum(self.item_power_level(item) for item in equipped_items if item is not None)
+        active_weapon = self._active_weapon(character)
+        if active_weapon is not None and all(active_weapon is not item for item in equipped_items):
+            equipped_power += self.item_power_level(active_weapon)
         inventory = list(getattr(gear, "inventory", []) or []) if gear is not None else []
         consumable_power = sum(
             sorted(
@@ -517,15 +522,13 @@ class PowerRatingService:
         breakdown = calculator.calculate_magic_hit(attacker=attacker, defender=defender, spell_power=spell_power)
         defender.health = max(0.0, float(defender.health) - max(0.0, breakdown.hpFinal))
 
-    def _active_weapon(self, character: Character) -> Weapon | None:
-        gear = getattr(character, "gear", None)
-        if gear is None:
+    def _race_lookup(self, race_id: str):
+        if self.race_service is None:
             return None
-        if isinstance(getattr(gear, "primaryWeapon", None), Weapon):
-            return gear.primaryWeapon
-        if isinstance(getattr(gear, "offhand", None), Weapon):
-            return gear.offhand
-        return None
+        return self.race_service.get_race(race_id)
+
+    def _active_weapon(self, character: Character) -> Weapon | None:
+        return select_active_character_weapon(character, race_lookup=self._race_lookup)
 
     def _best_spell(self, character: Character) -> Spell | None:
         best_spell = None

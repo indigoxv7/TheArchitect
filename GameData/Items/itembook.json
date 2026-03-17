@@ -1,14 +1,16 @@
 {
-    "format_version": 2,
+    "format_version": 3,
     "items": [
         {
             "itemId": "Bandage0",
+            "itemClass": "Consumable",
             "name": "Bandage",
             "slot": "NOT_EQUIPABLE",
             "tier": 0,
-            "durability": 100,
+            "durability": 1,
             "statBonuses": [],
             "itemType": "CONSUMABLE",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "CONSUMABLE_POWER",
@@ -16,10 +18,19 @@
                     "spellName": ""
                 }
             ],
-            "damageType": []
+            "damageType": [],
+            "consumableStats": {
+                "consumableKind": "NONE",
+                "effectPowerType": "CONSUMABLE_POWER",
+                "effectPower": 10,
+                "spellName": "",
+                "damageTypes": []
+            },
+            "consumableKind": "NONE"
         },
         {
             "itemId": "BodyArmor1",
+            "itemClass": "Armor",
             "name": "Body Armor",
             "slot": "BODY",
             "tier": 0,
@@ -38,11 +49,19 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Boots2",
+            "itemClass": "Armor",
             "name": "Boots",
             "slot": "FEET",
             "tier": 0,
@@ -61,17 +80,26 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Bow3",
+            "itemClass": "Weapon",
             "name": "Bow",
-            "slot": "HANDS",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "RANGED_WEAPON",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
@@ -81,16 +109,33 @@
             ],
             "damageType": [
                 "PIERCING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "PIERCING"
+                ],
+                "damageMin": 12,
+                "damageMax": 12,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.0,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 12,
+            "damageMax": 12,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.0,
+            "penetrationBase": 0.0
         },
         {
             "itemId": "ButcherKnife4",
+            "itemClass": "Weapon",
             "name": "Butcher Knife",
-            "slot": "FEET",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
@@ -100,29 +145,98 @@
             ],
             "damageType": [
                 "SLASHING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "SLASHING"
+                ],
+                "damageMin": 9,
+                "damageMax": 9,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.0,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 9,
+            "damageMax": 9,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.0,
+            "penetrationBase": 0.0
         },
         {
             "itemId": "Dagger5",
+            "itemClass": "Weapon",
             "name": "Dagger",
-            "slot": "HANDS",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
-            "itemType": "MELEE_THROWABLE",
+            "itemType": "MELEE_WEAPON",
+            "powerLevel": 7.66,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
-                    "power": 12,
+                    "power": 50,
                     "spellName": ""
                 }
             ],
             "damageType": [
                 "PIERCING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "PIERCING"
+                ],
+                "damageMin": 35,
+                "damageMax": 50,
+                "armorMultiplier": 0.5,
+                "ignoreArmorFraction": 0.4,
+                "penetrationBase": 10.0
+            },
+            "damageMin": 35,
+            "damageMax": 50,
+            "armorMultiplier": 0.5,
+            "ignoreArmorFraction": 0.4,
+            "penetrationBase": 10.0
+        },
+        {
+            "itemId": "Fists16",
+            "itemClass": "Weapon",
+            "name": "Fists",
+            "slot": "PRIMARY_WEAPON",
+            "tier": 0,
+            "durability": 100,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "powerLevel": 0,
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 5,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "BLUDGEONING"
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "BLUDGEONING"
+                ],
+                "damageMin": 3,
+                "damageMax": 5,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.1,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 3,
+            "damageMax": 5,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.1,
+            "penetrationBase": 0.0
         },
         {
             "itemId": "Gloves6",
+            "itemClass": "Armor",
             "name": "Gloves",
             "slot": "HANDS",
             "tier": 0,
@@ -141,11 +255,19 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Helmet7",
+            "itemClass": "Armor",
             "name": "Helmet",
             "slot": "HEAD",
             "tier": 0,
@@ -164,11 +286,19 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Necklace8",
+            "itemClass": "Armor",
             "name": "Necklace",
             "slot": "NECK",
             "tier": 0,
@@ -187,11 +317,19 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Pants9",
+            "itemClass": "Armor",
             "name": "Pants",
             "slot": "LEGS",
             "tier": 0,
@@ -210,22 +348,32 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Paperclip10",
+            "itemClass": "Item",
             "name": "Paperclip",
             "slot": "NOT_EQUIPABLE",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "DEFAULT",
+            "powerLevel": 0,
             "itemPower": [],
             "damageType": []
         },
         {
             "itemId": "Ring11",
+            "itemClass": "Armor",
             "name": "Ring",
             "slot": "RING",
             "tier": 0,
@@ -244,11 +392,19 @@
                 }
             ],
             "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Shield12",
+            "itemClass": "Armor",
             "name": "Shield",
             "slot": "HANDS",
             "tier": 0,
@@ -266,18 +422,27 @@
                     "permanent": false
                 }
             ],
-            "itemType": "MELEE_WEAPON",
+            "itemType": "ARMOR",
+            "powerLevel": 0,
             "itemPower": [],
-            "damageType": []
+            "damageType": [],
+            "armorStats": {
+                "maxArmor": 100,
+                "currentArmor": 100
+            },
+            "maxArmor": 100,
+            "currentArmor": 100
         },
         {
             "itemId": "Spear13",
+            "itemClass": "Weapon",
             "name": "Spear",
-            "slot": "HANDS",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
@@ -287,16 +452,33 @@
             ],
             "damageType": [
                 "PIERCING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "PIERCING"
+                ],
+                "damageMin": 12,
+                "damageMax": 12,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.0,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 12,
+            "damageMax": 12,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.0,
+            "penetrationBase": 0.0
         },
         {
             "itemId": "Sword14",
+            "itemClass": "Weapon",
             "name": "Sword",
-            "slot": "HANDS",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
@@ -306,16 +488,33 @@
             ],
             "damageType": [
                 "SLASHING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "SLASHING"
+                ],
+                "damageMin": 12,
+                "damageMax": 12,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.0,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 12,
+            "damageMax": 12,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.0,
+            "penetrationBase": 0.0
         },
         {
             "itemId": "Warhammer15",
+            "itemClass": "Weapon",
             "name": "Warhammer",
-            "slot": "HANDS",
+            "slot": "PRIMARY_WEAPON",
             "tier": 0,
             "durability": 100,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
+            "powerLevel": 0,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
@@ -325,7 +524,22 @@
             ],
             "damageType": [
                 "BLUDGEONING"
-            ]
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "BLUDGEONING"
+                ],
+                "damageMin": 12,
+                "damageMax": 12,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 0.0,
+                "penetrationBase": 0.0
+            },
+            "damageMin": 12,
+            "damageMax": 12,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 0.0,
+            "penetrationBase": 0.0
         }
     ]
 }

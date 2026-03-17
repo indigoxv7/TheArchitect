@@ -15,6 +15,7 @@ from src.services.allegiance_service import AllegianceService
 from src.services.battle_runtime_service import BattleRuntimeService
 from src.services.battle_service import BattleService
 from src.services.campaign_service import CampaignService
+from src.services.combat_simulator_service import CombatSimulatorService
 from src.services.character_service import CharacterService
 from src.services.encounter_service import EncounterService
 from src.services.environment_service import EnvironmentService
@@ -75,7 +76,6 @@ player_service = PlayerService(
 )
 spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
-power_rating_service = PowerRatingService(spell_service=spell_service, item_service=item_service)
 character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
 achievement_service = AchievementService(achievementbook_path=ACHIEVEMENTBOOK_PATH, context=context)
 allegiance_service = AllegianceService(allegiancebook_path=ALLEGIANCEBOOK_PATH, context=context)
@@ -93,6 +93,13 @@ unit_service = UnitService(
     character_service=character_service,
     spell_service=spell_service,
     item_service=item_service,
+)
+power_rating_service = PowerRatingService(spell_service=spell_service, item_service=item_service, race_service=race_service)
+combat_simulator_service = CombatSimulatorService(
+    character_service=character_service,
+    item_service=item_service,
+    spell_service=spell_service,
+    race_service=race_service,
 )
 mission_service = MissionService(
     missionbook_path=MISSIONBOOK_PATH,
@@ -235,6 +242,7 @@ if __name__ == "__main__":
         environment_service=environment_service,
         memory_service=memory_service,
         power_rating_service=power_rating_service,
+        combat_simulator_service=combat_simulator_service,
     )
     bot.run(TOKEN)
 

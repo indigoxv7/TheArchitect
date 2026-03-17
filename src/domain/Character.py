@@ -35,6 +35,7 @@ class Character:
     race: str
     portraitURL: str
     footerImageURL: str
+    friendlyFireTolerance: FriendlyFireTolerance
 
     def __init__(
         self,
@@ -50,6 +51,7 @@ class Character:
         buffs: list[Buff] | None = None,
         race: str = "Human1",
         playerInstanceId: str = "",
+        friendlyFireTolerance: FriendlyFireTolerance | str = FriendlyFireTolerance.NO_FRIENDLY_FIRE,
     ):
         self.name = name
         self.attributes = attributes if attributes is not None else Attributes()
@@ -63,6 +65,7 @@ class Character:
         self.description = ""
         self.portraitURL = ""
         self.footerImageURL = ""
+        self.friendlyFireTolerance = self._coerce_friendly_fire_tolerance(friendlyFireTolerance)
         self.achievements = []
         if achievements is not None:
             if not isinstance(achievements, list):
@@ -80,6 +83,21 @@ class Character:
         self.finalAffinities = copy.deepcopy(self.affinities)
         self.CalculateBonus()
 
+    @staticmethod
+    def _coerce_friendly_fire_tolerance(value) -> FriendlyFireTolerance:
+        if isinstance(value, FriendlyFireTolerance):
+            return value
+        text = str(value or "").strip()
+        if not text:
+            return FriendlyFireTolerance.NO_FRIENDLY_FIRE
+        upper = text.upper()
+        if upper in FriendlyFireTolerance.__members__:
+            return FriendlyFireTolerance[upper]
+        for entry in FriendlyFireTolerance:
+            if str(entry.value).lower() == text.lower():
+                return entry
+        return FriendlyFireTolerance.NO_FRIENDLY_FIRE
+
     def EnsureRuntimeDefaults(self):
         if not hasattr(self, "race"):
             self.race = "Human1"
@@ -93,6 +111,10 @@ class Character:
             self.portraitURL = ""
         if not hasattr(self, "footerImageURL"):
             self.footerImageURL = ""
+        if not hasattr(self, "friendlyFireTolerance"):
+            self.friendlyFireTolerance = FriendlyFireTolerance.NO_FRIENDLY_FIRE
+        else:
+            self.friendlyFireTolerance = self._coerce_friendly_fire_tolerance(self.friendlyFireTolerance)
         if not hasattr(self, "achievements") or self.achievements is None:
             self.achievements = []
         if not hasattr(self, "generalSkills") or self.generalSkills is None:

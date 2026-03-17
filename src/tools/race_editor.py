@@ -3,7 +3,7 @@ from tkinter import messagebox, ttk
 
 from src.domain.CharacterUtil import Attributes
 from src.domain.Race import CreatureSize
-from src.tools.catalog_selectors import CharacterSelectDialog, SpellSelectDialog
+from src.tools.catalog_selectors import CharacterSelectDialog, ItemSelectDialog, SpellSelectDialog
 from src.tools.gear_options_editor import (
     build_gear_options_summary,
     default_gear_options_payload,
@@ -44,6 +44,7 @@ class RaceEditorFrame(ttk.Frame):
         self.famed_enemy_character_ids = []
         self.spell_names_by_level = [[] for _ in range(21)]
         self.gear_options_draft = default_gear_options_payload()
+        self.natural_weapon_item_ids = []
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -122,6 +123,15 @@ class RaceEditorFrame(ttk.Frame):
         gear_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(gear_actions, text="Edit Gear Options", command=self._edit_gear_options).pack(side=tk.LEFT)
 
+        natural_weapon_frame = ttk.LabelFrame(self, text="Natural Weapons")
+        natural_weapon_frame.pack(fill=tk.BOTH, expand=False, pady=6)
+        self.natural_weapon_listbox = tk.Listbox(natural_weapon_frame, height=5)
+        self.natural_weapon_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        natural_weapon_actions = ttk.Frame(natural_weapon_frame)
+        natural_weapon_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
+        ttk.Button(natural_weapon_actions, text="Add Weapon", command=self._add_natural_weapon).pack(side=tk.LEFT)
+        ttk.Button(natural_weapon_actions, text="Remove Selected", command=self._remove_selected_natural_weapon).pack(side=tk.LEFT, padx=6)
+
         spell_frame = ttk.LabelFrame(self, text="Spell List By Level")
         spell_frame.pack(fill=tk.BOTH, expand=False, pady=6)
 
@@ -179,6 +189,7 @@ class RaceEditorFrame(ttk.Frame):
         self.famed_enemy_character_ids = []
         self.spell_names_by_level = [[] for _ in range(21)]
         self.gear_options_draft = default_gear_options_payload()
+        self.natural_weapon_item_ids = []
 
         self.vars["name"].set("")
         self.vars["detailedDescription"].set("")
@@ -195,6 +206,7 @@ class RaceEditorFrame(ttk.Frame):
         self._refresh_spell_level_listbox()
         self._refresh_famed_enemy_listbox()
         self._refresh_gear_summary()
+        self._refresh_natural_weapon_listbox()
 
     def _filtered_races(self):
         query = self.search_var.get().strip().lower()
@@ -266,9 +278,16 @@ class RaceEditorFrame(ttk.Frame):
         else:
             self.gear_options_draft = default_gear_options_payload()
 
+        self.natural_weapon_item_ids = []
+        for weapon in getattr(race, "naturalWeapons", []) or []:
+            item_id = str(getattr(weapon, "itemId", "") or "").strip()
+            if item_id:
+                self.natural_weapon_item_ids.append(item_id)
+
         self._refresh_spell_level_listbox()
         self._refresh_famed_enemy_listbox()
         self._refresh_gear_summary()
+        self._refresh_natural_weapon_listbox()
 
     def _character_display_label(self, character_id: str) -> str:
         character = self.app.character_service.get_character(character_id)
@@ -298,6 +317,45 @@ class RaceEditorFrame(ttk.Frame):
     def _refresh_gear_summary(self):
         self.gear_summary.delete("1.0", tk.END)
         self.gear_summary.insert(tk.END, build_gear_options_summary(self.app.item_service, self.gear_options_draft))
+
+    def _refresh_natural_weapon_listbox(self):
+        self.natural_weapon_listbox.delete(0, tk.END)
+        for item_id in self.natural_weapon_item_ids:
+            item = self.app.item_service.get_weapon_by_id(item_id)
+            if item is None:
+                label = f"Unknown [{item_id}]"
+            else:
+                label = self.app.item_service.get_item_label(item)
+            self.natural_weapon_listbox.insert(tk.END, label)
+
+    def _add_natural_weapon(self):
+        def _on_select(item_id: str):
+            weapon = self.app.item_service.get_weapon_by_id(item_id)
+            if weapon is None:
+                messagebox.showerror("Race Editor", "Select a valid weapon.")
+                return
+            if item_id in self.natural_weapon_item_ids:
+                messagebox.showinfo("Race Editor", "That natural weapon is already listed.")
+                return
+            self.natural_weapon_item_ids.append(item_id)
+            self._refresh_natural_weapon_listbox()
+
+        ItemSelectDialog(
+            self,
+            self.app.item_service,
+            _on_select,
+            item_filter=lambda item: getattr(item, "itemClass", "") == "Weapon",
+        )
+
+    def _remove_selected_natural_weapon(self):
+        selection = self.natural_weapon_listbox.curselection()
+        if not selection:
+            return
+        index = int(selection[0])
+        if index < 0 or index >= len(self.natural_weapon_item_ids):
+            return
+        self.natural_weapon_item_ids.pop(index)
+        self._refresh_natural_weapon_listbox()
 
     def _current_spell_level_index(self) -> int:
         return max(0, min(20, _safe_int(self.vars["spellLevel"].get(), 0)))
@@ -386,6 +444,7 @@ class RaceEditorFrame(ttk.Frame):
             "spellList": spell_list_payload,
             "famedEnemyCharacterIds": list(self.famed_enemy_character_ids),
             "gearOptions": normalize_gear_options_payload(self.gear_options_draft),
+            "naturalWeaponItemIds": list(self.natural_weapon_item_ids),
         }
 
     def _save(self):

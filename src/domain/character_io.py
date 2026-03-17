@@ -13,6 +13,7 @@ from src.domain.CharacterUtil import (
     Bonus,
     BonusType,
     CharacterStatistics,
+    FriendlyFireTolerance,
 )
 from src.domain.GeneralSkills import GeneralSkills
 from src.domain.Items import Gear, Item
@@ -26,6 +27,10 @@ def _enum_from_name(enum_cls, value: Any, default):
         normalized = value.strip().upper()
         if normalized in enum_cls.__members__:
             return enum_cls[normalized]
+        lowered = value.strip().lower()
+        for entry in enum_cls:
+            if str(getattr(entry, "value", "")).strip().lower() == lowered:
+                return entry
     return default
 
 
@@ -426,6 +431,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
         "characterInfo": _character_info_to_dict(getattr(character, "characterInfo", None)),
         "llmControlProfile": _llm_control_profile_to_dict(getattr(character, "llmControlProfile", None)),
+        "friendlyFireTolerance": getattr(getattr(character, "friendlyFireTolerance", FriendlyFireTolerance.NO_FRIENDLY_FIRE), "value", FriendlyFireTolerance.NO_FRIENDLY_FIRE.value),
     }
 
 
@@ -483,6 +489,7 @@ def character_from_state(
         "generalSkills": general_skills,
         "spells": spells,
         "buffs": buffs,
+        "friendlyFireTolerance": _enum_from_name(FriendlyFireTolerance, data.get("friendlyFireTolerance"), FriendlyFireTolerance.NO_FRIENDLY_FIRE),
     }
 
     if character_type == "MainCharacter" or character_info is not None:

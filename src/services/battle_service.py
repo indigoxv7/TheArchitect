@@ -34,6 +34,7 @@ from src.domain.combat import (
     TokenPolicy,
     lane_width_for_size,
 )
+from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
 
 
@@ -281,6 +282,9 @@ class BattleService:
             return ""
         return str(getattr(resolved, "itemId", "") or "")
 
+    def _race_lookup(self, race_id: str):
+        return self.context.all_races.get(str(race_id or "").strip())
+
     def _resolve_size_for_character(self, character) -> CreatureSize:
         race_id = str(getattr(character, "race", "Human1") or "Human1")
         race = self.context.all_races.get(race_id)
@@ -299,13 +303,13 @@ class BattleService:
         return result
 
     def _infer_role(self, character) -> CombatRole:
-        primary_weapon = getattr(getattr(character, "gear", None), "primaryWeapon", None)
-        if isinstance(primary_weapon, Weapon) and primary_weapon.isRanged:
+        active_weapon = select_active_character_weapon(character, race_lookup=self._race_lookup)
+        if isinstance(active_weapon, Weapon) and active_weapon.isRanged:
             return CombatRole.RANGED
         direct_damage_spells = self._extract_direct_damage_spells(character)
-        if direct_damage_spells and primary_weapon is None:
+        if direct_damage_spells and active_weapon is None:
             return CombatRole.RANGED
-        if not primary_weapon and not direct_damage_spells:
+        if not active_weapon and not direct_damage_spells:
             return CombatRole.SUPPORT
         return CombatRole.FRONTLINE
 
@@ -775,7 +779,7 @@ class BattleService:
             attack_bonus += float(orders.lane_discipline_modifier)
         congestion_penalty, firing_penalty, range_penalty = self._ranged_penalties(battle, attacker, target)
 
-        weapon = self._weapon_for_entity(attacker)
+        weapon = select_active_character_weapon(attacker_character, race_lookup=self._race_lookup) or self._default_unarmed_weapon()
         spell = self._spell_for_entity(attacker)
         use_spell = False
         if spell is not None:
