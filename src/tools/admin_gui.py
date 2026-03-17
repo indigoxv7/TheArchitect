@@ -26,6 +26,7 @@ from src.tools.environment_editor import EnvironmentEditorFrame
 from src.tools.main_character_memory_editor import MainCharacterMemoryFrame
 from src.tools.mission_editor import MissionEditorFrame
 from src.tools.race_editor import RaceEditorFrame
+from src.tools.scrollable_frame import ScrollableEditorHost
 from src.tools.unit_editor import UnitEditorFrame
 
 
@@ -226,18 +227,18 @@ class AdminEditorApp:
         self.container.pack(fill=tk.BOTH, expand=True)
 
         self.home_frame = ttk.Frame(self.container)
-        self.spell_frame = SpellEditorFrame(self.container, self)
-        self.item_frame = ItemEditorFrame(self.container, self)
-        self.character_frame = CharacterEditorFrame(self.container, self)
-        self.player_frame = PlayerEditorFrame(self.container, self)
-        self.achievement_frame = AchievementBookFrame(self.container, self)
-        self.race_frame = RaceEditorFrame(self.container, self)
-        self.unit_frame = UnitEditorFrame(self.container, self)
-        self.allegiance_frame = AllegianceEditorFrame(self.container, self)
-        self.mission_frame = MissionEditorFrame(self.container, self)
-        self.campaign_frame = CampaignEditorFrame(self.container, self)
-        self.environment_frame = EnvironmentEditorFrame(self.container, self)
-        self.memory_frame = MainCharacterMemoryFrame(self.container, self)
+        self.spell_frame = ScrollableEditorHost(self.container, SpellEditorFrame, self)
+        self.item_frame = ScrollableEditorHost(self.container, ItemEditorFrame, self)
+        self.character_frame = ScrollableEditorHost(self.container, CharacterEditorFrame, self)
+        self.player_frame = ScrollableEditorHost(self.container, PlayerEditorFrame, self)
+        self.achievement_frame = ScrollableEditorHost(self.container, AchievementBookFrame, self)
+        self.race_frame = ScrollableEditorHost(self.container, RaceEditorFrame, self)
+        self.unit_frame = ScrollableEditorHost(self.container, UnitEditorFrame, self)
+        self.allegiance_frame = ScrollableEditorHost(self.container, AllegianceEditorFrame, self)
+        self.mission_frame = ScrollableEditorHost(self.container, MissionEditorFrame, self)
+        self.campaign_frame = ScrollableEditorHost(self.container, CampaignEditorFrame, self)
+        self.environment_frame = ScrollableEditorHost(self.container, EnvironmentEditorFrame, self)
+        self.memory_frame = ScrollableEditorHost(self.container, MainCharacterMemoryFrame, self)
 
         self._build_home()
         self.show_home()
@@ -275,6 +276,8 @@ class AdminEditorApp:
         ):
             child.pack_forget()
         frame.pack(fill=tk.BOTH, expand=True)
+        if hasattr(frame, "scroll_to_top"):
+            self.root.after_idle(frame.scroll_to_top)
 
     def show_home(self):
         self._show(self.home_frame)
