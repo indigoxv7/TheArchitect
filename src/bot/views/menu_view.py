@@ -1,6 +1,14 @@
 ﻿import discord
 
 
+def normalize_button_emoji(raw_emoji):
+    emoji = str(raw_emoji or "").strip()
+    # Question-mark placeholders and blanks should be treated as missing.
+    if not emoji or set(emoji) == {"?"}:
+        return None
+    return emoji
+
+
 class SimpleMenu(discord.ui.View):
     def __init__(self, current_menu, original_message, visible_children, on_select):
         super().__init__(timeout=86400)
@@ -15,7 +23,14 @@ class SimpleMenu(discord.ui.View):
 
 class MenuButton(discord.ui.Button):
     def __init__(self, menu, original_message, proper_title: str, on_select):
-        super().__init__(label=proper_title, emoji=menu.myEmoji or "", style=discord.ButtonStyle.primary)
+        button_kwargs = {
+            "label": proper_title,
+            "style": discord.ButtonStyle.primary,
+        }
+        emoji = normalize_button_emoji(menu.myEmoji)
+        if emoji is not None:
+            button_kwargs["emoji"] = emoji
+        super().__init__(**button_kwargs)
         self.menu = menu
         self.original_message = original_message
         self.on_select = on_select
