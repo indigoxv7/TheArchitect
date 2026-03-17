@@ -116,6 +116,11 @@ class TestCombatSimulatorService(unittest.TestCase):
 
             lines = simulator.step_session(session)
             self.assertTrue(any("Debug:" in line for line in lines))
+            debug_lines = [line for line in lines if "Debug:" in line]
+            self.assertTrue(any("base hp roll=" in line for line in debug_lines))
+            self.assertTrue(any("scaled hp=" in line for line in debug_lines))
+            self.assertTrue(any("hp after armor=" in line for line in debug_lines))
+            self.assertTrue(any("resist eff=" in line for line in debug_lines))
 
     def test_auto_simulate_returns_win_rates(self):
         with tempfile.TemporaryDirectory() as temp_dir:

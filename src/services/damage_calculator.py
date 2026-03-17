@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import random
 
 from src.domain.Character import Character
@@ -12,8 +13,9 @@ from src.domain.Items import Weapon
 class DamageCalculatorConfig:
     alpha: float = 0.80
     penetrationPowerScale: float = 0.50
-    couplingGamma: float = 3.0
-    couplingFloor: float = 0.02
+    resistanceDeficitFloor: float = 5.0
+    resistanceDeficitScale: float = 0.20
+    resistanceFalloffSharpness: float = 5.0
     armorSoakCoeff: float = 0.10
     bodyC: float = 30.0
     bodyDelta: float = 1.5
@@ -39,13 +41,28 @@ class DamageBreakdown:
     hpPreResistance: float
 
     penetration: float
-    couplingFraction: float
+    penetrationEffectiveness: float
 
-    hpCoupled: float
-    bodyArmorRating: float
-    bodyDamageReduction: float
+    hpAfterResistance: float
+    penetrationDamageReduction: float
 
     hpFinal: float
+
+    @property
+    def couplingFraction(self) -> float:
+        return self.penetrationEffectiveness
+
+    @property
+    def hpCoupled(self) -> float:
+        return self.hpAfterResistance
+
+    @property
+    def bodyArmorRating(self) -> float:
+        return 0.0
+
+    @property
+    def bodyDamageReduction(self) -> float:
+        return 0.0
 
 
 @dataclass(frozen=True)
@@ -144,20 +161,14 @@ class DamageCalculator:
         hp_pre_resistance = hp_through_armor + hp_spill
 
         penetration = self._compute_penetration(weapon=weapon, attacker_physical_power=attacker_physical_power)
-        coupling_fraction = self._compute_coupling_fraction(
+        penetration_effectiveness = self._compute_coupling_fraction(
             penetration=penetration,
             defender_physical_resistance=defender_physical_resistance,
         )
 
-        hp_coupled = hp_pre_resistance * coupling_fraction
-
-        body_armor_rating = self._compute_body_armor_rating(defender_physical_resistance)
-        body_damage_reduction = self._compute_body_damage_reduction(
-            body_armor_rating=body_armor_rating,
-            incoming_hp=hp_coupled,
-        )
-
-        hp_final = hp_coupled * (1.0 - body_damage_reduction)
+        hp_after_resistance = hp_pre_resistance * penetration_effectiveness
+        penetration_damage_reduction = 1.0 - penetration_effectiveness
+        hp_final = hp_after_resistance
 
         return DamageBreakdown(
             rollArmor=roll_armor,
@@ -170,10 +181,9 @@ class DamageCalculator:
             hpSpill=hp_spill,
             hpPreResistance=hp_pre_resistance,
             penetration=penetration,
-            couplingFraction=coupling_fraction,
-            hpCoupled=hp_coupled,
-            bodyArmorRating=body_armor_rating,
-            bodyDamageReduction=body_damage_reduction,
+            penetrationEffectiveness=penetration_effectiveness,
+            hpAfterResistance=hp_after_resistance,
+            penetrationDamageReduction=penetration_damage_reduction,
             hpFinal=hp_final,
         )
 
@@ -247,35 +257,26 @@ class DamageCalculator:
         return max(0.0, penetration)
 
     def _compute_coupling_fraction(self, penetration: float, defender_physical_resistance: float) -> float:
-        denominator = penetration + defender_physical_resistance
-        if denominator <= 0.0:
+        penetration = max(0.0, float(penetration))
+        defender_physical_resistance = max(0.0, float(defender_physical_resistance))
+
+        if defender_physical_resistance <= 0.0 or penetration >= defender_physical_resistance:
             return 1.0
 
-        ratio = penetration / denominator
-        ratio = self._clamp_01(ratio)
-
-        coupling = ratio ** self._config.couplingGamma
-        return max(self._config.couplingFloor, coupling)
-
-    def _compute_body_armor_rating(self, defender_physical_resistance: float) -> float:
-        baseline_resistance = 5.0
-        ratio = defender_physical_resistance / baseline_resistance
-        ratio = max(0.0, ratio)
-
-        body_armor = self._config.bodyC * (ratio ** self._config.bodyDelta)
-        return max(0.0, body_armor)
-
-    def _compute_body_damage_reduction(self, body_armor_rating: float, incoming_hp: float) -> float:
-        incoming_hp = max(0.0, incoming_hp)
-        if incoming_hp <= 0.0:
+        deficit = defender_physical_resistance - penetration
+        falloff_window = max(
+            self._config.resistanceDeficitFloor,
+            defender_physical_resistance * self._config.resistanceDeficitScale,
+        )
+        if deficit >= falloff_window:
             return 0.0
 
-        denominator = body_armor_rating + (self._config.bodyK * incoming_hp)
-        if denominator <= 0.0:
-            return 0.0
-
-        reduction = body_armor_rating / denominator
-        return self._clamp_01(reduction)
+        normalized_deficit = self._clamp_01(deficit / falloff_window)
+        sharpness = max(0.0001, float(self._config.resistanceFalloffSharpness))
+        decay = math.exp(-sharpness * normalized_deficit)
+        floor_decay = math.exp(-sharpness)
+        scaled_decay = (decay - floor_decay) / (1.0 - floor_decay)
+        return self._clamp_01(scaled_decay)
 
     @staticmethod
     def _clamp_01(value: float) -> float:

@@ -344,12 +344,16 @@ class CombatSimulatorService:
         else:
             lines.append(f"{attacker.name} lands {weapon.name} on {defender.name}, but fails to injure them.")
         if session.debug:
+            scaled_armor_roll = result.rollArmor * result.powerMultiplier
+            scaled_hp_roll = result.rollHp * result.powerMultiplier
             lines.append(
                 "  Debug: "
                 f"hit roll={hit_roll:.4f} <= {hit_chance:.4f}; "
-                f"armor roll={result.rollArmor:.2f}, hp roll={result.rollHp:.2f}, "
-                f"power x={result.powerMultiplier:.3f}, penetration={result.penetration:.2f}, "
-                f"coupling={result.couplingFraction:.3f}, final hp={result.hpFinal:.2f}."
+                f"base armor roll={result.rollArmor:.2f}, base hp roll={result.rollHp:.2f}, "
+                f"power x={result.powerMultiplier:.3f}, scaled armor={scaled_armor_roll:.2f}, scaled hp={scaled_hp_roll:.2f}, "
+                f"armor {result.armorBefore:.2f}->{result.armorAfter:.2f} (dmg {result.armorDamage:.2f}), "
+                f"hp after armor={result.hpPreResistance:.2f}, penetration={result.penetration:.2f}, "
+                f"resist eff={result.penetrationEffectiveness:.3f}, final hp={result.hpFinal:.2f}."
             )
         return lines
 

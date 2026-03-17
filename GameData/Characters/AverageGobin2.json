@@ -4,19 +4,19 @@
     "character_state": {
         "name": "Average Gobin",
         "level": 0,
+        "characterType": "Character",
         "raceTier": "Tier I",
         "race": "Goblin0",
-        "party": 0,
         "health": 50,
         "healthState": "HEALTHY",
         "activeAchievementTitle": "",
         "attributes": {
-            "physicalPower": 4.0,
-            "physicalStamina": 4.0,
-            "physicalResistance": 4.0,
-            "magicPower": 4.0,
-            "magicStamina": 4.0,
-            "magicResistance": 4.0
+            "physicalPower": 3.0,
+            "physicalStamina": 3.0,
+            "physicalResistance": 3.0,
+            "magicPower": 5.0,
+            "magicStamina": 5.0,
+            "magicResistance": 5.0
         },
         "affinities": {
             "chi": 0.5,
@@ -40,13 +40,12 @@
         "buffs": [],
         "spells": [],
         "generalSkills": [],
-        "stats": {
-            "kills": 0,
-            "damageTaken": 0,
-            "missionCount": 0
-        },
+        "stats": null,
         "description": "A small green humanoid with an ill-favored countenance.",
         "portraitURL": "https://cdn.discordapp.com/attachments/886469391548559372/1480289777126215762/image.png",
-        "footerImageURL": ""
+        "footerImageURL": "",
+        "characterInfo": null,
+        "llmControlProfile": null,
+        "friendlyFireTolerance": "No friendly fire"
     }
 }

@@ -36,6 +36,20 @@ class TestDamageCalculator(unittest.TestCase):
             gear=Gear(body=body_armor),
         )
 
+    def _build_unarmored_defender(self, physical_resistance: float = 41) -> Character:
+        return Character(
+            name="Unarmored Defender",
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=physical_resistance,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=12,
+            ),
+            gear=Gear(),
+        )
+
     def _build_weapon(self, **overrides) -> Weapon:
         data = {
             "name": "Nano Longsword",
@@ -67,8 +81,30 @@ class TestDamageCalculator(unittest.TestCase):
 
         self.assertAlmostEqual(result.armorBefore, 120.0)
         self.assertAlmostEqual(result.armorAfter, 0.0)
-        self.assertAlmostEqual(result.hpFinal, 2.2153095615829637)
+        self.assertAlmostEqual(result.hpFinal, 43.29072525891453)
         self.assertAlmostEqual(defender.gear.get_armor(HitLocation.BODY), 0.0)
+
+    def test_unarmored_target_has_no_hidden_armor_reduction(self):
+        calculator = DamageCalculator(rng=random.Random(1337))
+        attacker = self._build_attacker()
+        defender = self._build_unarmored_defender()
+        weapon = self._build_weapon()
+
+        result = calculator.calculate_physical_hit(
+            attacker=attacker,
+            defender=defender,
+            weapon=weapon,
+            targetArmor=0.0,
+        )
+
+        self.assertAlmostEqual(result.armorBefore, 0.0)
+        self.assertAlmostEqual(result.armorDamage, 0.0)
+        self.assertAlmostEqual(result.armorAfter, 0.0)
+        self.assertAlmostEqual(result.penetrationEffectiveness, 1.0)
+        self.assertAlmostEqual(result.penetrationDamageReduction, 0.0)
+        self.assertAlmostEqual(result.hpFinal, result.hpPreResistance)
+        self.assertAlmostEqual(result.bodyArmorRating, 0.0)
+        self.assertAlmostEqual(result.bodyDamageReduction, 0.0)
 
     def test_calculate_physical_hit_to_location_without_armor_writeback(self):
         calculator = DamageCalculator(rng=random.Random(1337))
@@ -146,6 +182,24 @@ class TestDamageCalculator(unittest.TestCase):
         self.assertTrue(result.didHit)
         self.assertGreater(result.hpFinal, 0.0)
         self.assertLessEqual(result.hitChance, 1.0)
+
+    def test_penetration_matching_resistance_keeps_full_effectiveness(self):
+        calculator = DamageCalculator()
+
+        self.assertEqual(calculator._compute_coupling_fraction(10.0, 10.0), 1.0)
+        self.assertEqual(calculator._compute_coupling_fraction(14.0, 10.0), 1.0)
+
+    def test_penetration_shortfall_reaches_zero_at_baseline_window(self):
+        calculator = DamageCalculator()
+
+        self.assertEqual(calculator._compute_coupling_fraction(5.0, 10.0), 0.0)
+        self.assertGreater(calculator._compute_coupling_fraction(7.5, 10.0), 0.0)
+
+    def test_penetration_shortfall_scales_with_higher_resistance(self):
+        calculator = DamageCalculator()
+
+        self.assertGreater(calculator._compute_coupling_fraction(45.0, 50.0), 0.0)
+        self.assertEqual(calculator._compute_coupling_fraction(40.0, 50.0), 0.0)
 
 
 if __name__ == "__main__":
