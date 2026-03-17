@@ -477,10 +477,16 @@ class MissionEditorFrame(ttk.Frame):
         self.pick.bind("<<ComboboxSelected>>", self._on_pick)
 
         self.name_var = tk.StringVar()
+        self.portal_mission_var = tk.BooleanVar(value=True)
         name_row = ttk.Frame(self)
         name_row.pack(fill=tk.X, pady=2)
         ttk.Label(name_row, text="Name", width=18).pack(side=tk.LEFT)
         ttk.Entry(name_row, textvariable=self.name_var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        portal_row = ttk.Frame(self)
+        portal_row.pack(fill=tk.X, pady=2)
+        ttk.Label(portal_row, text="Portal Mission", width=18).pack(side=tk.LEFT)
+        ttk.Checkbutton(portal_row, variable=self.portal_mission_var).pack(side=tk.LEFT)
 
         objective_row = ttk.Frame(self)
         objective_row.pack(fill=tk.X, pady=4)
@@ -509,6 +515,7 @@ class MissionEditorFrame(ttk.Frame):
         self.current_mission_id = None
         self.name_var.set("")
         self.objective_draft = {}
+        self.portal_mission_var.set(True)
         self.objective_label_var.set("<No Objective>")
         self.allegiance_configs_draft = []
         self._refresh_allegiance_listbox()
@@ -539,6 +546,7 @@ class MissionEditorFrame(ttk.Frame):
         mission_data = mission.to_dict()
         self.current_mission_id = mission.missionId
         self.name_var.set(str(mission.name or ""))
+        self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
         self.objective_draft = dict(mission_data.get("objective", {}) or {})
         self.objective_label_var.set(_objective_description(self.objective_draft))
         self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]
@@ -582,7 +590,7 @@ class MissionEditorFrame(ttk.Frame):
             self.allegiance_listbox.insert(tk.END, self._allegiance_config_label(payload))
 
     def _refresh_summary(self):
-        lines = [f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}", f"Mission ID: {self.current_mission_id or '<Unsaved>'}", f"Objective: {_objective_description(self.objective_draft)}", "", "Mission Allegiances:"]
+        lines = [f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}", f"Mission ID: {self.current_mission_id or '<Unsaved>'}", f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}", f"Objective: {_objective_description(self.objective_draft)}", "", "Mission Allegiances:"]
         if not self.allegiance_configs_draft:
             lines.append("<None>")
         else:
@@ -640,7 +648,7 @@ class MissionEditorFrame(ttk.Frame):
         self._refresh_summary()
 
     def _save(self):
-        payload = {"name": str(self.name_var.get() or "").strip(), "objective": dict(self.objective_draft), "allegianceConfigs": list(self.allegiance_configs_draft)}
+        payload = {"name": str(self.name_var.get() or "").strip(), "portalMission": bool(self.portal_mission_var.get()), "objective": dict(self.objective_draft), "allegianceConfigs": list(self.allegiance_configs_draft)}
         if not payload["name"]:
             messagebox.showerror("Mission Editor", "Mission name is required.")
             return
@@ -654,6 +662,7 @@ class MissionEditorFrame(ttk.Frame):
             self.pick_var.set(self.app.mission_service.get_mission_label(mission))
             self.current_mission_id = mission.missionId
             mission_data = mission.to_dict()
+            self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
             self.objective_draft = dict(mission_data.get("objective", {}) or {})
             self.objective_label_var.set(_objective_description(self.objective_draft))
             self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]

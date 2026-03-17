@@ -654,11 +654,13 @@ class Mission:
         name: str,
         objective: MissionObjective,
         allegianceConfigs: list[MissionAllegianceConfig] | None = None,
+        portalMission: bool = True,
         missionId: str = "",
     ):
         self.name = str(name or "")
         self.objective = objective if isinstance(objective, MissionObjective) else MissionObjective.from_dict(objective)
         self.allegianceConfigs = [entry for entry in (allegianceConfigs or []) if isinstance(entry, MissionAllegianceConfig)]
+        self.portalMission = bool(portalMission)
         self.missionId = str(missionId or "")
 
     def evaluate_objective(
@@ -675,6 +677,7 @@ class Mission:
             "name": self.name,
             "objective": self.objective.to_dict(),
             "allegianceConfigs": [entry.to_dict() for entry in self.allegianceConfigs],
+            "portalMission": self.portalMission,
         }
 
     @classmethod
@@ -692,5 +695,6 @@ class Mission:
             name=name,
             objective=objective,
             allegianceConfigs=allegiance_configs,
+            portalMission=bool(data.get("portalMission", True)),
             missionId=str(data.get("missionId", "") or ""),
         )

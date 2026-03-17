@@ -134,6 +134,7 @@ class TestMissionService(unittest.TestCase):
             )
 
             self.assertEqual(len(mission.allegianceConfigs), 2)
+            self.assertTrue(mission.portalMission)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbability, 1.0)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbabilityVariance, 0.0)
             self.assertEqual(mission.allegianceConfigs[0].unitOptions[0].eliteChance, 0.35)
@@ -148,6 +149,7 @@ class TestMissionService(unittest.TestCase):
                         "objectiveType": "ASSASSINATION",
                         "requiredBossesDefeated": 2,
                     },
+                    "portalMission": False,
                     "allegianceConfigs": [
                         {
                             "allegianceId": raiders.allegianceId,
@@ -169,6 +171,7 @@ class TestMissionService(unittest.TestCase):
                     ],
                 },
             )
+            self.assertFalse(updated.portalMission)
             self.assertEqual(updated.allegianceConfigs[0].powerPointCap, 40)
             self.assertEqual(updated.allegianceConfigs[0].unitOptions[0].capacityMin, 2)
             self.assertAlmostEqual(updated.allegianceConfigs[0].unitOptions[0].eliteChance, 0.6)
@@ -205,6 +208,7 @@ class TestMissionService(unittest.TestCase):
 
             loaded = reloaded_mission_service.get_mission_by_id(mission.missionId)
             self.assertIsNotNone(loaded)
+            self.assertFalse(loaded.portalMission)
             self.assertEqual(len(loaded.allegianceConfigs), 1)
             self.assertEqual(loaded.allegianceConfigs[0].unitOptions[0].unitId, goblin_unit.unitId)
             self.assertEqual(loaded.objective.objectiveType.name, "ASSASSINATION")
