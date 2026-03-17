@@ -7,6 +7,7 @@ class ScrollableEditorHost(ttk.Frame):
         super().__init__(parent)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self._mousewheel_sequences = ("<MouseWheel>", "<Button-4>", "<Button-5>")
 
         self._canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
         self._canvas.grid(row=0, column=0, sticky="nsew")
@@ -24,6 +25,7 @@ class ScrollableEditorHost(ttk.Frame):
         self._scrollbar_visible = True
         self._content_parent.bind("<Configure>", self._on_content_configure)
         self._canvas.bind("<Configure>", self._on_canvas_configure)
+        self._bind_mousewheel_recursive(self)
         self.after_idle(self._refresh_scroll_state)
 
     def __getattr__(self, name):
@@ -50,6 +52,32 @@ class ScrollableEditorHost(ttk.Frame):
         elif not needs_scrollbar and self._scrollbar_visible:
             self._scrollbar.grid_remove()
             self._scrollbar_visible = False
+
+    def _bind_mousewheel_recursive(self, widget):
+        for sequence in self._mousewheel_sequences:
+            widget.bind(sequence, self._on_mousewheel, add="+")
+        for child in widget.winfo_children():
+            self._bind_mousewheel_recursive(child)
+
+    def _on_mousewheel(self, event):
+        if not self.winfo_ismapped():
+            return None
+        self._refresh_scroll_state()
+        if not self._scrollbar_visible:
+            return None
+
+        if getattr(event, "num", None) == 4:
+            delta = -1
+        elif getattr(event, "num", None) == 5:
+            delta = 1
+        else:
+            raw_delta = int(getattr(event, "delta", 0) or 0)
+            if raw_delta == 0:
+                return None
+            delta = -int(raw_delta / 120) if abs(raw_delta) >= 120 else (-1 if raw_delta > 0 else 1)
+
+        self._canvas.yview_scroll(delta, "units")
+        return "break"
 
     def scroll_to_top(self):
         self._canvas.yview_moveto(0.0)
