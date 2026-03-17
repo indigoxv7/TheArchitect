@@ -1,4 +1,25 @@
 {
     "format_version": 1,
-    "campaigns": []
+    "campaigns": [
+        {
+            "campaignId": "TheApocalypseBegins0",
+            "name": "The Apocalypse Begins",
+            "description": "Its the end of the world, and the start of the new one.",
+            "startingMissionIds": [
+                "GoblinEliminationlvl00"
+            ],
+            "unlockGroups": [
+                {
+                    "unlockId": "TheApocalypseBegins0Unlock0",
+                    "missionIds": [
+                        "GoblinAssassinAssassin1"
+                    ],
+                    "requiredCompletedMissionIds": [
+                        "GoblinEliminationlvl00"
+                    ],
+                    "minimumCharacterLevel": null
+                }
+            ]
+        }
+    ]
 }

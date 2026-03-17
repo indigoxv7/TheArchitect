@@ -1,9 +1,47 @@
 {
-    "format_version": 1,
+    "format_version": 2,
     "missions": [
+        {
+            "missionId": "GoblinAssassinAssassin1",
+            "name": "Goblin Assassin Assassin",
+            "objective": {
+                "objectiveType": "ASSASSINATION",
+                "requiredBossesDefeated": 1
+            },
+            "allegianceConfigs": [
+                {
+                    "allegianceId": "Bandit0",
+                    "powerPointCap": 100,
+                    "unitOptions": [
+                        {
+                            "unitId": "GoblinAssassin0",
+                            "capacityMin": 1,
+                            "capacityMax": 1,
+                            "eliteChance": 1.0,
+                            "isBoss": true
+                        },
+                        {
+                            "unitId": "Goblinfighter1",
+                            "capacityMin": null,
+                            "capacityMax": null,
+                            "eliteChance": 0.0,
+                            "isBoss": false
+                        }
+                    ],
+                    "clusterProbability": 0.0,
+                    "clusterProbabilityVariance": 0.0,
+                    "levelMin": 0,
+                    "levelMax": 0
+                }
+            ]
+        },
         {
             "missionId": "GoblinEliminationlvl00",
             "name": "Goblin Elimination lvl0",
+            "objective": {
+                "objectiveType": "ELIMINATION",
+                "requiredEliminationFraction": 1.0
+            },
             "allegianceConfigs": [
                 {
                     "allegianceId": "Bandit0",
@@ -13,13 +51,15 @@
                             "unitId": "Goblinfighter1",
                             "capacityMin": null,
                             "capacityMax": null,
-                            "canBeElite": false
+                            "eliteChance": 0.0,
+                            "isBoss": false
                         },
                         {
                             "unitId": "GoblinAssassin0",
                             "capacityMin": 1,
                             "capacityMax": 1,
-                            "canBeElite": false
+                            "eliteChance": 0.0,
+                            "isBoss": false
                         }
                     ],
                     "clusterProbability": 0.0,

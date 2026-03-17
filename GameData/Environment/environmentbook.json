@@ -1,7 +1,57 @@
 {
     "format_version": 1,
-    "effects": [],
-    "terrains": [],
-    "climates": [],
-    "biomes": []
+    "effects": [
+        {
+            "effectId": "IntenseHeat0",
+            "name": "Intense Heat",
+            "description": "Intense heat assualts the senses here. Anyone not protected from it will suffer from heat exhaustion under its effects.",
+            "counterplay": ""
+        }
+    ],
+    "terrains": [
+        {
+            "terrainId": "Jungle0",
+            "name": "Jungle",
+            "description": "A dense, tangled, and often impenetrable tropical forest ecosystem with thick undergrowth, vines, and low-lying vegetation.",
+            "effectIds": []
+        }
+    ],
+    "climates": [
+        {
+            "climateId": "Temperate0",
+            "name": "Temperate",
+            "temperature": "70",
+            "humidity": "40",
+            "description": "The climate is moderate, quite pleasant even.",
+            "effectIds": []
+        },
+        {
+            "climateId": "Tropical1",
+            "name": "Tropical",
+            "temperature": "30",
+            "humidity": "77",
+            "description": "Hot, humid, and wet.",
+            "effectIds": []
+        }
+    ],
+    "biomes": [
+        {
+            "biomeId": "Jungle0",
+            "name": "Jungle",
+            "description": "Jungle.",
+            "effectIds": [],
+            "terrainCompatibilityMode": "SELECTED",
+            "compatibleTerrainIds": [
+                "Jungle0"
+            ],
+            "terrainIncompatibilityMode": "EXPLICIT",
+            "incompatibleTerrainIds": [],
+            "climateCompatibilityMode": "SELECTED",
+            "compatibleClimateIds": [
+                "Tropical1"
+            ],
+            "climateIncompatibilityMode": "EXPLICIT",
+            "incompatibleClimateIds": []
+        }
+    ]
 }
