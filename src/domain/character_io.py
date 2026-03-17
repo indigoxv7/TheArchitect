@@ -415,7 +415,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "characterType": "MainCharacter" if isinstance(character, MainCharacter) else "Character",
         "raceTier": str(character.raceTier or "Tier I"),
         "race": str(getattr(character, "race", "Human1") or "Human1"),
-        "health": _coerce_int(character.health, 100),
+        "health": _coerce_float(character.health, 0.0),
         "healthState": character.healthState.name if isinstance(character.healthState, HealthState) else str(character.healthState),
         "activeAchievementTitle": str(getattr(character, "activeAchievementTitle", "") or ""),
         "attributes": _attributes_to_dict(character.attributes),
@@ -502,7 +502,10 @@ def character_from_state(
     else:
         character = Character(**character_kwargs)
 
-    character.health = _coerce_int(data.get("health", 100), 100)
+    if "health" in data:
+        character.health = _coerce_float(data.get("health", character.GetMaxHealth()), character.GetMaxHealth())
+    else:
+        character.health = character.GetMaxHealth()
     character.healthState = _enum_from_name(HealthState, data.get("healthState"), HealthState.HEALTHY)
     character.activeAchievementTitle = str(data.get("activeAchievementTitle", "") or "")
     character.description = description

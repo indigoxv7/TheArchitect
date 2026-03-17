@@ -39,6 +39,9 @@ class CombatSimulationSession:
     seed: int = 0
     round_number: int = 0
     pending_turn_order: list[str] = field(default_factory=list)
+    next_action_times: dict[str, float] = field(default_factory=dict)
+    tie_break_order: list[str] = field(default_factory=list)
+    round_actors: set[str] = field(default_factory=set)
     log_lines: list[str] = field(default_factory=list)
     finished: bool = False
     result_text: str = ""
@@ -120,6 +123,10 @@ class CombatSimulatorService:
         if hasattr(character, "EnsureRuntimeDefaults"):
             character.EnsureRuntimeDefaults()
         character.CalculateBonus()
+        if hasattr(character, "ClampHealthToMax"):
+            character.ClampHealthToMax()
+        if hasattr(character, "RefreshHealthState"):
+            character.RefreshHealthState()
         return character
 
     def _prepare_characters(self, left_state: dict[str, Any], right_state: dict[str, Any]) -> tuple[Character, Character]:
@@ -191,40 +198,108 @@ class CombatSimulatorService:
             self.step_session(session)
         return max(0, int(session.round_number))
 
+    @staticmethod
+    def _character_speed(character: Character) -> float:
+        get_speed = getattr(character, "GetSpeed", None)
+        if callable(get_speed):
+            return max(0.1, float(get_speed()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        physical_power = float(getattr(attrs, "physicalPower", 5.0))
+        magic_power = float(getattr(attrs, "magicPower", 5.0))
+        return max(0.1, (physical_power * 0.66) + (magic_power * 0.33))
+
+    @classmethod
+    def _action_interval(cls, character: Character) -> float:
+        return 1.0 / cls._character_speed(character)
+
+    @staticmethod
+    def _alive_sides(session: CombatSimulationSession) -> list[str]:
+        alive = []
+        if float(getattr(session.left_character, "health", 0.0) or 0.0) > 0.0:
+            alive.append("left")
+        if float(getattr(session.right_character, "health", 0.0) or 0.0) > 0.0:
+            alive.append("right")
+        return alive
+
+    def _select_next_side(self, session: CombatSimulationSession) -> str | None:
+        alive = self._alive_sides(session)
+        if not alive:
+            return None
+        if len(alive) == 1:
+            return alive[0]
+        priority = {side: index for index, side in enumerate(session.tie_break_order)}
+        return min(
+            alive,
+            key=lambda side: (
+                float(session.next_action_times.get(side, 0.0)),
+                priority.get(side, len(priority)),
+            ),
+        )
+
+    def _initialize_turn_timeline(self, session: CombatSimulationSession) -> list[str]:
+        initiative_roll = session.rng.random()
+        first_side = "left" if initiative_roll < 0.5 else "right"
+        second_side = "right" if first_side == "left" else "left"
+        session.next_action_times = {
+            first_side: 0.0,
+            second_side: self._action_interval(session.left_character if second_side == "left" else session.right_character),
+        }
+        session.tie_break_order = [second_side, first_side]
+        session.round_actors.clear()
+        session.round_number = 1
+        lead_name = session.left_character.name if first_side == "left" else session.right_character.name
+        round_line = f"Round 1 begins. Lead action: {lead_name}."
+        lines = [round_line]
+        session.log_lines.append(round_line)
+        if session.debug:
+            lines.append(
+                "  Debug: "
+                f"initiative roll={initiative_roll:.4f} (left acts first if < 0.5000); "
+                f"left speed={self._character_speed(session.left_character):.2f}, "
+                f"right speed={self._character_speed(session.right_character):.2f}."
+            )
+            session.log_lines.append(lines[-1])
+        return lines
+
     def step_session(self, session: CombatSimulationSession) -> list[str]:
         if session.finished:
             return []
 
-        if not session.pending_turn_order:
+        if not session.next_action_times:
+            new_lines = self._initialize_turn_timeline(session)
+        elif not session.round_actors:
             if session.round_number >= self.MAX_DUEL_ROUNDS:
                 session.finished = True
                 session.result_text = "Simulation ends in a draw."
                 session.log_lines.append(session.result_text)
                 return [session.result_text]
             session.round_number += 1
-            initiative_roll = session.rng.random()
-            session.pending_turn_order = ["left", "right"] if initiative_roll < 0.5 else ["right", "left"]
-            order_names = [session.left_character.name if side == "left" else session.right_character.name for side in session.pending_turn_order]
-            round_line = f"Round {session.round_number} begins. Turn order: {', '.join(order_names)}."
+            lead_side = self._select_next_side(session)
+            lead_name = session.left_character.name if lead_side == "left" else session.right_character.name
+            round_line = f"Round {session.round_number} begins. Lead action: {lead_name}."
             session.log_lines.append(round_line)
             new_lines = [round_line]
-            if session.debug:
-                debug_line = f"  Debug: initiative roll={initiative_roll:.4f} (left acts first if < 0.5000)."
-                session.log_lines.append(debug_line)
-                new_lines.append(debug_line)
         else:
             new_lines = []
 
-        side = session.pending_turn_order.pop(0)
+        side = self._select_next_side(session)
+        if side is None:
+            session.finished = True
+            session.result_text = "Both combatants fall."
+            session.log_lines.append(session.result_text)
+            return new_lines + [session.result_text]
         attacker = session.left_character if side == "left" else session.right_character
         defender = session.right_character if side == "left" else session.left_character
 
         if attacker.health <= 0 or defender.health <= 0:
             return new_lines
 
+        session.round_actors.add(side)
         action_lines = self._take_turn(attacker, defender, session)
         session.log_lines.extend(action_lines)
         new_lines.extend(action_lines)
+        session.next_action_times[side] = float(session.next_action_times.get(side, 0.0)) + self._action_interval(attacker)
+        session.tie_break_order = [entry for entry in session.tie_break_order if entry != side] + [side]
 
         if defender.health <= 0:
             session.finished = True
@@ -236,11 +311,10 @@ class CombatSimulatorService:
             session.result_text = "Both combatants fall."
             session.log_lines.append(session.result_text)
             new_lines.append(session.result_text)
-        elif not session.pending_turn_order and session.round_number >= self.MAX_DUEL_ROUNDS:
-            session.finished = True
-            session.result_text = "Simulation ends in a draw."
-            session.log_lines.append(session.result_text)
-            new_lines.append(session.result_text)
+        else:
+            alive_sides = self._alive_sides(session)
+            if alive_sides and all(entry in session.round_actors for entry in alive_sides):
+                session.round_actors.clear()
         return new_lines
 
     def _take_turn(self, attacker: Character, defender: Character, session: CombatSimulationSession) -> list[str]:
@@ -261,7 +335,8 @@ class CombatSimulatorService:
         inventory = list(getattr(gear, "inventory", []) or []) if gear is not None else []
         if not inventory:
             return None
-        health_ratio = float(getattr(attacker, "health", 0.0) or 0.0) / 100.0
+        max_health = max(1.0, float(getattr(attacker, "GetMaxHealth", lambda: 100.0)()))
+        health_ratio = float(getattr(attacker, "health", 0.0) or 0.0) / max_health
         for item in inventory:
             if not isinstance(item, Consumable):
                 continue
@@ -394,7 +469,8 @@ class CombatSimulatorService:
             return self._resolve_offensive_consumable(attacker, defender, item, session)
         healing = self._consumable_healing(attacker, item)
         before = float(getattr(attacker, "health", 0.0) or 0.0)
-        attacker.health = min(100.0, before + healing)
+        max_health = max(1.0, float(getattr(attacker, "GetMaxHealth", lambda: 100.0)()))
+        attacker.health = min(max_health, before + healing)
         attacker.healthState = self._health_state(attacker)
         lines = [f"{attacker.name} uses {item.name} and restores {attacker.health - before:.1f} health."]
         if session.debug:
@@ -456,12 +532,13 @@ class CombatSimulatorService:
         health = max(0.0, float(getattr(character, "health", 0.0) or 0.0))
         if health <= 0.0:
             return HealthState.UNCONSCIOUS
-        percent = health
-        if percent >= 76.0:
+        max_health = max(1.0, float(getattr(character, "GetMaxHealth", lambda: 100.0)()))
+        percent = health / max_health
+        if percent >= 0.76:
             return HealthState.HEALTHY
-        if percent >= 51.0:
+        if percent >= 0.51:
             return HealthState.INJURED
-        if percent >= 26.0:
+        if percent >= 0.26:
             return HealthState.HEAVILY_INJURED
         return HealthState.DYING
 

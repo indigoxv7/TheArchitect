@@ -343,6 +343,8 @@ def generate_character_from_race(
         )
 
     character.CalculateBonus()
+    character.health = character.GetMaxHealth()
+    character.RefreshHealthState()
     return character
 
 

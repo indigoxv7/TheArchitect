@@ -161,6 +161,52 @@ class TestCombatSimulatorService(unittest.TestCase):
             self.assertLessEqual(result.leftWinRate + result.rightWinRate, 1.0)
             self.assertGreater(result.averageRounds, 0.0)
 
+    def test_higher_speed_character_acts_more_often(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _item_service, _spell_service, character_service, _race_service, simulator = self._build_services(temp_dir)
+
+            _fast_id, fast = character_service.create_character_from_dict(
+                {
+                    "name": "Swift",
+                    "attributes": {
+                        "physicalPower": 12,
+                        "physicalStamina": 5,
+                        "physicalResistance": 20,
+                        "magicPower": 9,
+                        "magicStamina": 5,
+                        "magicResistance": 5,
+                    },
+                }
+            )
+            _slow_id, slow = character_service.create_character_from_dict(
+                {
+                    "name": "Steady",
+                    "attributes": {
+                        "physicalPower": 5,
+                        "physicalStamina": 5,
+                        "physicalResistance": 20,
+                        "magicPower": 5,
+                        "magicStamina": 5,
+                        "magicResistance": 5,
+                    },
+                }
+            )
+
+            session = simulator.start_session(character_to_state(fast), character_to_state(slow), debug=False, seed=123)
+            action_counts = {"Swift": 0, "Steady": 0}
+
+            for _ in range(8):
+                lines = simulator.step_session(session)
+                for line in lines:
+                    if line.startswith("Swift "):
+                        action_counts["Swift"] += 1
+                    elif line.startswith("Steady "):
+                        action_counts["Steady"] += 1
+                if session.finished:
+                    break
+
+            self.assertGreater(action_counts["Swift"], action_counts["Steady"])
+
 
 if __name__ == "__main__":
     unittest.main()

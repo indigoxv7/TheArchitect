@@ -334,9 +334,31 @@ class PowerRatingService:
             gear.inventory = [self._clone_item(consumable)]
         spells = [copy.deepcopy(spell)] if spell is not None else []
         character = Character(name=name, attributes=self._build_attributes(stat_bonus), gear=gear, spells=spells)
-        character.health = self.SIMULATION_HEALTH
         character.CalculateBonus()
+        character.health = character.GetMaxHealth()
+        character.RefreshHealthState()
         return character
+
+    @staticmethod
+    def _character_max_health(character: Character) -> float:
+        get_max_health = getattr(character, "GetMaxHealth", None)
+        if callable(get_max_health):
+            return max(1.0, float(get_max_health()))
+        return 100.0
+
+    @staticmethod
+    def _character_speed(character: Character) -> float:
+        get_speed = getattr(character, "GetSpeed", None)
+        if callable(get_speed):
+            return max(0.1, float(get_speed()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        physical_power = float(getattr(attrs, "physicalPower", 5.0))
+        magic_power = float(getattr(attrs, "magicPower", 5.0))
+        return max(0.1, (physical_power * 0.66) + (magic_power * 0.33))
+
+    @classmethod
+    def _action_interval(cls, character: Character) -> float:
+        return 1.0 / cls._character_speed(character)
 
     @staticmethod
     def _equip_item_by_slot(gear: Gear, item: Item | None):
@@ -394,7 +416,11 @@ class PowerRatingService:
             rounds = self._run_duel(left, right, rng)
             health_a = max(0.0, float(getattr(left.character, "health", 0.0) or 0.0))
             health_b = max(0.0, float(getattr(right.character, "health", 0.0) or 0.0))
-            margin = (health_a - health_b) / self.SIMULATION_HEALTH
+            margin_scale = max(
+                1.0,
+                (self._character_max_health(left.character) + self._character_max_health(right.character)) / 2.0,
+            )
+            margin = (health_a - health_b) / margin_scale
             if health_a > 0.0 and health_b <= 0.0:
                 wins += 1
                 outcome_score = 1.0
@@ -450,21 +476,45 @@ class PowerRatingService:
         )
 
     def _run_duel(self, left: _Combatant, right: _Combatant, rng: random.Random) -> int:
-        rounds = 0
-        for round_index in range(1, self.MAX_DUEL_ROUNDS + 1):
-            rounds = round_index
-            if rng.random() < 0.5:
-                acting_order = ((left, right), (right, left))
-            else:
-                acting_order = ((right, left), (left, right))
-            for attacker, defender in acting_order:
-                if attacker.character.health <= 0 or defender.character.health <= 0:
-                    continue
-                self._take_turn(attacker, defender, rng, round_index)
-                if defender.character.health <= 0:
-                    break
-            if left.character.health <= 0 or right.character.health <= 0:
+        first_side = "left" if rng.random() < 0.5 else "right"
+        second_side = "right" if first_side == "left" else "left"
+        next_action_times = {
+            first_side: 0.0,
+            second_side: self._action_interval(left.character if second_side == "left" else right.character),
+        }
+        tie_break_order = [second_side, first_side]
+        round_actors: set[str] = set()
+        rounds = 1
+
+        while rounds <= self.MAX_DUEL_ROUNDS:
+            alive_sides = []
+            if left.character.health > 0:
+                alive_sides.append("left")
+            if right.character.health > 0:
+                alive_sides.append("right")
+            if len(alive_sides) < 2:
                 break
+
+            priority = {side: index for index, side in enumerate(tie_break_order)}
+            side = min(
+                alive_sides,
+                key=lambda entry: (
+                    float(next_action_times.get(entry, 0.0)),
+                    priority.get(entry, len(priority)),
+                ),
+            )
+            attacker, defender = (left, right) if side == "left" else (right, left)
+            round_actors.add(side)
+            self._take_turn(attacker, defender, rng, rounds)
+            next_action_times[side] = float(next_action_times.get(side, 0.0)) + self._action_interval(attacker.character)
+            tie_break_order = [entry for entry in tie_break_order if entry != side] + [side]
+            if defender.character.health <= 0:
+                break
+            if all(entry in round_actors for entry in alive_sides):
+                round_actors.clear()
+                if rounds >= self.MAX_DUEL_ROUNDS:
+                    break
+                rounds += 1
         return rounds
 
     def _take_turn(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int):
@@ -484,7 +534,7 @@ class PowerRatingService:
         item = attacker.consumable
         if item is None or attacker.consumable_used:
             return False
-        health_ratio = float(attacker.character.health) / max(1.0, self.SIMULATION_HEALTH)
+        health_ratio = float(attacker.character.health) / self._character_max_health(attacker.character)
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
             if round_index > 1:
                 return False
@@ -494,7 +544,7 @@ class PowerRatingService:
             return True
         if health_ratio <= 0.6:
             healing = self._consumable_healing(attacker.character, item)
-            attacker.character.health = min(self.SIMULATION_HEALTH, float(attacker.character.health) + healing)
+            attacker.character.health = min(self._character_max_health(attacker.character), float(attacker.character.health) + healing)
             attacker.consumable_used = True
             return True
         return False

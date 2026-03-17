@@ -26,6 +26,12 @@ class Buff:
 
 
 class Character:
+    PRIMARY_STAT_BASELINE = 5.0
+    DERIVED_STAT_ALPHA = 0.80
+    BASE_HEALTH_AT_BASELINE = 55.0
+    SPEED_PHYSICAL_WEIGHT = 0.66
+    SPEED_MAGIC_WEIGHT = 0.33
+
     finalAttributes: Attributes
     finalAffinities: Affinities
     achievements: list[Achievement]
@@ -75,13 +81,14 @@ class Character:
                 self.AddAchievement(achievement)
         self.generalSkills = generalSkills if generalSkills is not None else []
         self.spells = spells if spells is not None else []
-        self.health = 100
+        self.health = 0.0
         self.healthState = HealthState.HEALTHY
         self.buffs = buffs if buffs is not None else []
         self.totalBonus = TotalBonus(None)
         self.finalAttributes = copy.deepcopy(self.attributes)
         self.finalAffinities = copy.deepcopy(self.affinities)
         self.CalculateBonus()
+        self.health = self.GetMaxHealth()
 
     @staticmethod
     def _coerce_friendly_fire_tolerance(value) -> FriendlyFireTolerance:
@@ -124,7 +131,7 @@ class Character:
         if not hasattr(self, "buffs") or self.buffs is None:
             self.buffs = []
         if not hasattr(self, "health"):
-            self.health = 100
+            self.health = self.GetMaxHealth()
         if not hasattr(self, "healthState"):
             self.healthState = HealthState.HEALTHY
         if not hasattr(self, "attributes") or self.attributes is None:
@@ -142,6 +149,43 @@ class Character:
         if not hasattr(self, "totalBonus") or self.totalBonus is None:
             self.totalBonus = TotalBonus(None)
         self.CalculateBonus()
+
+    @classmethod
+    def _scaled_primary_stat_multiplier(cls, value: float) -> float:
+        ratio = max(0.0001, float(value) / cls.PRIMARY_STAT_BASELINE)
+        return ratio ** cls.DERIVED_STAT_ALPHA
+
+    def GetMaxHealth(self) -> float:
+        physical_resistance = float(getattr(self.finalAttributes, "physicalResistance", getattr(self.attributes, "physicalResistance", 5.0)))
+        return self.BASE_HEALTH_AT_BASELINE * self._scaled_primary_stat_multiplier(physical_resistance)
+
+    def GetSpeed(self) -> float:
+        physical_power = float(getattr(self.finalAttributes, "physicalPower", getattr(self.attributes, "physicalPower", 5.0)))
+        magic_power = float(getattr(self.finalAttributes, "magicPower", getattr(self.attributes, "magicPower", 5.0)))
+        speed = (physical_power * self.SPEED_PHYSICAL_WEIGHT) + (magic_power * self.SPEED_MAGIC_WEIGHT)
+        return max(0.1, speed)
+
+    def GetHealthRatio(self) -> float:
+        max_health = max(1.0, self.GetMaxHealth())
+        return max(0.0, min(1.0, float(getattr(self, "health", 0.0) or 0.0) / max_health))
+
+    def ClampHealthToMax(self) -> float:
+        self.health = max(0.0, min(float(getattr(self, "health", 0.0) or 0.0), self.GetMaxHealth()))
+        return float(self.health)
+
+    def RefreshHealthState(self) -> HealthState:
+        ratio = self.GetHealthRatio()
+        if float(getattr(self, "health", 0.0) or 0.0) <= 0.0:
+            self.healthState = HealthState.UNCONSCIOUS
+        elif ratio >= 0.76:
+            self.healthState = HealthState.HEALTHY
+        elif ratio >= 0.51:
+            self.healthState = HealthState.INJURED
+        elif ratio >= 0.26:
+            self.healthState = HealthState.HEAVILY_INJURED
+        else:
+            self.healthState = HealthState.DYING
+        return self.healthState
 
     def ListAllItemBonuses(self):
         allItemBonuses = []
@@ -195,6 +239,8 @@ class Character:
         self.totalBonus = TotalBonus(None)
         self.totalBonus.ApplyAllBonuses(self.ListAllBonuses())
         self.CalculateFinalAttributes()
+        if not hasattr(self, "health") or self.health is None:
+            self.health = self.GetMaxHealth()
 
 
 
@@ -348,12 +394,15 @@ class Character:
         for achievement in self.achievements:
             achievementString += f"{achievement.name}\n"
         nanoString = AbbreviateNumber(nanoAmount)
+        vitals = f"Health - {float(self.health):.1f}/{self.GetMaxHealth():.1f}\nSpeed - {self.GetSpeed():.1f}"
 
         result = f"""
 {affinitySection}
 Race - {self.raceTier}
 
 {attributes}
+{vitals}
+
 Achievements -
 {achievementString}
 {self.GetGeneralSkillsString()}{self.GetSpellsString()}

@@ -329,6 +329,11 @@ class BattleService:
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", Attributes()))
         gear = getattr(character, "gear", Gear())
         size = self._resolve_size_for_character(character)
+        get_max_health = getattr(character, "GetMaxHealth", None)
+        max_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
+        current_health = max(0.0, min(float(getattr(character, "health", max_health) or max_health), max_health))
+        get_speed = getattr(character, "GetSpeed", None)
+        speed = float(get_speed() if callable(get_speed) else 5.0)
         return CombatUnitState(
             unit_id=unit_id,
             name=name_override or str(getattr(character, "name", "Unit") or "Unit"),
@@ -336,9 +341,9 @@ class BattleService:
             role=self._infer_role(character),
             size=size,
             level=int(getattr(character, "level", 0) or 0),
-            health=float(getattr(character, "health", 100) or 100),
-            max_health=100.0,
-            health_state=getattr(getattr(character, "healthState", HealthState.HEALTHY), "name", "HEALTHY"),
+            health=current_health,
+            max_health=max_health,
+            health_state=self._health_state_for_ratio(current_health, max_health).name,
             lane_width=lane_width_for_size(size),
             starting_line=0,
             character_instance_id=character_instance_id,
@@ -353,6 +358,7 @@ class BattleService:
             magic_power=float(getattr(attrs, "magicPower", 5.0)),
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
+            speed=speed,
             primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             inventory_item_ids=[self._resolve_item_id(item) for item in getattr(gear, "inventory", []) or [] if self._resolve_item_id(item)],
@@ -372,7 +378,10 @@ class BattleService:
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", Attributes()))
         gear = getattr(character, "gear", Gear())
         size = self._resolve_size_for_character(character)
-        unit_health = max(20.0, float(getattr(character, "health", 100) or 100))
+        get_max_health = getattr(character, "GetMaxHealth", None)
+        unit_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
+        get_speed = getattr(character, "GetSpeed", None)
+        speed = float(get_speed() if callable(get_speed) else 5.0)
         return EnemyStackState(
             stack_id=stack_id,
             name=name_override,
@@ -397,6 +406,7 @@ class BattleService:
             magic_power=float(getattr(attrs, "magicPower", 5.0)),
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
+            speed=speed,
             primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             spell_names=self._extract_direct_damage_spells(character),
@@ -1167,7 +1177,7 @@ class BattleService:
                 source = self._player_source_character(battle.player_id, unit.character_instance_id)
                 if source is None:
                     continue
-                source.health = int(max(0, round(unit.health)))
+                source.health = max(0.0, float(unit.health))
                 state_name = self._normalize_health_state_name(unit.health_state)
                 if battle.outcome == BattleOutcome.DEFEAT and source.health <= 0:
                     state_name = "DEAD"

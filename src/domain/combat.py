@@ -293,6 +293,7 @@ class CombatUnitState:
     magic_power: float = 5.0
     magic_stamina: float = 5.0
     magic_resistance: float = 5.0
+    speed: float = 5.0
     primary_weapon_item_id: str = ""
     offhand_item_id: str = ""
     inventory_item_ids: list[str] = field(default_factory=list)
@@ -331,6 +332,7 @@ class CombatUnitState:
             "magic_power": float(self.magic_power),
             "magic_stamina": float(self.magic_stamina),
             "magic_resistance": float(self.magic_resistance),
+            "speed": float(self.speed),
             "primary_weapon_item_id": self.primary_weapon_item_id,
             "offhand_item_id": self.offhand_item_id,
             "inventory_item_ids": list(self.inventory_item_ids),
@@ -369,6 +371,7 @@ class CombatUnitState:
             magic_power=float(data.get("magic_power", 5.0) or 5.0),
             magic_stamina=float(data.get("magic_stamina", 5.0) or 5.0),
             magic_resistance=float(data.get("magic_resistance", 5.0) or 5.0),
+            speed=float(data.get("speed", 5.0) or 5.0),
             primary_weapon_item_id=str(data.get("primary_weapon_item_id", "") or ""),
             offhand_item_id=str(data.get("offhand_item_id", "") or ""),
             inventory_item_ids=[str(item) for item in data.get("inventory_item_ids", []) or []],
@@ -405,6 +408,7 @@ class EnemyStackState:
     magic_power: float = 5.0
     magic_stamina: float = 5.0
     magic_resistance: float = 5.0
+    speed: float = 5.0
     primary_weapon_item_id: str = ""
     offhand_item_id: str = ""
     spell_names: list[str] = field(default_factory=list)
@@ -455,6 +459,7 @@ class EnemyStackState:
             "magic_power": float(self.magic_power),
             "magic_stamina": float(self.magic_stamina),
             "magic_resistance": float(self.magic_resistance),
+            "speed": float(self.speed),
             "primary_weapon_item_id": self.primary_weapon_item_id,
             "offhand_item_id": self.offhand_item_id,
             "spell_names": list(self.spell_names),
@@ -491,6 +496,7 @@ class EnemyStackState:
             magic_power=float(data.get("magic_power", 5.0) or 5.0),
             magic_stamina=float(data.get("magic_stamina", 5.0) or 5.0),
             magic_resistance=float(data.get("magic_resistance", 5.0) or 5.0),
+            speed=float(data.get("speed", 5.0) or 5.0),
             primary_weapon_item_id=str(data.get("primary_weapon_item_id", "") or ""),
             offhand_item_id=str(data.get("offhand_item_id", "") or ""),
             spell_names=[str(item) for item in data.get("spell_names", []) or []],
