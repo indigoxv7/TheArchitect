@@ -247,6 +247,62 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(battle.cached_orders_signature, battle.orders.signature())
 
+    def test_exchange_advances_battle_time_by_twelve_seconds(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
+
+            battle_service.resolve_exchange(battle, persist=False, record_memory=False)
+
+            self.assertAlmostEqual(battle.battle_time_seconds, 12.0)
+
+    def test_faster_units_act_more_often_within_exchange(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            player = player_service.get_player_sync(111)
+            player.characters[0].attributes.physicalPower = 12
+            player.characters[0].attributes.magicPower = 9
+            player.characters[0].attributes.physicalResistance = 30
+            player.characters[0].CalculateBonus()
+            player.characters[0].health = player.characters[0].GetMaxHealth()
+
+            encounter = EncounterDefinition(
+                encounter_id="speed_duel",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Speed Duel",
+                terrain="Roadside",
+                width=1,
+                total_lines=5,
+                objective_text="Win.",
+                allow_retreat=True,
+                enemy_entries=[EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(player, encounter, "test")
+            battle.enemy_units[0].physical_power = 5.0
+            battle.enemy_units[0].magic_power = 5.0
+            battle.enemy_units[0].speed = 1.0
+            battle.ally_units[0].health = 500.0
+            battle.ally_units[0].max_health = 500.0
+            battle.enemy_units[0].health = 500.0
+            battle.enemy_units[0].max_health = 500.0
+
+            counts = {"Hero": 0, "Goblin Raider": 0}
+            original_execute = battle_service._execute_actor_turn
+
+            def wrapped_execute(local_battle, actor, highlights):
+                counts[getattr(actor, "name", "")] = counts.get(getattr(actor, "name", ""), 0) + 1
+                return original_execute(local_battle, actor, highlights)
+
+            battle_service._execute_actor_turn = wrapped_execute
+            try:
+                battle_service.resolve_exchange(battle, persist=False, record_memory=False)
+            finally:
+                battle_service._execute_actor_turn = original_execute
+
+            self.assertGreater(counts["Hero"], counts["Goblin Raider"])
+
     def test_use_consumable_consumes_inventory_and_heals(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, player_service, _item_service, battle_service, _memory_service, bandage = self._build_services(temp_dir)

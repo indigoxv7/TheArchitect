@@ -11,6 +11,21 @@ from src.domain.CharacterUtil import ConsumableKind, HitLocation, PowerType
 from src.domain.Items import Consumable, Weapon
 from src.domain.Spells import Spell
 from src.domain.character_io import character_from_state
+from src.domain.combat_timing import (
+    BASELINE_TURN_SECONDS,
+    CombatRuntimeState,
+    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+    accuracy_bonus_for_exertion,
+    can_take_offensive_action,
+    damage_multiplier_for_exertion,
+    defense_stat_penalty_for_exertion,
+    initialize_runtime_fields,
+    schedule_next_action,
+    spend_stamina,
+    start_time_gap_seconds,
+    stamina_damage_from_hit,
+    sync_stamina,
+)
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
 
@@ -38,17 +53,26 @@ class CombatSimulationSession:
     debug: bool = False
     seed: int = 0
     round_number: int = 0
-    pending_turn_order: list[str] = field(default_factory=list)
     next_action_times: dict[str, float] = field(default_factory=dict)
+    runtime_states: dict[str, CombatRuntimeState] = field(default_factory=dict)
     tie_break_order: list[str] = field(default_factory=list)
-    round_actors: set[str] = field(default_factory=set)
     log_lines: list[str] = field(default_factory=list)
     finished: bool = False
     result_text: str = ""
+    battle_time_seconds: float = 0.0
+
+
+@dataclass
+class TurnOutcome:
+    lines: list[str]
+    action_cost: float = 0.0
+    target_stamina_before: float | None = None
+    target_stamina_after: float | None = None
 
 
 class CombatSimulatorService:
     MAX_DUEL_ROUNDS = 30
+    MAX_DUEL_BATTLE_TIME = MAX_DUEL_ROUNDS * BASELINE_TURN_SECONDS
     DEFAULT_SEED = 20260317
     _LEADING_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
@@ -151,6 +175,10 @@ class CombatSimulatorService:
             debug=bool(debug),
             seed=actual_seed,
         )
+        session.runtime_states = {
+            "left": self._build_runtime_state(left),
+            "right": self._build_runtime_state(right),
+        }
         session.log_lines.append(f"Simulation ready: {left.name} vs {right.name}.")
         return session
 
@@ -206,11 +234,44 @@ class CombatSimulatorService:
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
         physical_power = float(getattr(attrs, "physicalPower", 5.0))
         magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return max(0.1, (physical_power * 0.66) + (magic_power * 0.33))
+        return max(0.1, ((2.0 * physical_power) + magic_power) / 15.0)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
-        return 1.0 / cls._character_speed(character)
+        return BASELINE_TURN_SECONDS / cls._character_speed(character)
+
+    @staticmethod
+    def _character_stamina_limit(character: Character) -> float:
+        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
+        if callable(get_stamina_limit):
+            return max(1.0, float(get_stamina_limit()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        return max(1.0, 75.0 + (10.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0)))
+
+    @staticmethod
+    def _character_stamina_regen(character: Character) -> float:
+        get_regen = getattr(character, "GetStaminaRegenPerSecond", None)
+        if callable(get_regen):
+            return max(0.0, float(get_regen()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        regen_per_turn = 15.0 + (3.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0))
+        return max(0.0, regen_per_turn / BASELINE_TURN_SECONDS)
+
+    def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
+        runtime = CombatRuntimeState(
+            stamina_current=self._character_stamina_limit(character),
+            stamina_limit=self._character_stamina_limit(character),
+            stamina_regen_per_second=self._character_stamina_regen(character),
+        )
+        initialize_runtime_fields(
+            runtime,
+            stamina_limit=runtime.stamina_limit,
+            stamina_regen_per_second=runtime.stamina_regen_per_second,
+            stamina_current=runtime.stamina_limit,
+            stamina_last_update_time=0.0,
+            next_action_time=0.0,
+        )
+        return runtime
 
     @staticmethod
     def _alive_sides(session: CombatSimulationSession) -> list[str]:
@@ -240,13 +301,16 @@ class CombatSimulatorService:
         initiative_roll = session.rng.random()
         first_side = "left" if initiative_roll < 0.5 else "right"
         second_side = "right" if first_side == "left" else "left"
+        turn_gap = start_time_gap_seconds(2)
+        session.runtime_states[first_side].next_action_time = 0.0
+        session.runtime_states[second_side].next_action_time = turn_gap
         session.next_action_times = {
             first_side: 0.0,
-            second_side: self._action_interval(session.left_character if second_side == "left" else session.right_character),
+            second_side: turn_gap,
         }
-        session.tie_break_order = [second_side, first_side]
-        session.round_actors.clear()
+        session.tie_break_order = [first_side, second_side]
         session.round_number = 1
+        session.battle_time_seconds = 0.0
         lead_name = session.left_character.name if first_side == "left" else session.right_character.name
         round_line = f"Round 1 begins. Lead action: {lead_name}."
         lines = [round_line]
@@ -255,6 +319,7 @@ class CombatSimulatorService:
             lines.append(
                 "  Debug: "
                 f"initiative roll={initiative_roll:.4f} (left acts first if < 0.5000); "
+                f"turn gap={turn_gap:.2f}s; "
                 f"left speed={self._character_speed(session.left_character):.2f}, "
                 f"right speed={self._character_speed(session.right_character):.2f}."
             )
@@ -267,18 +332,6 @@ class CombatSimulatorService:
 
         if not session.next_action_times:
             new_lines = self._initialize_turn_timeline(session)
-        elif not session.round_actors:
-            if session.round_number >= self.MAX_DUEL_ROUNDS:
-                session.finished = True
-                session.result_text = "Simulation ends in a draw."
-                session.log_lines.append(session.result_text)
-                return [session.result_text]
-            session.round_number += 1
-            lead_side = self._select_next_side(session)
-            lead_name = session.left_character.name if lead_side == "left" else session.right_character.name
-            round_line = f"Round {session.round_number} begins. Lead action: {lead_name}."
-            session.log_lines.append(round_line)
-            new_lines = [round_line]
         else:
             new_lines = []
 
@@ -288,18 +341,60 @@ class CombatSimulatorService:
             session.result_text = "Both combatants fall."
             session.log_lines.append(session.result_text)
             return new_lines + [session.result_text]
+        turn_start_time = float(session.next_action_times.get(side, 0.0))
+        if turn_start_time > self.MAX_DUEL_BATTLE_TIME:
+            session.finished = True
+            session.result_text = "Simulation ends in a draw."
+            session.log_lines.append(session.result_text)
+            return new_lines + [session.result_text]
+
+        round_number = int(turn_start_time // BASELINE_TURN_SECONDS) + 1
+        if round_number > session.round_number:
+            session.round_number = round_number
+            lead_name = session.left_character.name if side == "left" else session.right_character.name
+            round_line = f"Round {session.round_number} begins. Lead action: {lead_name}."
+            session.log_lines.append(round_line)
+            new_lines.append(round_line)
+
+        session.battle_time_seconds = turn_start_time
         attacker = session.left_character if side == "left" else session.right_character
         defender = session.right_character if side == "left" else session.left_character
 
         if attacker.health <= 0 or defender.health <= 0:
             return new_lines
 
-        session.round_actors.add(side)
-        action_lines = self._take_turn(attacker, defender, session)
+        attacker_runtime = session.runtime_states[side]
+        defender_runtime = session.runtime_states["right" if side == "left" else "left"]
+        attacker_stamina_before = sync_stamina(attacker_runtime, turn_start_time)
+        attacker_exertion_before = str(attacker_runtime.exertion_level)
+        sync_stamina(defender_runtime, turn_start_time)
+        outcome = self._take_turn(attacker, defender, session, side)
+
+        if outcome.action_cost > 0.0:
+            spend_stamina(attacker_runtime, outcome.action_cost, turn_start_time)
+        attacker_stamina_after = float(attacker_runtime.stamina_current)
+        attacker_exertion_after = str(attacker_runtime.exertion_level)
+        session.next_action_times[side] = schedule_next_action(attacker_runtime, self._character_speed(attacker), turn_start_time)
+        session.runtime_states[side].next_action_time = session.next_action_times[side]
+        session.tie_break_order = [entry for entry in session.tie_break_order if entry != side] + [side]
+        action_lines = list(outcome.lines)
+        if session.debug:
+            runtime_line = (
+                "  Debug: "
+                f"time={turn_start_time:.2f}s; "
+                f"stamina {attacker_stamina_before:.2f}->{attacker_stamina_after:.2f}; "
+                f"exertion {attacker_exertion_before}->{attacker_exertion_after}; "
+                f"action cost={outcome.action_cost:.2f}; "
+                f"next action={session.next_action_times[side]:.2f}s."
+            )
+            if outcome.target_stamina_before is not None and outcome.target_stamina_after is not None:
+                runtime_line = (
+                    runtime_line[:-1]
+                    + f" Target stamina {outcome.target_stamina_before:.2f}->{outcome.target_stamina_after:.2f}."
+                )
+            action_lines.append(runtime_line)
         session.log_lines.extend(action_lines)
         new_lines.extend(action_lines)
-        session.next_action_times[side] = float(session.next_action_times.get(side, 0.0)) + self._action_interval(attacker)
-        session.tie_break_order = [entry for entry in session.tie_break_order if entry != side] + [side]
 
         if defender.health <= 0:
             session.finished = True
@@ -311,13 +406,18 @@ class CombatSimulatorService:
             session.result_text = "Both combatants fall."
             session.log_lines.append(session.result_text)
             new_lines.append(session.result_text)
-        else:
-            alive_sides = self._alive_sides(session)
-            if alive_sides and all(entry in session.round_actors for entry in alive_sides):
-                session.round_actors.clear()
         return new_lines
 
-    def _take_turn(self, attacker: Character, defender: Character, session: CombatSimulationSession) -> list[str]:
+    def _take_turn(self, attacker: Character, defender: Character, session: CombatSimulationSession, side: str) -> TurnOutcome:
+        attacker_runtime = session.runtime_states[side]
+        defender_runtime = session.runtime_states["right" if side == "left" else "left"]
+        turn_start_time = session.battle_time_seconds
+        if not can_take_offensive_action(attacker_runtime.exertion_level):
+            return TurnOutcome(
+                lines=[f"{attacker.name} is exhausted and cannot act offensively."],
+                action_cost=0.0,
+            )
+
         consumable = self._select_consumable(attacker, defender, session.round_number)
         if consumable is not None:
             return self._resolve_consumable_turn(attacker, defender, consumable, session)
@@ -327,8 +427,8 @@ class CombatSimulatorService:
         spell_power = self._adjusted_spell_power(attacker, spell)
         weapon_ceiling = float(getattr(weapon, "damageMax", getattr(weapon, "damageMin", 0.0)) or 0.0) if weapon is not None else 0.0
         if spell is not None and spell_power >= max(weapon_ceiling, 0.1):
-            return self._resolve_spell_turn(attacker, defender, spell, session)
-        return self._resolve_weapon_turn(attacker, defender, weapon or self._default_unarmed_weapon(), session)
+            return self._resolve_spell_turn(attacker, defender, spell, session, attacker_runtime, defender_runtime, turn_start_time)
+        return self._resolve_weapon_turn(attacker, defender, weapon or self._default_unarmed_weapon(), session, attacker_runtime, defender_runtime, turn_start_time)
 
     def _select_consumable(self, attacker: Character, defender: Character, round_number: int) -> Consumable | None:
         gear = getattr(attacker, "gear", None)
@@ -387,11 +487,28 @@ class CombatSimulatorService:
         affinity_value = getattr(affinities, affinity_name, 0.5) if affinities is not None else 0.5
         return max(0.0, base_power * self._affinity_multiplier(affinity_value))
 
-    def _resolve_weapon_turn(self, attacker: Character, defender: Character, weapon: Weapon, session: CombatSimulationSession) -> list[str]:
+    def _resolve_weapon_turn(
+        self,
+        attacker: Character,
+        defender: Character,
+        weapon: Weapon,
+        session: CombatSimulationSession,
+        attacker_runtime: CombatRuntimeState,
+        defender_runtime: CombatRuntimeState,
+        turn_start_time: float,
+    ) -> TurnOutcome:
         calculator = DamageCalculator(rng=session.rng)
         attacker_stat = float(getattr(attacker.finalAttributes, "physicalPower", 5.0))
-        defender_stat = float(getattr(defender.finalAttributes, "physicalResistance", 5.0))
-        hit_chance = calculator.calculate_hit_chance(attacker_stat, defender_stat)
+        defender_stat = max(
+            0.0,
+            float(getattr(defender.finalAttributes, "physicalResistance", 5.0))
+            - defense_stat_penalty_for_exertion(defender_runtime.exertion_level),
+        )
+        hit_chance = calculator.calculate_hit_chance(
+            attacker_stat,
+            defender_stat,
+            bonus=accuracy_bonus_for_exertion(attacker_runtime.exertion_level),
+        )
         hit_roll = session.rng.random()
         did_hit = hit_roll <= hit_chance
         lines: list[str] = []
@@ -401,21 +518,29 @@ class CombatSimulatorService:
                 lines.append(
                     f"  Debug: hit roll={hit_roll:.4f}, needed<={hit_chance:.4f}; attacker stat={attacker_stat:.2f}, defender stat={defender_stat:.2f}."
                 )
-            return lines
+            return TurnOutcome(lines=lines, action_cost=max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)))
 
         location = self._roll_hit_location(session.rng)
+        scaled_weapon = self._scaled_weapon_for_damage_multiplier(
+            weapon,
+            damage_multiplier_for_exertion(attacker_runtime.exertion_level),
+        )
         result = calculator.calculate_physical_hit_to_location(
             attacker=attacker,
             defender=defender,
-            weapon=weapon,
+            weapon=scaled_weapon,
             location=location,
             applyArmorDamageToGear=True,
         )
         damage = max(0.0, result.hpFinal)
+        target_stamina_before = None
+        target_stamina_after = None
         defender.health = max(0.0, float(defender.health) - damage)
         defender.healthState = self._health_state(defender)
         if damage > 0.0:
             lines.append(f"{attacker.name} hits {defender.name} with {weapon.name} in the {location.name.lower()} for {damage:.1f} damage.")
+            target_stamina_before = float(defender_runtime.stamina_current)
+            target_stamina_after = spend_stamina(defender_runtime, stamina_damage_from_hit(damage), turn_start_time)
         else:
             lines.append(f"{attacker.name} lands {weapon.name} on {defender.name}, but fails to injure them.")
         if session.debug:
@@ -430,16 +555,38 @@ class CombatSimulatorService:
                 f"hp after armor={result.hpPreResistance:.2f}, penetration={result.penetration:.2f}, "
                 f"resist eff={result.penetrationEffectiveness:.3f}, final hp={result.hpFinal:.2f}."
             )
-        return lines
+        return TurnOutcome(
+            lines=lines,
+            action_cost=max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)),
+            target_stamina_before=target_stamina_before,
+            target_stamina_after=target_stamina_after,
+        )
 
-    def _resolve_spell_turn(self, attacker: Character, defender: Character, spell: Spell, session: CombatSimulationSession) -> list[str]:
+    def _resolve_spell_turn(
+        self,
+        attacker: Character,
+        defender: Character,
+        spell: Spell,
+        session: CombatSimulationSession,
+        attacker_runtime: CombatRuntimeState,
+        defender_runtime: CombatRuntimeState,
+        turn_start_time: float,
+    ) -> TurnOutcome:
         calculator = DamageCalculator(rng=session.rng)
         attacker_stat = float(getattr(attacker.finalAttributes, "magicPower", 5.0))
-        defender_stat = float(getattr(defender.finalAttributes, "magicResistance", 5.0))
-        hit_chance = calculator.calculate_hit_chance(attacker_stat, defender_stat)
+        defender_stat = max(
+            0.0,
+            float(getattr(defender.finalAttributes, "magicResistance", 5.0))
+            - defense_stat_penalty_for_exertion(defender_runtime.exertion_level),
+        )
+        hit_chance = calculator.calculate_hit_chance(
+            attacker_stat,
+            defender_stat,
+            bonus=accuracy_bonus_for_exertion(attacker_runtime.exertion_level),
+        )
         hit_roll = session.rng.random()
         did_hit = hit_roll <= hit_chance
-        spell_power = self._adjusted_spell_power(attacker, spell)
+        spell_power = self._adjusted_spell_power(attacker, spell) * damage_multiplier_for_exertion(attacker_runtime.exertion_level)
         result = calculator.calculate_magic_hit(
             attacker=attacker,
             defender=defender,
@@ -448,10 +595,14 @@ class CombatSimulatorService:
             did_hit=did_hit,
         )
         damage = max(0.0, result.hpFinal)
+        target_stamina_before = None
+        target_stamina_after = None
         if damage > 0.0:
             defender.health = max(0.0, float(defender.health) - damage)
             defender.healthState = self._health_state(defender)
             lines = [f"{attacker.name} casts {spell.name} on {defender.name} for {damage:.1f} damage."]
+            target_stamina_before = float(defender_runtime.stamina_current)
+            target_stamina_after = spend_stamina(defender_runtime, stamina_damage_from_hit(damage), turn_start_time)
         else:
             lines = [f"{attacker.name} casts {spell.name}, but misses {defender.name}."]
         if session.debug:
@@ -461,12 +612,33 @@ class CombatSimulatorService:
                 f"base power={result.basePower:.2f}, power x={result.powerMultiplier:.3f}, "
                 f"resistance x={result.resistanceMultiplier:.3f}, final hp={result.hpFinal:.2f}."
             )
-        return lines
+        return TurnOutcome(
+            lines=lines,
+            action_cost=DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+            target_stamina_before=target_stamina_before,
+            target_stamina_after=target_stamina_after,
+        )
 
-    def _resolve_consumable_turn(self, attacker: Character, defender: Character, item: Consumable, session: CombatSimulationSession) -> list[str]:
+    def _resolve_consumable_turn(
+        self,
+        attacker: Character,
+        defender: Character,
+        item: Consumable,
+        session: CombatSimulationSession,
+    ) -> TurnOutcome:
         self._consume_item(attacker, item)
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
-            return self._resolve_offensive_consumable(attacker, defender, item, session)
+            attacker_runtime = session.runtime_states["left" if attacker is session.left_character else "right"]
+            defender_runtime = session.runtime_states["right" if attacker is session.left_character else "left"]
+            return self._resolve_offensive_consumable(
+                attacker,
+                defender,
+                item,
+                session,
+                attacker_runtime,
+                defender_runtime,
+                session.battle_time_seconds,
+            )
         healing = self._consumable_healing(attacker, item)
         before = float(getattr(attacker, "health", 0.0) or 0.0)
         max_health = max(1.0, float(getattr(attacker, "GetMaxHealth", lambda: 100.0)()))
@@ -475,16 +647,33 @@ class CombatSimulatorService:
         lines = [f"{attacker.name} uses {item.name} and restores {attacker.health - before:.1f} health."]
         if session.debug:
             lines.append(f"  Debug: heal amount={healing:.2f}, health {before:.1f}->{attacker.health:.1f}.")
-        return lines
+        return TurnOutcome(lines=lines, action_cost=0.0)
 
-    def _resolve_offensive_consumable(self, attacker: Character, defender: Character, item: Consumable, session: CombatSimulationSession) -> list[str]:
+    def _resolve_offensive_consumable(
+        self,
+        attacker: Character,
+        defender: Character,
+        item: Consumable,
+        session: CombatSimulationSession,
+        attacker_runtime: CombatRuntimeState,
+        defender_runtime: CombatRuntimeState,
+        turn_start_time: float,
+    ) -> TurnOutcome:
         calculator = DamageCalculator(rng=session.rng)
         attacker_stat = float(getattr(attacker.finalAttributes, "magicPower", 5.0))
-        defender_stat = float(getattr(defender.finalAttributes, "magicResistance", 5.0))
-        hit_chance = calculator.calculate_hit_chance(attacker_stat, defender_stat)
+        defender_stat = max(
+            0.0,
+            float(getattr(defender.finalAttributes, "magicResistance", 5.0))
+            - defense_stat_penalty_for_exertion(defender_runtime.exertion_level),
+        )
+        hit_chance = calculator.calculate_hit_chance(
+            attacker_stat,
+            defender_stat,
+            bonus=accuracy_bonus_for_exertion(attacker_runtime.exertion_level),
+        )
         hit_roll = session.rng.random()
         did_hit = hit_roll <= hit_chance
-        spell_power = self._consumable_damage_power(attacker, item)
+        spell_power = self._consumable_damage_power(attacker, item) * damage_multiplier_for_exertion(attacker_runtime.exertion_level)
         result = calculator.calculate_magic_hit(
             attacker=attacker,
             defender=defender,
@@ -493,10 +682,14 @@ class CombatSimulatorService:
             did_hit=did_hit,
         )
         damage = max(0.0, result.hpFinal)
+        target_stamina_before = None
+        target_stamina_after = None
         if damage > 0.0:
             defender.health = max(0.0, float(defender.health) - damage)
             defender.healthState = self._health_state(defender)
             lines = [f"{attacker.name} uses {item.name} on {defender.name} for {damage:.1f} damage."]
+            target_stamina_before = float(defender_runtime.stamina_current)
+            target_stamina_after = spend_stamina(defender_runtime, stamina_damage_from_hit(damage), turn_start_time)
         else:
             lines = [f"{attacker.name} uses {item.name}, but fails to affect {defender.name}."]
         if session.debug:
@@ -506,7 +699,21 @@ class CombatSimulatorService:
                 f"base power={result.basePower:.2f}, power x={result.powerMultiplier:.3f}, "
                 f"resistance x={result.resistanceMultiplier:.3f}, final hp={result.hpFinal:.2f}."
             )
-        return lines
+        return TurnOutcome(
+            lines=lines,
+            action_cost=DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+            target_stamina_before=target_stamina_before,
+            target_stamina_after=target_stamina_after,
+        )
+
+    @staticmethod
+    def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
+        if abs(float(damage_multiplier) - 1.0) < 0.0001:
+            return weapon
+        scaled_weapon = copy.deepcopy(weapon)
+        scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
+        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
+        return scaled_weapon
 
     def _consumable_damage_power(self, attacker: Character, item: Consumable) -> float:
         spell_name = str(getattr(item, "spellName", "") or "").strip()
@@ -567,4 +774,5 @@ class CombatSimulatorService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
+            staminaCost=10.0,
         )

@@ -328,6 +328,7 @@ class Weapon(Item):
         armorMultiplier: float = 1.0,
         ignoreArmorFraction: float = 0.0,
         penetrationBase: float = 0.0,
+        staminaCost: float = 10.0,
         itemId: str | None = None,
         powerLevel: float = 0.0,
     ):
@@ -349,6 +350,7 @@ class Weapon(Item):
         self.armorMultiplier = float(armorMultiplier)
         self.ignoreArmorFraction = max(0.0, min(1.0, float(ignoreArmorFraction)))
         self.penetrationBase = max(0.0, float(penetrationBase))
+        self.staminaCost = max(0.0, float(staminaCost))
         representative_power = int(round(max(self.damageMin, self.damageMax, 0.0)))
         self.itemPower = [ItemPower(PowerType.PHYSICAL_ATTACK, representative_power)] if representative_power > 0 else []
         self.refresh_tags()
@@ -380,6 +382,7 @@ class Weapon(Item):
                     "armorMultiplier": float(self.armorMultiplier),
                     "ignoreArmorFraction": float(self.ignoreArmorFraction),
                     "penetrationBase": float(self.penetrationBase),
+                    "staminaCost": float(self.staminaCost),
                 },
                 "damageType": [damage_type.name for damage_type in self.damageType],
                 "damageMin": _serialize_number(self.damageMin),
@@ -387,6 +390,7 @@ class Weapon(Item):
                 "armorMultiplier": float(self.armorMultiplier),
                 "ignoreArmorFraction": float(self.ignoreArmorFraction),
                 "penetrationBase": float(self.penetrationBase),
+                "staminaCost": float(self.staminaCost),
             }
         )
         return payload
@@ -402,6 +406,7 @@ class Weapon(Item):
         armor_multiplier = cls._coerce_float(weapon_stats.get("armorMultiplier", data.get("armorMultiplier", 1.0)), 1.0)
         ignore_armor_fraction = cls._coerce_float(weapon_stats.get("ignoreArmorFraction", data.get("ignoreArmorFraction", 0.0)), 0.0)
         penetration_base = cls._coerce_float(weapon_stats.get("penetrationBase", data.get("penetrationBase", 0.0)), 0.0)
+        stamina_cost = cls._coerce_float(weapon_stats.get("staminaCost", data.get("staminaCost", 10.0)), 10.0)
         return cls(
             name=common["name"],
             slot=common["slot"],
@@ -415,6 +420,7 @@ class Weapon(Item):
             armorMultiplier=armor_multiplier,
             ignoreArmorFraction=ignore_armor_fraction,
             penetrationBase=penetration_base,
+            staminaCost=stamina_cost,
             itemId=common["itemId"],
             powerLevel=common["powerLevel"],
         )

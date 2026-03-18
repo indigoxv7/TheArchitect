@@ -14,6 +14,26 @@ from src.domain.MainCharacter import MainCharacter
 from src.domain.Mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
 from src.domain.Race import CreatureSize
 from src.domain.Spells import Spell
+from src.domain.combat_timing import (
+    BASELINE_TURN_SECONDS,
+    EXCHANGE_DURATION_SECONDS,
+    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+    ExertionLevel,
+    accuracy_bonus_for_exertion,
+    can_take_offensive_action,
+    damage_multiplier_for_exertion,
+    defense_stat_penalty_for_exertion,
+    initialize_runtime_fields,
+    next_window_start,
+    schedule_next_action,
+    speed_factor_from_attributes,
+    spend_stamina,
+    start_time_gap_seconds,
+    stamina_damage_from_hit,
+    stamina_limit_from_physical_stamina,
+    stamina_regen_per_second_from_physical_stamina,
+    sync_stamina,
+)
 from src.domain.combat import (
     BattleExchangeSummary,
     BattleOutcome,
@@ -96,6 +116,8 @@ class BattleService:
             battle = BattleState.from_dict(battle_payload)
         except Exception:
             return None
+        if int(payload.get("format_version", 1) or 1) < 2:
+            self._reset_battle_runtime_for_new_scheduler(battle)
         self.context.active_battles[player_id] = battle
         return battle
 
@@ -103,7 +125,7 @@ class BattleService:
         self.store.save_battle_file(
             battle.player_id,
             {
-                "format_version": 1,
+                "format_version": 2,
                 "battle_state": battle.to_dict(),
             },
         )
@@ -113,6 +135,20 @@ class BattleService:
         player_id = int(player_id)
         self.store.delete_battle_file(player_id)
         getattr(self.context, "active_battles", {}).pop(player_id, None)
+
+    def _reset_battle_runtime_for_new_scheduler(self, battle: BattleState):
+        battle.battle_time_seconds = float(battle.exchange_count) * EXCHANGE_DURATION_SECONDS
+        for entity in self._all_entities(battle):
+            self._ensure_entity_runtime(entity, battle.battle_time_seconds)
+            entity.stamina_current = entity.stamina_limit
+            entity.stamina_last_update_time = battle.battle_time_seconds
+            entity.next_action_time = 0.0
+            entity.exertion_level = ExertionLevel.FRESH.name
+            entity.speed = speed_factor_from_attributes(
+                getattr(entity, "physical_power", 5.0),
+                getattr(entity, "magic_power", 5.0),
+            )
+        self._seed_initial_action_times(battle)
 
     def _default_objective_for_encounter(self, encounter: EncounterDefinition) -> MissionObjective:
         return EliminationObjective(requiredEliminationFraction=1.0)
@@ -333,7 +369,11 @@ class BattleService:
         max_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
         current_health = max(0.0, min(float(getattr(character, "health", max_health) or max_health), max_health))
         get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else 5.0)
+        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
+        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
+        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
+        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
         return CombatUnitState(
             unit_id=unit_id,
             name=name_override or str(getattr(character, "name", "Unit") or "Unit"),
@@ -359,6 +399,12 @@ class BattleService:
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
             speed=speed,
+            stamina_current=stamina_limit,
+            stamina_limit=stamina_limit,
+            stamina_regen_per_second=stamina_regen,
+            stamina_last_update_time=0.0,
+            next_action_time=0.0,
+            exertion_level=ExertionLevel.FRESH.name,
             primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             inventory_item_ids=[self._resolve_item_id(item) for item in getattr(gear, "inventory", []) or [] if self._resolve_item_id(item)],
@@ -381,7 +427,11 @@ class BattleService:
         get_max_health = getattr(character, "GetMaxHealth", None)
         unit_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
         get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else 5.0)
+        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
+        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
+        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
+        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
         return EnemyStackState(
             stack_id=stack_id,
             name=name_override,
@@ -407,6 +457,12 @@ class BattleService:
             magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
             magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
             speed=speed,
+            stamina_current=stamina_limit,
+            stamina_limit=stamina_limit,
+            stamina_regen_per_second=stamina_regen,
+            stamina_last_update_time=0.0,
+            next_action_time=0.0,
+            exertion_level=ExertionLevel.FRESH.name,
             primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
             offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
             spell_names=self._extract_direct_damage_spells(character),
@@ -446,6 +502,89 @@ class BattleService:
         if isinstance(entity, EnemyStackState):
             return max(1, min(4, math.ceil(entity.current_count / 2)))
         return 1
+
+    @staticmethod
+    def _entity_timeline_id(entity) -> str:
+        return str(getattr(entity, "unit_id", getattr(entity, "stack_id", getattr(entity, "name", "entity"))) or "entity")
+
+    def _entity_speed(self, entity) -> float:
+        speed = getattr(entity, "speed", None)
+        if speed is not None:
+            try:
+                return max(0.1, float(speed))
+            except Exception:
+                pass
+        return max(
+            0.1,
+            speed_factor_from_attributes(
+                getattr(entity, "physical_power", 5.0),
+                getattr(entity, "magic_power", 5.0),
+            ),
+        )
+
+    def _ensure_entity_runtime(self, entity, current_time: float = 0.0):
+        physical_stamina = float(getattr(entity, "physical_stamina", 5.0) or 5.0)
+        stamina_limit = float(getattr(entity, "stamina_limit", stamina_limit_from_physical_stamina(physical_stamina)) or stamina_limit_from_physical_stamina(physical_stamina))
+        stamina_regen = float(getattr(entity, "stamina_regen_per_second", stamina_regen_per_second_from_physical_stamina(physical_stamina)) or stamina_regen_per_second_from_physical_stamina(physical_stamina))
+        stamina_current = getattr(entity, "stamina_current", stamina_limit)
+        stamina_last_update_time = getattr(entity, "stamina_last_update_time", current_time)
+        next_action_time = getattr(entity, "next_action_time", 0.0)
+        entity.speed = self._entity_speed(entity)
+        initialize_runtime_fields(
+            entity,
+            stamina_limit=stamina_limit,
+            stamina_regen_per_second=stamina_regen,
+            stamina_current=stamina_current,
+            stamina_last_update_time=stamina_last_update_time,
+            next_action_time=next_action_time,
+        )
+
+    def _all_entities(self, battle: BattleState) -> list:
+        return list(battle.ally_units) + list(battle.enemy_units) + list(battle.enemy_stacks)
+
+    def _active_entities(self, battle: BattleState) -> list:
+        return [entity for entity in self._all_entities(battle) if self._entity_health(entity) > 0.0]
+
+    def _seed_initial_action_times(self, battle: BattleState):
+        active_entities = self._active_entities(battle)
+        if not active_entities:
+            return
+        for entity in active_entities:
+            self._ensure_entity_runtime(entity, battle.battle_time_seconds)
+        order = list(active_entities)
+        self._rng.shuffle(order)
+        gap = start_time_gap_seconds(len(order))
+        window_start = next_window_start(battle.battle_time_seconds)
+        for index, entity in enumerate(order):
+            entity.next_action_time = window_start + (index * gap)
+            entity.stamina_last_update_time = battle.battle_time_seconds
+            entity.exertion_level = ExertionLevel.FRESH.name
+
+    def _seed_new_entities_action_times(self, battle: BattleState, entities: list):
+        arrivals = [entity for entity in entities if self._entity_health(entity) > 0.0]
+        if not arrivals:
+            return
+        gap = start_time_gap_seconds(len(arrivals))
+        window_start = next_window_start(battle.battle_time_seconds)
+        for index, entity in enumerate(arrivals):
+            self._ensure_entity_runtime(entity, battle.battle_time_seconds)
+            entity.next_action_time = window_start + (index * gap)
+            entity.stamina_last_update_time = battle.battle_time_seconds
+
+    def _select_next_actor(self, battle: BattleState):
+        active_entities = self._active_entities(battle)
+        if not active_entities:
+            return None
+        for entity in active_entities:
+            self._ensure_entity_runtime(entity, battle.battle_time_seconds)
+        return min(
+            active_entities,
+            key=lambda entity: (
+                float(getattr(entity, "next_action_time", 0.0) or 0.0),
+                getattr(getattr(entity, "team", BattleTeam.ALLY), "name", "ALLY"),
+                self._entity_timeline_id(entity),
+            ),
+        )
 
     def _player_source_character(self, player_id: int, character_instance_id: str):
         player = self.player_service.get_player_sync(player_id)
@@ -616,6 +755,7 @@ class BattleService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
+            staminaCost=10.0,
             itemId="UNARMED",
         )
 
@@ -779,12 +919,27 @@ class BattleService:
                 firing_penalty = 0.1
         return congestion_penalty, firing_penalty, range_penalty
 
-    def _resolve_attack(self, battle: BattleState, attacker, target, orders: CommanderOrders | None, highlights: list[str]):
+    def _resolve_attack(
+        self,
+        battle: BattleState,
+        attacker,
+        target,
+        orders: CommanderOrders | None,
+        highlights: list[str],
+        current_time: float | None = None,
+    ) -> bool:
         if target is None or self._entity_health(target) <= 0.0 or self._entity_health(attacker) <= 0.0:
-            return
+            return False
+        current_time = battle.battle_time_seconds if current_time is None else float(current_time)
+        self._ensure_entity_runtime(attacker, current_time)
+        self._ensure_entity_runtime(target, current_time)
+        sync_stamina(attacker, current_time)
+        sync_stamina(target, current_time)
+        if not can_take_offensive_action(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)):
+            return False
         attacker_character = self._character_snapshot_for_entity(battle, attacker)
         defender_character = self._character_snapshot_for_entity(battle, target)
-        attack_bonus = self._stance_attack_bonus(orders)
+        attack_bonus = self._stance_attack_bonus(orders) + accuracy_bonus_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name))
         if orders is not None:
             attack_bonus += float(orders.lane_discipline_modifier)
         congestion_penalty, firing_penalty, range_penalty = self._ranged_penalties(battle, attacker, target)
@@ -803,9 +958,14 @@ class BattleService:
 
         if use_spell:
             self._record_spell_cast(battle, attacker)
+            defender_magic_resistance = max(
+                0.0,
+                float(getattr(target, "magic_resistance", 5.0))
+                - defense_stat_penalty_for_exertion(getattr(target, "exertion_level", ExertionLevel.FRESH.name)),
+            )
             hit, hit_chance = self.damage_calculator.roll_hit(
                 attacker_stat=float(getattr(attacker, "magic_power", 5.0)),
-                defender_stat=float(getattr(target, "magic_resistance", 5.0)),
+                defender_stat=defender_magic_resistance,
                 congestion_penalty=congestion_penalty,
                 firing_through_engagement_penalty=firing_penalty,
                 range_penalty=range_penalty,
@@ -814,12 +974,14 @@ class BattleService:
             breakdown = self.damage_calculator.calculate_magic_hit(
                 attacker=attacker_character,
                 defender=defender_character,
-                spell_power=float(getattr(spell, "power", 0) or 0),
+                spell_power=float(getattr(spell, "power", 0) or 0) * damage_multiplier_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)),
                 hit_chance=hit_chance,
+                did_hit=hit,
             )
             damage = breakdown.hpFinal if hit else 0.0
             if damage > 0:
                 damage_result = self._apply_damage_with_result(target, damage)
+                spend_stamina(target, stamina_damage_from_hit(damage_result["damage"]), current_time)
                 self._record_damage_done(battle, attacker, damage_result["damage"])
                 self._record_damage_taken(battle, target, damage_result["damage"])
                 if damage_result["defeated_units"] > 0:
@@ -827,11 +989,15 @@ class BattleService:
                 highlights.append(f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
             else:
                 highlights.append(f"{self._entity_name(attacker)} misses {self._entity_name(target)} with {getattr(spell, 'name', 'a spell')}.")
-            return
+            return True
 
         hit, _hit_chance = self.damage_calculator.roll_hit(
             attacker_stat=float(getattr(attacker, "physical_power", 5.0)),
-            defender_stat=float(getattr(target, "physical_resistance", 5.0)),
+            defender_stat=max(
+                0.0,
+                float(getattr(target, "physical_resistance", 5.0))
+                - defense_stat_penalty_for_exertion(getattr(target, "exertion_level", ExertionLevel.FRESH.name)),
+            ),
             congestion_penalty=congestion_penalty,
             firing_through_engagement_penalty=firing_penalty,
             range_penalty=range_penalty,
@@ -839,17 +1005,22 @@ class BattleService:
         )
         if not hit:
             highlights.append(f"{self._entity_name(attacker)} misses {self._entity_name(target)}.")
-            return
+            return True
+        scaled_weapon = self._scaled_weapon_for_damage_multiplier(
+            weapon,
+            damage_multiplier_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)),
+        )
         result = self.damage_calculator.calculate_physical_hit_to_location(
             attacker=attacker_character,
             defender=defender_character,
-            weapon=weapon,
+            weapon=scaled_weapon,
             location=HitLocation.BODY,
             applyArmorDamageToGear=False,
         )
         damage = max(0.0, result.hpFinal)
         if damage > 0:
             damage_result = self._apply_damage_with_result(target, damage)
+            spend_stamina(target, stamina_damage_from_hit(damage_result["damage"]), current_time)
             self._record_damage_done(battle, attacker, damage_result["damage"])
             self._record_damage_taken(battle, target, damage_result["damage"])
             if damage_result["defeated_units"] > 0:
@@ -857,6 +1028,70 @@ class BattleService:
             highlights.append(f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
         else:
             highlights.append(f"{self._entity_name(attacker)} fails to injure {self._entity_name(target)}.")
+        return True
+
+    @staticmethod
+    def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
+        if abs(float(damage_multiplier) - 1.0) < 0.0001:
+            return weapon
+        scaled_weapon = copy.deepcopy(weapon)
+        scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
+        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
+        return scaled_weapon
+
+    def _offensive_action_cost(self, battle: BattleState, attacker) -> float:
+        attacker_character = self._character_snapshot_for_entity(battle, attacker)
+        weapon = select_active_character_weapon(attacker_character, race_lookup=self._race_lookup) or self._default_unarmed_weapon()
+        spell = self._spell_for_entity(attacker)
+        if spell is not None:
+            try:
+                if (
+                    getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE
+                    or float(getattr(spell, "power", 0) or 0) >= float(getattr(weapon, "damageMax", 0) or 0)
+                ):
+                    return DEFAULT_OFFENSIVE_ACTION_STAMINA_COST
+            except Exception:
+                pass
+        return max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0))
+
+    def _timeline_needs_seeding(self, battle: BattleState) -> bool:
+        active_entities = self._active_entities(battle)
+        return bool(active_entities) and all(float(getattr(entity, "next_action_time", 0.0) or 0.0) == 0.0 for entity in active_entities)
+
+    def _execute_actor_turn(self, battle: BattleState, attacker, highlights: list[str]):
+        if self._entity_health(attacker) <= 0.0:
+            return
+        current_time = battle.battle_time_seconds
+        self._ensure_entity_runtime(attacker, current_time)
+        sync_stamina(attacker, current_time)
+        if not can_take_offensive_action(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)):
+            highlights.append(f"{self._entity_name(attacker)} is exhausted and cannot press the attack.")
+            schedule_next_action(attacker, self._entity_speed(attacker), current_time)
+            return
+
+        defenders = self._active_enemies(battle) if getattr(attacker, "team", BattleTeam.ALLY) == BattleTeam.ALLY else self._active_allies(battle)
+        orders = battle.orders if getattr(attacker, "team", BattleTeam.ALLY) == BattleTeam.ALLY else None
+        live_defenders = [entity for entity in defenders if self._entity_health(entity) > 0.0]
+        action_attempted = False
+        attack_count = self._entity_attack_count(attacker)
+        for _ in range(attack_count):
+            if not live_defenders:
+                break
+            target = self._select_target(battle, attacker, live_defenders, orders)
+            if target is None:
+                break
+            action_attempted = self._resolve_attack(
+                battle,
+                attacker,
+                target,
+                orders,
+                highlights,
+                current_time=current_time,
+            ) or action_attempted
+            live_defenders = [entity for entity in defenders if self._entity_health(entity) > 0.0]
+        if action_attempted:
+            spend_stamina(attacker, self._offensive_action_cost(battle, attacker), current_time)
+        schedule_next_action(attacker, self._entity_speed(attacker), current_time)
 
     def _resolve_team_attacks(self, battle: BattleState, attackers: list, defenders: list, orders: CommanderOrders | None, highlights: list[str]):
         for attacker in attackers:
@@ -1045,16 +1280,22 @@ class BattleService:
             return True
         return False
 
-    def _handle_reinforcements(self, battle: BattleState, highlights: list[str]):
+    def _handle_reinforcements(self, battle: BattleState, highlights: list[str]) -> list:
+        arrivals: list = []
         due = [entry for entry in battle.encounter.reinforcements if int(entry.exchange_number) == int(battle.exchange_count)]
         for reinforcement in due:
             for entry in reinforcement.entries:
                 new_units, new_stacks = self._spawn_enemy_entry(entry)
                 battle.enemy_units.extend(new_units)
                 battle.enemy_stacks.extend(new_stacks)
+                arrivals.extend(new_units)
+                arrivals.extend(new_stacks)
             message = reinforcement.message or "Reinforcements arrive."
             highlights.append(message)
             battle.pending_triggers.append(BattleTrigger(BattleTriggerType.REINFORCEMENT, message))
+        if arrivals:
+            self._seed_new_entities_action_times(battle, arrivals)
+        return arrivals
 
     def _total_health_ratio(self, active_entities: list, all_entities: list) -> float:
         current = sum(self._entity_health(entity) for entity in active_entities)
@@ -1069,30 +1310,29 @@ class BattleService:
         battle.exchange_count += 1
         highlights: list[str] = []
         triggers: list[BattleTrigger] = []
+        exchange_start_time = float(battle.battle_time_seconds)
+        exchange_end_time = exchange_start_time + EXCHANGE_DURATION_SECONDS
         self._handle_reinforcements(battle, highlights)
+        if self._timeline_needs_seeding(battle):
+            self._seed_initial_action_times(battle)
         self._solve_formations(battle)
 
-        for _round in range(2):
+        while True:
             allies = self._active_allies(battle)
             enemies = self._active_enemies(battle)
             if not allies or not enemies:
                 break
-            self._resolve_team_attacks(battle, self._frontline_group(allies), enemies, battle.orders, highlights)
-            allies = self._active_allies(battle)
-            enemies = self._active_enemies(battle)
-            if not allies or not enemies:
+            actor = self._select_next_actor(battle)
+            if actor is None:
                 break
-            self._resolve_team_attacks(battle, self._frontline_group(enemies), allies, None, highlights)
-            allies = self._active_allies(battle)
-            enemies = self._active_enemies(battle)
-            if not allies or not enemies:
+            raw_actor_time = getattr(actor, "next_action_time", exchange_end_time)
+            actor_time = exchange_end_time if raw_actor_time is None else float(raw_actor_time)
+            if actor_time > exchange_end_time:
                 break
-            self._resolve_team_attacks(battle, self._ranged_group(allies), enemies, battle.orders, highlights)
-            allies = self._active_allies(battle)
-            enemies = self._active_enemies(battle)
-            if not allies or not enemies:
-                break
-            self._resolve_team_attacks(battle, self._ranged_group(enemies), allies, None, highlights)
+            battle.battle_time_seconds = actor_time
+            self._execute_actor_turn(battle, actor, highlights)
+
+        battle.battle_time_seconds = exchange_end_time
 
         allies = self._active_allies(battle)
         enemies = self._active_enemies(battle)

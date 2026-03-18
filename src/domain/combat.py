@@ -6,6 +6,12 @@ from typing import Any
 
 from src.domain.Mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
 from src.domain.Race import CreatureSize
+from src.domain.combat_timing import (
+    ExertionLevel,
+    speed_factor_from_attributes,
+    stamina_limit_from_physical_stamina,
+    stamina_regen_per_second_from_physical_stamina,
+)
 
 
 class CommanderStance(Enum):
@@ -293,7 +299,13 @@ class CombatUnitState:
     magic_power: float = 5.0
     magic_stamina: float = 5.0
     magic_resistance: float = 5.0
-    speed: float = 5.0
+    speed: float = 1.0
+    stamina_current: float = 75.0
+    stamina_limit: float = 75.0
+    stamina_regen_per_second: float = 2.5
+    stamina_last_update_time: float = 0.0
+    next_action_time: float = 0.0
+    exertion_level: str = ExertionLevel.FRESH.name
     primary_weapon_item_id: str = ""
     offhand_item_id: str = ""
     inventory_item_ids: list[str] = field(default_factory=list)
@@ -333,6 +345,12 @@ class CombatUnitState:
             "magic_stamina": float(self.magic_stamina),
             "magic_resistance": float(self.magic_resistance),
             "speed": float(self.speed),
+            "stamina_current": float(self.stamina_current),
+            "stamina_limit": float(self.stamina_limit),
+            "stamina_regen_per_second": float(self.stamina_regen_per_second),
+            "stamina_last_update_time": float(self.stamina_last_update_time),
+            "next_action_time": float(self.next_action_time),
+            "exertion_level": self.exertion_level,
             "primary_weapon_item_id": self.primary_weapon_item_id,
             "offhand_item_id": self.offhand_item_id,
             "inventory_item_ids": list(self.inventory_item_ids),
@@ -345,6 +363,10 @@ class CombatUnitState:
     def from_dict(cls, data: dict[str, Any] | None) -> "CombatUnitState":
         data = data if isinstance(data, dict) else {}
         size = _enum_from_name(CreatureSize, data.get("size"), CreatureSize.STANDARD)
+        physical_power = float(data.get("physical_power", 5.0) or 5.0)
+        physical_stamina = float(data.get("physical_stamina", 5.0) or 5.0)
+        magic_power = float(data.get("magic_power", 5.0) or 5.0)
+        stamina_limit = float(data.get("stamina_limit", stamina_limit_from_physical_stamina(physical_stamina)) or stamina_limit_from_physical_stamina(physical_stamina))
         return cls(
             unit_id=str(data.get("unit_id", "") or ""),
             name=str(data.get("name", "Unit") or "Unit"),
@@ -365,13 +387,19 @@ class CombatUnitState:
             is_elite=bool(data.get("is_elite", False)),
             template_character_id=str(data.get("template_character_id", "") or ""),
             race_id=str(data.get("race_id", "Human1") or "Human1"),
-            physical_power=float(data.get("physical_power", 5.0) or 5.0),
-            physical_stamina=float(data.get("physical_stamina", 5.0) or 5.0),
+            physical_power=physical_power,
+            physical_stamina=physical_stamina,
             physical_resistance=float(data.get("physical_resistance", 5.0) or 5.0),
-            magic_power=float(data.get("magic_power", 5.0) or 5.0),
+            magic_power=magic_power,
             magic_stamina=float(data.get("magic_stamina", 5.0) or 5.0),
             magic_resistance=float(data.get("magic_resistance", 5.0) or 5.0),
-            speed=float(data.get("speed", 5.0) or 5.0),
+            speed=float(data.get("speed", speed_factor_from_attributes(physical_power, magic_power)) or speed_factor_from_attributes(physical_power, magic_power)),
+            stamina_current=float(data.get("stamina_current", stamina_limit) or stamina_limit),
+            stamina_limit=stamina_limit,
+            stamina_regen_per_second=float(data.get("stamina_regen_per_second", stamina_regen_per_second_from_physical_stamina(physical_stamina)) or stamina_regen_per_second_from_physical_stamina(physical_stamina)),
+            stamina_last_update_time=float(data.get("stamina_last_update_time", 0.0) or 0.0),
+            next_action_time=float(data.get("next_action_time", 0.0) or 0.0),
+            exertion_level=str(data.get("exertion_level", ExertionLevel.FRESH.name) or ExertionLevel.FRESH.name),
             primary_weapon_item_id=str(data.get("primary_weapon_item_id", "") or ""),
             offhand_item_id=str(data.get("offhand_item_id", "") or ""),
             inventory_item_ids=[str(item) for item in data.get("inventory_item_ids", []) or []],
@@ -408,7 +436,13 @@ class EnemyStackState:
     magic_power: float = 5.0
     magic_stamina: float = 5.0
     magic_resistance: float = 5.0
-    speed: float = 5.0
+    speed: float = 1.0
+    stamina_current: float = 75.0
+    stamina_limit: float = 75.0
+    stamina_regen_per_second: float = 2.5
+    stamina_last_update_time: float = 0.0
+    next_action_time: float = 0.0
+    exertion_level: str = ExertionLevel.FRESH.name
     primary_weapon_item_id: str = ""
     offhand_item_id: str = ""
     spell_names: list[str] = field(default_factory=list)
@@ -460,6 +494,12 @@ class EnemyStackState:
             "magic_stamina": float(self.magic_stamina),
             "magic_resistance": float(self.magic_resistance),
             "speed": float(self.speed),
+            "stamina_current": float(self.stamina_current),
+            "stamina_limit": float(self.stamina_limit),
+            "stamina_regen_per_second": float(self.stamina_regen_per_second),
+            "stamina_last_update_time": float(self.stamina_last_update_time),
+            "next_action_time": float(self.next_action_time),
+            "exertion_level": self.exertion_level,
             "primary_weapon_item_id": self.primary_weapon_item_id,
             "offhand_item_id": self.offhand_item_id,
             "spell_names": list(self.spell_names),
@@ -470,6 +510,10 @@ class EnemyStackState:
     def from_dict(cls, data: dict[str, Any] | None) -> "EnemyStackState":
         data = data if isinstance(data, dict) else {}
         size = _enum_from_name(CreatureSize, data.get("size"), CreatureSize.STANDARD)
+        physical_power = float(data.get("physical_power", 5.0) or 5.0)
+        physical_stamina = float(data.get("physical_stamina", 5.0) or 5.0)
+        magic_power = float(data.get("magic_power", 5.0) or 5.0)
+        stamina_limit = float(data.get("stamina_limit", stamina_limit_from_physical_stamina(physical_stamina)) or stamina_limit_from_physical_stamina(physical_stamina))
         return cls(
             stack_id=str(data.get("stack_id", "") or ""),
             name=str(data.get("name", "Enemy Stack") or "Enemy Stack"),
@@ -490,13 +534,19 @@ class EnemyStackState:
             is_elite=bool(data.get("is_elite", False)),
             race_id=str(data.get("race_id", "") or ""),
             level=int(data.get("level", 0) or 0),
-            physical_power=float(data.get("physical_power", 5.0) or 5.0),
-            physical_stamina=float(data.get("physical_stamina", 5.0) or 5.0),
+            physical_power=physical_power,
+            physical_stamina=physical_stamina,
             physical_resistance=float(data.get("physical_resistance", 5.0) or 5.0),
-            magic_power=float(data.get("magic_power", 5.0) or 5.0),
+            magic_power=magic_power,
             magic_stamina=float(data.get("magic_stamina", 5.0) or 5.0),
             magic_resistance=float(data.get("magic_resistance", 5.0) or 5.0),
-            speed=float(data.get("speed", 5.0) or 5.0),
+            speed=float(data.get("speed", speed_factor_from_attributes(physical_power, magic_power)) or speed_factor_from_attributes(physical_power, magic_power)),
+            stamina_current=float(data.get("stamina_current", stamina_limit) or stamina_limit),
+            stamina_limit=stamina_limit,
+            stamina_regen_per_second=float(data.get("stamina_regen_per_second", stamina_regen_per_second_from_physical_stamina(physical_stamina)) or stamina_regen_per_second_from_physical_stamina(physical_stamina)),
+            stamina_last_update_time=float(data.get("stamina_last_update_time", 0.0) or 0.0),
+            next_action_time=float(data.get("next_action_time", 0.0) or 0.0),
+            exertion_level=str(data.get("exertion_level", ExertionLevel.FRESH.name) or ExertionLevel.FRESH.name),
             primary_weapon_item_id=str(data.get("primary_weapon_item_id", "") or ""),
             offhand_item_id=str(data.get("offhand_item_id", "") or ""),
             spell_names=[str(item) for item in data.get("spell_names", []) or []],
@@ -583,6 +633,7 @@ class BattleState:
     player_recenter_pressure: float = 0.0
     enemy_recenter_pressure: float = 0.0
     exchange_count: int = 0
+    battle_time_seconds: float = 0.0
     ally_units: list[CombatUnitState] = field(default_factory=list)
     enemy_units: list[CombatUnitState] = field(default_factory=list)
     enemy_stacks: list[EnemyStackState] = field(default_factory=list)
@@ -616,6 +667,7 @@ class BattleState:
             "player_recenter_pressure": float(self.player_recenter_pressure),
             "enemy_recenter_pressure": float(self.enemy_recenter_pressure),
             "exchange_count": int(self.exchange_count),
+            "battle_time_seconds": float(self.battle_time_seconds),
             "ally_units": [unit.to_dict() for unit in self.ally_units],
             "enemy_units": [unit.to_dict() for unit in self.enemy_units],
             "enemy_stacks": [stack.to_dict() for stack in self.enemy_stacks],
@@ -653,6 +705,7 @@ class BattleState:
             player_recenter_pressure=float(data.get("player_recenter_pressure", 0.0) or 0.0),
             enemy_recenter_pressure=float(data.get("enemy_recenter_pressure", 0.0) or 0.0),
             exchange_count=max(0, int(data.get("exchange_count", 0) or 0)),
+            battle_time_seconds=max(0.0, float(data.get("battle_time_seconds", 0.0) or 0.0)),
             ally_units=[
                 CombatUnitState.from_dict(item)
                 for item in data.get("ally_units", []) or []

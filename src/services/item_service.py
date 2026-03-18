@@ -220,6 +220,7 @@ class ItemService:
                 "armorMultiplier": payload.get("armorMultiplier", 1.0),
                 "ignoreArmorFraction": payload.get("ignoreArmorFraction", 0.0),
                 "penetrationBase": payload.get("penetrationBase", 0.0),
+                "staminaCost": payload.get("staminaCost", 10.0),
             }
         elif item_class == "armor" or item_type == "ARMOR":
             current_armor = payload.get("currentArmor", payload.get("durability", 0.0))

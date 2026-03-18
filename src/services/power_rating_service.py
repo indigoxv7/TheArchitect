@@ -19,6 +19,21 @@ from src.domain.CharacterUtil import (
 )
 from src.domain.Items import Armor, Consumable, Gear, Item, Weapon
 from src.domain.Spells import Spell
+from src.domain.combat_timing import (
+    BASELINE_TURN_SECONDS,
+    CombatRuntimeState,
+    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+    accuracy_bonus_for_exertion,
+    can_take_offensive_action,
+    damage_multiplier_for_exertion,
+    defense_stat_penalty_for_exertion,
+    initialize_runtime_fields,
+    schedule_next_action,
+    spend_stamina,
+    start_time_gap_seconds,
+    stamina_damage_from_hit,
+    sync_stamina,
+)
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
 
@@ -45,6 +60,7 @@ class _Combatant:
     character: Character
     consumable: Consumable | None = None
     consumable_used: bool = False
+    runtime: CombatRuntimeState | None = None
 
 
 class PowerRatingService:
@@ -354,11 +370,44 @@ class PowerRatingService:
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
         physical_power = float(getattr(attrs, "physicalPower", 5.0))
         magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return max(0.1, (physical_power * 0.66) + (magic_power * 0.33))
+        return max(0.1, ((2.0 * physical_power) + magic_power) / 15.0)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
-        return 1.0 / cls._character_speed(character)
+        return BASELINE_TURN_SECONDS / cls._character_speed(character)
+
+    @staticmethod
+    def _character_stamina_limit(character: Character) -> float:
+        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
+        if callable(get_stamina_limit):
+            return max(1.0, float(get_stamina_limit()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        return max(1.0, 75.0 + (10.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0)))
+
+    @staticmethod
+    def _character_stamina_regen(character: Character) -> float:
+        get_regen = getattr(character, "GetStaminaRegenPerSecond", None)
+        if callable(get_regen):
+            return max(0.0, float(get_regen()))
+        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
+        regen_per_turn = 15.0 + (3.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0))
+        return max(0.0, regen_per_turn / BASELINE_TURN_SECONDS)
+
+    def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
+        runtime = CombatRuntimeState(
+            stamina_current=self._character_stamina_limit(character),
+            stamina_limit=self._character_stamina_limit(character),
+            stamina_regen_per_second=self._character_stamina_regen(character),
+        )
+        initialize_runtime_fields(
+            runtime,
+            stamina_limit=runtime.stamina_limit,
+            stamina_regen_per_second=runtime.stamina_regen_per_second,
+            stamina_current=runtime.stamina_limit,
+            stamina_last_update_time=0.0,
+            next_action_time=0.0,
+        )
+        return runtime
 
     @staticmethod
     def _equip_item_by_slot(gear: Gear, item: Item | None):
@@ -381,27 +430,30 @@ class PowerRatingService:
     def _build_weapon_scenario(self, item: Weapon, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Weapon A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=item)
         right = self._build_character(name=f"Weapon B {seed_offset}", stat_bonus=0.0, primary_weapon=item if mirrored else None)
-        return _Combatant(left), _Combatant(right)
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
 
     def _build_spell_scenario(self, spell: Spell, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Spell A {seed_offset}", stat_bonus=stat_bonus, spell=spell)
         right = self._build_character(name=f"Spell B {seed_offset}", stat_bonus=0.0, spell=spell if mirrored else None)
-        return _Combatant(left), _Combatant(right)
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
 
     def _build_armor_scenario(self, item: Armor, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Armor A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=self._training_weapon(), armor=item)
         right = self._build_character(name=f"Armor B {seed_offset}", stat_bonus=0.0, primary_weapon=self._training_weapon(), armor=item if mirrored else None)
-        return _Combatant(left), _Combatant(right)
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
 
     def _build_consumable_scenario(self, item: Consumable, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Consumable A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=self._training_weapon(), consumable=item)
         right = self._build_character(name=f"Consumable B {seed_offset}", stat_bonus=0.0, primary_weapon=self._training_weapon(), consumable=item if mirrored else None)
-        return _Combatant(left, consumable=self._clone_item(item)), _Combatant(right, consumable=self._clone_item(item) if mirrored else None)
+        return (
+            _Combatant(left, consumable=self._clone_item(item), runtime=self._build_runtime_state(left)),
+            _Combatant(right, consumable=self._clone_item(item) if mirrored else None, runtime=self._build_runtime_state(right)),
+        )
 
     def _build_generic_item_scenario(self, item: Item, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Item A {seed_offset}", stat_bonus=stat_bonus, generic_item=item)
         right = self._build_character(name=f"Item B {seed_offset}", stat_bonus=0.0, generic_item=item if mirrored else None)
-        return _Combatant(left), _Combatant(right)
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
 
     def _run_series(self, sample_count: int, builder) -> dict[str, float]:
         wins = losses = draws = 0
@@ -478,12 +530,16 @@ class PowerRatingService:
     def _run_duel(self, left: _Combatant, right: _Combatant, rng: random.Random) -> int:
         first_side = "left" if rng.random() < 0.5 else "right"
         second_side = "right" if first_side == "left" else "left"
+        turn_gap = start_time_gap_seconds(2)
+        left.runtime = left.runtime or self._build_runtime_state(left.character)
+        right.runtime = right.runtime or self._build_runtime_state(right.character)
+        left.runtime.next_action_time = 0.0 if first_side == "left" else turn_gap
+        right.runtime.next_action_time = 0.0 if first_side == "right" else turn_gap
         next_action_times = {
-            first_side: 0.0,
-            second_side: self._action_interval(left.character if second_side == "left" else right.character),
+            "left": float(left.runtime.next_action_time),
+            "right": float(right.runtime.next_action_time),
         }
-        tie_break_order = [second_side, first_side]
-        round_actors: set[str] = set()
+        tie_break_order = [first_side, second_side]
         rounds = 1
 
         while rounds <= self.MAX_DUEL_ROUNDS:
@@ -503,22 +559,24 @@ class PowerRatingService:
                     priority.get(entry, len(priority)),
                 ),
             )
+            turn_start_time = float(next_action_times.get(side, 0.0))
+            if turn_start_time > (self.MAX_DUEL_ROUNDS * BASELINE_TURN_SECONDS):
+                break
             attacker, defender = (left, right) if side == "left" else (right, left)
-            round_actors.add(side)
-            self._take_turn(attacker, defender, rng, rounds)
-            next_action_times[side] = float(next_action_times.get(side, 0.0)) + self._action_interval(attacker.character)
+            sync_stamina(attacker.runtime, turn_start_time)
+            sync_stamina(defender.runtime, turn_start_time)
+            rounds = max(rounds, int(turn_start_time // BASELINE_TURN_SECONDS) + 1)
+            self._take_turn(attacker, defender, rng, rounds, turn_start_time)
+            next_action_times[side] = schedule_next_action(attacker.runtime, self._character_speed(attacker.character), turn_start_time)
             tie_break_order = [entry for entry in tie_break_order if entry != side] + [side]
             if defender.character.health <= 0:
                 break
-            if all(entry in round_actors for entry in alive_sides):
-                round_actors.clear()
-                if rounds >= self.MAX_DUEL_ROUNDS:
-                    break
-                rounds += 1
         return rounds
 
-    def _take_turn(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int):
-        if self._try_use_consumable(attacker, defender, rng, round_index):
+    def _take_turn(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float):
+        if not can_take_offensive_action(attacker.runtime.exertion_level):
+            return
+        if self._try_use_consumable(attacker, defender, rng, round_index, turn_start_time):
             return
         character = attacker.character
         weapon = self._active_weapon(character)
@@ -526,11 +584,11 @@ class PowerRatingService:
         adjusted_spell_power = self._adjusted_spell_power(character, spell)
         weapon_ceiling = float(getattr(weapon, "damageMax", getattr(weapon, "damageMin", 0.0)) or 0.0) if weapon is not None else 0.0
         if spell is not None and adjusted_spell_power >= max(weapon_ceiling, 0.1):
-            self._resolve_spell_attack(attacker.character, defender.character, spell, rng)
+            self._resolve_spell_attack(attacker, defender, spell, rng, turn_start_time)
             return
-        self._resolve_weapon_attack(attacker.character, defender.character, weapon or self._default_unarmed_weapon(), rng)
+        self._resolve_weapon_attack(attacker, defender, weapon or self._default_unarmed_weapon(), rng, turn_start_time)
 
-    def _try_use_consumable(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int) -> bool:
+    def _try_use_consumable(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float) -> bool:
         item = attacker.consumable
         if item is None or attacker.consumable_used:
             return False
@@ -538,8 +596,11 @@ class PowerRatingService:
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
             if round_index > 1:
                 return False
-            damage = self._consumable_damage(attacker.character, item, rng, defender.character)
+            damage = self._consumable_damage(attacker, item, rng, defender, turn_start_time)
             defender.character.health = max(0.0, float(defender.character.health) - damage)
+            if damage > 0.0:
+                spend_stamina(defender.runtime, stamina_damage_from_hit(damage), turn_start_time)
+            spend_stamina(attacker.runtime, DEFAULT_OFFENSIVE_ACTION_STAMINA_COST, turn_start_time)
             attacker.consumable_used = True
             return True
         if health_ratio <= 0.6:
@@ -548,29 +609,60 @@ class PowerRatingService:
             attacker.consumable_used = True
             return True
         return False
-    def _resolve_weapon_attack(self, attacker: Character, defender: Character, weapon: Weapon, rng: random.Random):
+
+    def _resolve_weapon_attack(self, attacker: _Combatant, defender: _Combatant, weapon: Weapon, rng: random.Random, turn_start_time: float):
         calculator = DamageCalculator(rng=rng)
         hit, _chance = calculator.roll_hit(
-            attacker_stat=float(getattr(attacker.finalAttributes, "physicalPower", 5.0)),
-            defender_stat=float(getattr(defender.finalAttributes, "physicalResistance", 5.0)),
+            attacker_stat=float(getattr(attacker.character.finalAttributes, "physicalPower", 5.0)),
+            defender_stat=max(
+                0.0,
+                float(getattr(defender.character.finalAttributes, "physicalResistance", 5.0))
+                - defense_stat_penalty_for_exertion(defender.runtime.exertion_level),
+            ),
+            bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
         )
+        spend_stamina(attacker.runtime, max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)), turn_start_time)
         if not hit:
             return
         location = self._roll_hit_location(rng)
+        scaled_weapon = self._scaled_weapon_for_damage_multiplier(
+            weapon,
+            damage_multiplier_for_exertion(attacker.runtime.exertion_level),
+        )
         result = calculator.calculate_physical_hit_to_location(
-            attacker=attacker,
-            defender=defender,
-            weapon=weapon,
+            attacker=attacker.character,
+            defender=defender.character,
+            weapon=scaled_weapon,
             location=location,
             applyArmorDamageToGear=True,
         )
-        defender.health = max(0.0, float(defender.health) - max(0.0, result.hpFinal))
+        damage = max(0.0, result.hpFinal)
+        defender.character.health = max(0.0, float(defender.character.health) - damage)
+        if damage > 0.0:
+            spend_stamina(defender.runtime, stamina_damage_from_hit(damage), turn_start_time)
 
-    def _resolve_spell_attack(self, attacker: Character, defender: Character, spell: Spell, rng: random.Random):
+    def _resolve_spell_attack(self, attacker: _Combatant, defender: _Combatant, spell: Spell, rng: random.Random, turn_start_time: float):
         calculator = DamageCalculator(rng=rng)
-        spell_power = self._adjusted_spell_power(attacker, spell)
-        breakdown = calculator.calculate_magic_hit(attacker=attacker, defender=defender, spell_power=spell_power)
-        defender.health = max(0.0, float(defender.health) - max(0.0, breakdown.hpFinal))
+        spell_power = self._adjusted_spell_power(attacker.character, spell) * damage_multiplier_for_exertion(attacker.runtime.exertion_level)
+        breakdown = calculator.calculate_magic_hit(
+            attacker=attacker.character,
+            defender=defender.character,
+            spell_power=spell_power,
+            hit_chance=calculator.calculate_hit_chance(
+                float(getattr(attacker.character.finalAttributes, "magicPower", 5.0)),
+                max(
+                    0.0,
+                    float(getattr(defender.character.finalAttributes, "magicResistance", 5.0))
+                    - defense_stat_penalty_for_exertion(defender.runtime.exertion_level),
+                ),
+                bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
+            ),
+        )
+        spend_stamina(attacker.runtime, DEFAULT_OFFENSIVE_ACTION_STAMINA_COST, turn_start_time)
+        damage = max(0.0, breakdown.hpFinal)
+        defender.character.health = max(0.0, float(defender.character.health) - damage)
+        if damage > 0.0:
+            spend_stamina(defender.runtime, stamina_damage_from_hit(damage), turn_start_time)
 
     def _race_lookup(self, race_id: str):
         if self.race_service is None:
@@ -612,22 +704,49 @@ class PowerRatingService:
                 return location
         return HitLocation.BODY
 
-    def _consumable_damage(self, attacker: Character, item: Consumable, rng: random.Random, defender: Character) -> float:
+    @staticmethod
+    def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
+        if abs(float(damage_multiplier) - 1.0) < 0.0001:
+            return weapon
+        scaled_weapon = copy.deepcopy(weapon)
+        scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
+        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
+        return scaled_weapon
+
+    def _consumable_damage(self, attacker: _Combatant, item: Consumable, rng: random.Random, defender: _Combatant, turn_start_time: float) -> float:
         if item.spellName and self.spell_service is not None:
             referenced_spell = self.spell_service.get_spell(item.spellName)
             if referenced_spell is not None:
                 calculator = DamageCalculator(rng=rng)
                 breakdown = calculator.calculate_magic_hit(
-                    attacker=attacker,
-                    defender=defender,
-                    spell_power=self._adjusted_spell_power(attacker, referenced_spell),
+                    attacker=attacker.character,
+                    defender=defender.character,
+                    spell_power=self._adjusted_spell_power(attacker.character, referenced_spell) * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
+                    hit_chance=calculator.calculate_hit_chance(
+                        float(getattr(attacker.character.finalAttributes, "magicPower", 5.0)),
+                        max(
+                            0.0,
+                            float(getattr(defender.character.finalAttributes, "magicResistance", 5.0))
+                            - defense_stat_penalty_for_exertion(defender.runtime.exertion_level),
+                        ),
+                        bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
+                    ),
                 )
                 return max(0.0, breakdown.hpFinal)
         calculator = DamageCalculator(rng=rng)
         breakdown = calculator.calculate_magic_hit(
-            attacker=attacker,
-            defender=defender,
-            spell_power=max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0)),
+            attacker=attacker.character,
+            defender=defender.character,
+            spell_power=max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0)) * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
+            hit_chance=calculator.calculate_hit_chance(
+                float(getattr(attacker.character.finalAttributes, "magicPower", 5.0)),
+                max(
+                    0.0,
+                    float(getattr(defender.character.finalAttributes, "magicResistance", 5.0))
+                    - defense_stat_penalty_for_exertion(defender.runtime.exertion_level),
+                ),
+                bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
+            ),
         )
         return max(0.0, breakdown.hpFinal)
 
@@ -701,6 +820,7 @@ class PowerRatingService:
             armorMultiplier=1.0,
             ignoreArmorFraction=0.0,
             penetrationBase=3.0,
+            staminaCost=10.0,
             powerLevel=0.0,
         )
 
@@ -718,5 +838,6 @@ class PowerRatingService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
+            staminaCost=10.0,
             powerLevel=0.0,
         )

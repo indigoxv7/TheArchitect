@@ -3,6 +3,12 @@ from src.domain.CharacterUtil import *
 from src.domain.Items import Gear, Item
 from src.domain.GeneralSkills import GeneralSkills
 from src.domain.Spells import Spell, SpellComponent
+from src.domain.combat_timing import (
+    BASELINE_STAMINA_LIMIT,
+    speed_factor_from_attributes,
+    stamina_limit_from_physical_stamina,
+    stamina_regen_per_second_from_physical_stamina,
+)
 from src.config.Globals import *
 
 class HealthState(Enum):
@@ -29,8 +35,7 @@ class Character:
     PRIMARY_STAT_BASELINE = 5.0
     DERIVED_STAT_ALPHA = 0.80
     BASE_HEALTH_AT_BASELINE = 55.0
-    SPEED_PHYSICAL_WEIGHT = 0.66
-    SPEED_MAGIC_WEIGHT = 0.33
+    BASE_STAMINA_LIMIT = BASELINE_STAMINA_LIMIT
 
     finalAttributes: Attributes
     finalAffinities: Affinities
@@ -162,8 +167,15 @@ class Character:
     def GetSpeed(self) -> float:
         physical_power = float(getattr(self.finalAttributes, "physicalPower", getattr(self.attributes, "physicalPower", 5.0)))
         magic_power = float(getattr(self.finalAttributes, "magicPower", getattr(self.attributes, "magicPower", 5.0)))
-        speed = (physical_power * self.SPEED_PHYSICAL_WEIGHT) + (magic_power * self.SPEED_MAGIC_WEIGHT)
-        return max(0.1, speed)
+        return speed_factor_from_attributes(physical_power=physical_power, magic_power=magic_power)
+
+    def GetStaminaLimit(self) -> float:
+        physical_stamina = float(getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0)))
+        return stamina_limit_from_physical_stamina(physical_stamina)
+
+    def GetStaminaRegenPerSecond(self) -> float:
+        physical_stamina = float(getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0)))
+        return stamina_regen_per_second_from_physical_stamina(physical_stamina)
 
     def GetHealthRatio(self) -> float:
         max_health = max(1.0, self.GetMaxHealth())

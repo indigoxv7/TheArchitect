@@ -102,7 +102,21 @@ class TestCharacterBonusCalculation(unittest.TestCase):
             ),
         )
 
-        self.assertAlmostEqual(swift.GetSpeed(), (12.0 * 0.66) + (9.0 * 0.33))
+        self.assertAlmostEqual(swift.GetSpeed(), ((12.0 * 2.0) + 9.0) / 15.0)
+
+    def test_speed_baseline_is_one_for_five_and_five_power(self):
+        baseline = Character(name="Baseline Speed", attributes=_uniform_attributes(5))
+
+        self.assertAlmostEqual(baseline.GetSpeed(), 1.0)
+
+    def test_stamina_limit_and_regen_scale_from_physical_stamina(self):
+        baseline = Character(name="Baseline Stamina", attributes=_uniform_attributes(5))
+        durable = Character(name="Durable Stamina", attributes=_uniform_attributes(8))
+
+        self.assertAlmostEqual(baseline.GetStaminaLimit(), 75.0)
+        self.assertAlmostEqual(baseline.GetStaminaRegenPerSecond(), 15.0 / 6.0)
+        self.assertAlmostEqual(durable.GetStaminaLimit(), 105.0)
+        self.assertAlmostEqual(durable.GetStaminaRegenPerSecond(), 24.0 / 6.0)
 
 
 if __name__ == "__main__":

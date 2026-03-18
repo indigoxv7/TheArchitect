@@ -147,6 +147,7 @@ class TestDamageCalculator(unittest.TestCase):
             "armorMultiplier": 1.3,
             "ignoreArmorFraction": 0.2,
             "penetrationBase": 45,
+            "staminaCost": 13,
         }
 
         item = Weapon.from_dict(payload)
@@ -155,6 +156,7 @@ class TestDamageCalculator(unittest.TestCase):
         self.assertAlmostEqual(item.armorMultiplier, 1.3)
         self.assertAlmostEqual(item.ignoreArmorFraction, 0.2)
         self.assertAlmostEqual(item.penetrationBase, 45.0)
+        self.assertAlmostEqual(item.staminaCost, 13.0)
         self.assertEqual(item.slot.name, "PRIMARY_WEAPON")
 
         serialized = item.to_dict()
@@ -163,6 +165,21 @@ class TestDamageCalculator(unittest.TestCase):
         self.assertEqual(serialized["armorMultiplier"], 1.3)
         self.assertEqual(serialized["ignoreArmorFraction"], 0.2)
         self.assertEqual(serialized["penetrationBase"], 45.0)
+        self.assertEqual(serialized["staminaCost"], 13.0)
+
+    def test_weapon_stamina_cost_defaults_when_missing(self):
+        item = Weapon.from_dict(
+            {
+                "name": "Fallback Weapon",
+                "itemClass": "Weapon",
+                "slot": "PRIMARY_WEAPON",
+                "itemType": "MELEE_WEAPON",
+                "damageMin": 8,
+                "damageMax": 9,
+            }
+        )
+
+        self.assertAlmostEqual(item.staminaCost, 10.0)
 
     def test_hit_chance_is_clamped(self):
         calculator = DamageCalculator(rng=random.Random(1))
