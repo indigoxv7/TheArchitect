@@ -6,24 +6,28 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.config.tuning import battle_factor, character_stat_factor, misc_factor
 from src.domain.Character import Character, HealthState
 from src.domain.CharacterUtil import ConsumableKind, HitLocation, PowerType
 from src.domain.Items import Consumable, Weapon
 from src.domain.Spells import Spell
 from src.domain.character_io import character_from_state
 from src.domain.combat_timing import (
-    BASELINE_TURN_SECONDS,
     CombatRuntimeState,
-    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
     accuracy_bonus_for_exertion,
+    baseline_turn_seconds,
     can_take_offensive_action,
     damage_multiplier_for_exertion,
+    default_offensive_action_stamina_cost,
     defense_stat_penalty_for_exertion,
     initialize_runtime_fields,
     schedule_next_action,
+    speed_factor_from_attributes,
     spend_stamina,
     start_time_gap_seconds,
     stamina_damage_from_hit,
+    stamina_limit_from_physical_stamina,
+    stamina_regen_per_second_from_physical_stamina,
     sync_stamina,
 )
 from src.services.combat_loadout_service import select_active_character_weapon
@@ -72,7 +76,6 @@ class TurnOutcome:
 
 class CombatSimulatorService:
     MAX_DUEL_ROUNDS = 30
-    MAX_DUEL_BATTLE_TIME = MAX_DUEL_ROUNDS * BASELINE_TURN_SECONDS
     DEFAULT_SEED = 20260317
     _LEADING_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
@@ -122,7 +125,7 @@ class CombatSimulatorService:
         try:
             numeric = float(value)
         except Exception:
-            numeric = 0.5
+            numeric = misc_factor("neutral_affinity", 0.5)
         if numeric > 1.0:
             numeric /= 100.0
         return max(0.0, min(1.0, numeric))
@@ -130,7 +133,7 @@ class CombatSimulatorService:
     @classmethod
     def _affinity_multiplier(cls, value: Any) -> float:
         fraction = cls._normalize_affinity_fraction(value)
-        return 0.8 + (fraction * 0.4)
+        return misc_factor("affinity_power_min_multiplier", 0.8) + (fraction * misc_factor("affinity_power_bonus_range", 0.4))
 
     def _race_lookup(self, race_id: str):
         if self.race_service is None:
@@ -230,15 +233,15 @@ class CombatSimulatorService:
     def _character_speed(character: Character) -> float:
         get_speed = getattr(character, "GetSpeed", None)
         if callable(get_speed):
-            return max(0.1, float(get_speed()))
+            return max(character_stat_factor("minimum_speed_factor", 0.1), float(get_speed()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
         physical_power = float(getattr(attrs, "physicalPower", 5.0))
         magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return max(0.1, ((2.0 * physical_power) + magic_power) / 15.0)
+        return speed_factor_from_attributes(physical_power, magic_power)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
-        return BASELINE_TURN_SECONDS / cls._character_speed(character)
+        return baseline_turn_seconds() / cls._character_speed(character)
 
     @staticmethod
     def _character_stamina_limit(character: Character) -> float:
@@ -246,7 +249,7 @@ class CombatSimulatorService:
         if callable(get_stamina_limit):
             return max(1.0, float(get_stamina_limit()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return max(1.0, 75.0 + (10.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0)))
+        return stamina_limit_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
 
     @staticmethod
     def _character_stamina_regen(character: Character) -> float:
@@ -254,8 +257,10 @@ class CombatSimulatorService:
         if callable(get_regen):
             return max(0.0, float(get_regen()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        regen_per_turn = 15.0 + (3.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0))
-        return max(0.0, regen_per_turn / BASELINE_TURN_SECONDS)
+        return stamina_regen_per_second_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
+
+    def _max_duel_battle_time(self) -> float:
+        return self.MAX_DUEL_ROUNDS * baseline_turn_seconds()
 
     def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
         runtime = CombatRuntimeState(
@@ -342,13 +347,13 @@ class CombatSimulatorService:
             session.log_lines.append(session.result_text)
             return new_lines + [session.result_text]
         turn_start_time = float(session.next_action_times.get(side, 0.0))
-        if turn_start_time > self.MAX_DUEL_BATTLE_TIME:
+        if turn_start_time > self._max_duel_battle_time():
             session.finished = True
             session.result_text = "Simulation ends in a draw."
             session.log_lines.append(session.result_text)
             return new_lines + [session.result_text]
 
-        round_number = int(turn_start_time // BASELINE_TURN_SECONDS) + 1
+        round_number = int(turn_start_time // baseline_turn_seconds()) + 1
         if round_number > session.round_number:
             session.round_number = round_number
             lead_name = session.left_character.name if side == "left" else session.right_character.name
@@ -440,9 +445,9 @@ class CombatSimulatorService:
         for item in inventory:
             if not isinstance(item, Consumable):
                 continue
-            if (item.isOffensive or item.consumableKind == ConsumableKind.BOMB) and round_number <= 1:
+            if (item.isOffensive or item.consumableKind == ConsumableKind.BOMB) and round_number <= battle_factor("combat_sim_offensive_consumable_round_limit", 1):
                 return item
-            if health_ratio <= 0.6 and not item.isOffensive:
+            if health_ratio <= battle_factor("combat_sim_supportive_consumable_health_ratio_threshold", 0.6) and not item.isOffensive:
                 return item
         return None
 
@@ -484,7 +489,8 @@ class CombatSimulatorService:
         )
         affinity_name = str(getattr(getattr(spell, "affinity", None), "name", getattr(spell, "affinity", "MANA")) or "MANA").lower()
         affinities = getattr(character, "finalAffinities", None) or getattr(character, "affinities", None)
-        affinity_value = getattr(affinities, affinity_name, 0.5) if affinities is not None else 0.5
+        neutral_affinity = misc_factor("neutral_affinity", 0.5)
+        affinity_value = getattr(affinities, affinity_name, neutral_affinity) if affinities is not None else neutral_affinity
         return max(0.0, base_power * self._affinity_multiplier(affinity_value))
 
     def _resolve_weapon_turn(
@@ -518,7 +524,7 @@ class CombatSimulatorService:
                 lines.append(
                     f"  Debug: hit roll={hit_roll:.4f}, needed<={hit_chance:.4f}; attacker stat={attacker_stat:.2f}, defender stat={defender_stat:.2f}."
                 )
-            return TurnOutcome(lines=lines, action_cost=max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)))
+            return TurnOutcome(lines=lines, action_cost=max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost())))
 
         location = self._roll_hit_location(session.rng)
         scaled_weapon = self._scaled_weapon_for_damage_multiplier(
@@ -557,7 +563,7 @@ class CombatSimulatorService:
             )
         return TurnOutcome(
             lines=lines,
-            action_cost=max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)),
+            action_cost=max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost())),
             target_stamina_before=target_stamina_before,
             target_stamina_after=target_stamina_after,
         )
@@ -614,7 +620,7 @@ class CombatSimulatorService:
             )
         return TurnOutcome(
             lines=lines,
-            action_cost=DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+            action_cost=default_offensive_action_stamina_cost(),
             target_stamina_before=target_stamina_before,
             target_stamina_after=target_stamina_after,
         )
@@ -701,7 +707,7 @@ class CombatSimulatorService:
             )
         return TurnOutcome(
             lines=lines,
-            action_cost=DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
+            action_cost=default_offensive_action_stamina_cost(),
             target_stamina_before=target_stamina_before,
             target_stamina_after=target_stamina_after,
         )
@@ -731,7 +737,7 @@ class CombatSimulatorService:
                 return self._adjusted_spell_power(attacker, referenced_spell)
         base = max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0))
         if item.consumableKind == ConsumableKind.FOOD:
-            return base * 0.8
+            return base * battle_factor("food_healing_multiplier", 0.8)
         return base
 
     @staticmethod
@@ -741,21 +747,21 @@ class CombatSimulatorService:
             return HealthState.UNCONSCIOUS
         max_health = max(1.0, float(getattr(character, "GetMaxHealth", lambda: 100.0)()))
         percent = health / max_health
-        if percent >= 0.76:
+        if percent >= character_stat_factor("healthy_health_ratio_threshold", 0.76):
             return HealthState.HEALTHY
-        if percent >= 0.51:
+        if percent >= character_stat_factor("injured_health_ratio_threshold", 0.51):
             return HealthState.INJURED
-        if percent >= 0.26:
+        if percent >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26):
             return HealthState.HEAVILY_INJURED
         return HealthState.DYING
 
     @staticmethod
     def _roll_hit_location(rng: random.Random) -> HitLocation:
         weights = [
-            (HitLocation.HEAD, 0.15),
-            (HitLocation.BODY, 0.45),
-            (HitLocation.ARMS, 0.20),
-            (HitLocation.LEGS, 0.20),
+            (HitLocation.HEAD, battle_factor("combat_sim_head_hit_weight", 0.15)),
+            (HitLocation.BODY, battle_factor("combat_sim_body_hit_weight", 0.45)),
+            (HitLocation.ARMS, battle_factor("combat_sim_arms_hit_weight", 0.20)),
+            (HitLocation.LEGS, battle_factor("combat_sim_legs_hit_weight", 0.20)),
         ]
         roll = rng.random()
         cursor = 0.0
@@ -774,5 +780,5 @@ class CombatSimulatorService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
-            staminaCost=10.0,
+            staminaCost=default_offensive_action_stamina_cost(),
         )

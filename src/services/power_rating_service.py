@@ -5,6 +5,7 @@ import random
 import re
 from dataclasses import dataclass
 
+from src.config.tuning import battle_factor, character_stat_factor, misc_factor, misc_factor_int
 from src.domain.Character import Character
 from src.domain.CharacterUtil import (
     Attribute,
@@ -20,18 +21,21 @@ from src.domain.CharacterUtil import (
 from src.domain.Items import Armor, Consumable, Gear, Item, Weapon
 from src.domain.Spells import Spell
 from src.domain.combat_timing import (
-    BASELINE_TURN_SECONDS,
     CombatRuntimeState,
-    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
     accuracy_bonus_for_exertion,
+    baseline_turn_seconds,
     can_take_offensive_action,
     damage_multiplier_for_exertion,
+    default_offensive_action_stamina_cost,
     defense_stat_penalty_for_exertion,
     initialize_runtime_fields,
     schedule_next_action,
+    speed_factor_from_attributes,
     spend_stamina,
     start_time_gap_seconds,
     stamina_damage_from_hit,
+    stamina_limit_from_physical_stamina,
+    stamina_regen_per_second_from_physical_stamina,
     sync_stamina,
 )
 from src.services.combat_loadout_service import select_active_character_weapon
@@ -117,7 +121,7 @@ class PowerRatingService:
 
     @classmethod
     def normalize_affinity_fraction(cls, value) -> float:
-        numeric = cls.parse_numeric_value(value, cls.NEUTRAL_AFFINITY)
+        numeric = cls.parse_numeric_value(value, misc_factor("neutral_affinity", cls.NEUTRAL_AFFINITY))
         if isinstance(value, int):
             numeric /= 100.0
         elif isinstance(value, float):
@@ -134,7 +138,7 @@ class PowerRatingService:
     @classmethod
     def affinity_power_multiplier(cls, value) -> float:
         fraction = cls.normalize_affinity_fraction(value)
-        return 0.8 + (fraction * 0.4)
+        return misc_factor("affinity_power_min_multiplier", 0.8) + (fraction * misc_factor("affinity_power_bonus_range", 0.4))
 
     def affinity_multiplier_for_spell(self, character: Character | None, spell: Spell | None) -> float:
         if character is None or spell is None:
@@ -145,7 +149,7 @@ class PowerRatingService:
         if affinities is None:
             return 1.0
         affinity_name = getattr(getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))).upper()
-        return self.affinity_power_multiplier(getattr(affinities, affinity_name.lower(), self.NEUTRAL_AFFINITY))
+        return self.affinity_power_multiplier(getattr(affinities, affinity_name.lower(), misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY)))
 
     @staticmethod
     def _sum_attributes(attributes: Attributes | None) -> float:
@@ -162,17 +166,17 @@ class PowerRatingService:
 
     def _attribute_baseline(self, character: Character | None, attribute: Attribute) -> float:
         if character is None:
-            return 5.0
+            return character_stat_factor("primary_stat_baseline", 5.0)
         attributes = getattr(character, "attributes", None)
         mapping = {
-            Attribute.PHYSICAL_POWER: float(getattr(attributes, "physicalPower", 5.0)),
-            Attribute.PHYSICAL_STAMINA: float(getattr(attributes, "physicalStamina", 5.0)),
-            Attribute.PHYSICAL_RESISTANCE: float(getattr(attributes, "physicalResistance", 5.0)),
-            Attribute.MAGIC_POWER: float(getattr(attributes, "magicPower", 5.0)),
-            Attribute.MAGIC_STAMINA: float(getattr(attributes, "magicStamina", 5.0)),
-            Attribute.MAGIC_RESISTANCE: float(getattr(attributes, "magicResistance", 5.0)),
+            Attribute.PHYSICAL_POWER: float(getattr(attributes, "physicalPower", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.PHYSICAL_STAMINA: float(getattr(attributes, "physicalStamina", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.PHYSICAL_RESISTANCE: float(getattr(attributes, "physicalResistance", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.MAGIC_POWER: float(getattr(attributes, "magicPower", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.MAGIC_STAMINA: float(getattr(attributes, "magicStamina", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.MAGIC_RESISTANCE: float(getattr(attributes, "magicResistance", character_stat_factor("primary_stat_baseline", 5.0))),
         }
-        return mapping.get(attribute, 5.0)
+        return mapping.get(attribute, character_stat_factor("primary_stat_baseline", 5.0))
 
     def bonus_power_points(self, bonuses: list[Bonus] | None, character: Character | None = None) -> float:
         total = 0.0
@@ -189,7 +193,7 @@ class PowerRatingService:
             if attribute is None or amount == 0.0:
                 continue
             if bonus.bonusType == BonusType.FLAT:
-                total += amount * 6.0 if attribute == Attribute.ALL_ATTRIBUTES else amount
+                total += amount * misc_factor("all_attributes_flat_bonus_weight", 6.0) if attribute == Attribute.ALL_ATTRIBUTES else amount
             else:
                 if attribute == Attribute.ALL_ATTRIBUTES:
                     total += self._sum_attributes(getattr(character, "attributes", None) or Attributes()) * (amount / 100.0)
@@ -199,12 +203,15 @@ class PowerRatingService:
 
     def heuristic_spell_power_level(self, spell: Spell) -> float:
         base_power = self.parse_numeric_value(getattr(spell, "power", 0.0), 0.0)
-        level_bonus = max(0.0, float(getattr(spell, "level", 0) or 0)) * 0.5
-        range_bonus = min(25.0, self.parse_numeric_value(getattr(spell, "range", 0.0), 0.0)) * 0.03
-        duration_bonus = min(12.0, self.parse_numeric_value(getattr(spell, "duration", 0.0), 0.0)) * 0.05
-        casting_penalty = min(0.5, self.parse_numeric_value(getattr(spell, "casting_time", 0.0), 0.0) * 0.03)
+        level_bonus = max(0.0, float(getattr(spell, "level", 0) or 0)) * misc_factor("spell_heuristic_level_bonus_per_level", 0.5)
+        range_bonus = min(misc_factor("spell_heuristic_range_cap", 25.0), self.parse_numeric_value(getattr(spell, "range", 0.0), 0.0)) * misc_factor("spell_heuristic_range_bonus_per_unit", 0.03)
+        duration_bonus = min(misc_factor("spell_heuristic_duration_cap", 12.0), self.parse_numeric_value(getattr(spell, "duration", 0.0), 0.0)) * misc_factor("spell_heuristic_duration_bonus_per_unit", 0.05)
+        casting_penalty = min(
+            misc_factor("spell_heuristic_casting_penalty_cap", 0.5),
+            self.parse_numeric_value(getattr(spell, "casting_time", 0.0), 0.0) * misc_factor("spell_heuristic_casting_penalty_per_unit", 0.03),
+        )
         components = getattr(spell, "components", {}) if isinstance(getattr(spell, "components", {}), dict) else {}
-        component_bonus = 0.1 * sum(1 for key in ("verbal", "somatic", "material") if components.get(key))
+        component_bonus = misc_factor("spell_heuristic_component_bonus_per_component", 0.1) * sum(1 for key in ("verbal", "somatic", "material") if components.get(key))
         return max(0.0, base_power + level_bonus + range_bonus + duration_bonus + component_bonus - casting_penalty)
 
     def spell_power_level(self, spell: Spell, affinity_value=None) -> float:
@@ -232,9 +239,9 @@ class PowerRatingService:
     def _character_affinity_value(self, character: Character, spell: Spell) -> float:
         affinities = getattr(character, "finalAffinities", None) or getattr(character, "affinities", None)
         if affinities is None:
-            return self.NEUTRAL_AFFINITY
+            return misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY)
         affinity_name = getattr(getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))).lower()
-        return getattr(affinities, affinity_name, self.NEUTRAL_AFFINITY)
+        return getattr(affinities, affinity_name, misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY))
 
     def _character_non_item_bonus_power(self, character: Character) -> float:
         bonuses: list[Bonus] = []
@@ -262,8 +269,8 @@ class PowerRatingService:
             sorted(
                 [self.item_power_level(item) for item in inventory if isinstance(item, Consumable)],
                 reverse=True,
-            )[:3]
-        ) * 0.5
+            )[: max(0, misc_factor_int("inventory_consumable_slots_considered", 3))]
+        ) * misc_factor("inventory_consumable_power_weight", 0.5)
         spell_power = 0.0
         for spell in getattr(character, "spells", []) or []:
             spell_power += self.spell_power_level(spell, self._character_affinity_value(character, spell))
@@ -311,13 +318,14 @@ class PowerRatingService:
         return max(25, int(sample_count or self.sample_count))
 
     def _build_attributes(self, stat_bonus: float = 0.0) -> Attributes:
+        baseline = character_stat_factor("primary_stat_baseline", 5.0)
         return Attributes(
-            physicalPower=5.0 + stat_bonus,
-            physicalStamina=5.0 + stat_bonus,
-            physicalResistance=5.0 + stat_bonus,
-            magicPower=5.0 + stat_bonus,
-            magicStamina=5.0 + stat_bonus,
-            magicResistance=5.0 + stat_bonus,
+            physicalPower=baseline + stat_bonus,
+            physicalStamina=baseline + stat_bonus,
+            physicalResistance=baseline + stat_bonus,
+            magicPower=baseline + stat_bonus,
+            magicStamina=baseline + stat_bonus,
+            magicResistance=baseline + stat_bonus,
         )
 
     def _clone_item(self, item: Item | None):
@@ -366,15 +374,15 @@ class PowerRatingService:
     def _character_speed(character: Character) -> float:
         get_speed = getattr(character, "GetSpeed", None)
         if callable(get_speed):
-            return max(0.1, float(get_speed()))
+            return max(character_stat_factor("minimum_speed_factor", 0.1), float(get_speed()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
         physical_power = float(getattr(attrs, "physicalPower", 5.0))
         magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return max(0.1, ((2.0 * physical_power) + magic_power) / 15.0)
+        return speed_factor_from_attributes(physical_power, magic_power)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
-        return BASELINE_TURN_SECONDS / cls._character_speed(character)
+        return baseline_turn_seconds() / cls._character_speed(character)
 
     @staticmethod
     def _character_stamina_limit(character: Character) -> float:
@@ -382,7 +390,7 @@ class PowerRatingService:
         if callable(get_stamina_limit):
             return max(1.0, float(get_stamina_limit()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return max(1.0, 75.0 + (10.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0)))
+        return stamina_limit_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
 
     @staticmethod
     def _character_stamina_regen(character: Character) -> float:
@@ -390,8 +398,7 @@ class PowerRatingService:
         if callable(get_regen):
             return max(0.0, float(get_regen()))
         attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        regen_per_turn = 15.0 + (3.0 * (float(getattr(attrs, "physicalStamina", 5.0)) - 5.0))
-        return max(0.0, regen_per_turn / BASELINE_TURN_SECONDS)
+        return stamina_regen_per_second_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
 
     def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
         runtime = CombatRuntimeState(
@@ -486,7 +493,7 @@ class PowerRatingService:
             total_health_a += health_a
             total_health_b += health_b
             total_margin += margin
-            total_performance += outcome_score + (self.PERFORMANCE_MARGIN_WEIGHT * margin)
+            total_performance += outcome_score + (misc_factor("performance_margin_weight", self.PERFORMANCE_MARGIN_WEIGHT) * margin)
         average_performance = total_performance / float(sample_count)
         return {
             "wins": wins,
@@ -506,8 +513,12 @@ class PowerRatingService:
         candidate_advantage = max(0.0, float(candidate.get("advantage", 0.0) or 0.0))
         simulated_equivalent = 0.0
         if reference_advantage > 0.00001:
-            simulated_equivalent = max(0.0, candidate_advantage / (reference_advantage / 6.0))
-            recommended = (self.RECOMMENDED_SIMULATION_WEIGHT * simulated_equivalent) + (self.RECOMMENDED_HEURISTIC_WEIGHT * heuristic)
+            simulated_equivalent = max(0.0, candidate_advantage / (reference_advantage / misc_factor("simulated_power_reference_bonus", 6.0)))
+            recommended = (
+                misc_factor("recommended_simulation_weight", self.RECOMMENDED_SIMULATION_WEIGHT) * simulated_equivalent
+            ) + (
+                misc_factor("recommended_heuristic_weight", self.RECOMMENDED_HEURISTIC_WEIGHT) * heuristic
+            )
         else:
             recommended = heuristic
         recommended = max(0.0, round(recommended, 2))
@@ -560,12 +571,12 @@ class PowerRatingService:
                 ),
             )
             turn_start_time = float(next_action_times.get(side, 0.0))
-            if turn_start_time > (self.MAX_DUEL_ROUNDS * BASELINE_TURN_SECONDS):
+            if turn_start_time > (self.MAX_DUEL_ROUNDS * baseline_turn_seconds()):
                 break
             attacker, defender = (left, right) if side == "left" else (right, left)
             sync_stamina(attacker.runtime, turn_start_time)
             sync_stamina(defender.runtime, turn_start_time)
-            rounds = max(rounds, int(turn_start_time // BASELINE_TURN_SECONDS) + 1)
+            rounds = max(rounds, int(turn_start_time // baseline_turn_seconds()) + 1)
             self._take_turn(attacker, defender, rng, rounds, turn_start_time)
             next_action_times[side] = schedule_next_action(attacker.runtime, self._character_speed(attacker.character), turn_start_time)
             tie_break_order = [entry for entry in tie_break_order if entry != side] + [side]
@@ -594,16 +605,16 @@ class PowerRatingService:
             return False
         health_ratio = float(attacker.character.health) / self._character_max_health(attacker.character)
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
-            if round_index > 1:
+            if round_index > battle_factor("combat_sim_offensive_consumable_round_limit", 1):
                 return False
             damage = self._consumable_damage(attacker, item, rng, defender, turn_start_time)
             defender.character.health = max(0.0, float(defender.character.health) - damage)
             if damage > 0.0:
                 spend_stamina(defender.runtime, stamina_damage_from_hit(damage), turn_start_time)
-            spend_stamina(attacker.runtime, DEFAULT_OFFENSIVE_ACTION_STAMINA_COST, turn_start_time)
+            spend_stamina(attacker.runtime, default_offensive_action_stamina_cost(), turn_start_time)
             attacker.consumable_used = True
             return True
-        if health_ratio <= 0.6:
+        if health_ratio <= battle_factor("combat_sim_supportive_consumable_health_ratio_threshold", 0.6):
             healing = self._consumable_healing(attacker.character, item)
             attacker.character.health = min(self._character_max_health(attacker.character), float(attacker.character.health) + healing)
             attacker.consumable_used = True
@@ -621,7 +632,7 @@ class PowerRatingService:
             ),
             bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
         )
-        spend_stamina(attacker.runtime, max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0)), turn_start_time)
+        spend_stamina(attacker.runtime, max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost())), turn_start_time)
         if not hit:
             return
         location = self._roll_hit_location(rng)
@@ -658,7 +669,7 @@ class PowerRatingService:
                 bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
             ),
         )
-        spend_stamina(attacker.runtime, DEFAULT_OFFENSIVE_ACTION_STAMINA_COST, turn_start_time)
+        spend_stamina(attacker.runtime, default_offensive_action_stamina_cost(), turn_start_time)
         damage = max(0.0, breakdown.hpFinal)
         defender.character.health = max(0.0, float(defender.character.health) - damage)
         if damage > 0.0:
@@ -691,10 +702,10 @@ class PowerRatingService:
     @staticmethod
     def _roll_hit_location(rng: random.Random) -> HitLocation:
         weights = [
-            (HitLocation.HEAD, 0.15),
-            (HitLocation.BODY, 0.45),
-            (HitLocation.ARMS, 0.20),
-            (HitLocation.LEGS, 0.20),
+            (HitLocation.HEAD, battle_factor("combat_sim_head_hit_weight", 0.15)),
+            (HitLocation.BODY, battle_factor("combat_sim_body_hit_weight", 0.45)),
+            (HitLocation.ARMS, battle_factor("combat_sim_arms_hit_weight", 0.20)),
+            (HitLocation.LEGS, battle_factor("combat_sim_legs_hit_weight", 0.20)),
         ]
         roll = rng.random()
         cursor = 0.0
@@ -757,23 +768,30 @@ class PowerRatingService:
                 return self._adjusted_spell_power(attacker, referenced_spell)
         base = max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0))
         if item.consumableKind == ConsumableKind.FOOD:
-            return base * 0.8
+            return base * battle_factor("food_healing_multiplier", 0.8)
         return base
 
     def _heuristic_weapon_impact(self, weapon: Weapon) -> float:
         attacker = self._build_character(name="Weapon Rater Attacker", primary_weapon=weapon)
         defender = self._build_character(name="Weapon Rater Defender")
         total = 0.0
-        for index in range(40):
+        sample_count = max(1, misc_factor_int("weapon_heuristic_sample_count", 40))
+        for index in range(sample_count):
             calculator = DamageCalculator(rng=random.Random(self.seed + index + 101))
-            result = calculator.calculate_physical_hit(attacker=attacker, defender=defender, weapon=weapon, targetArmor=10.0)
-            total += result.hpFinal + (result.armorDamage * 0.35)
-        return total / 40.0
+            result = calculator.calculate_physical_hit(
+                attacker=attacker,
+                defender=defender,
+                weapon=weapon,
+                targetArmor=misc_factor("weapon_heuristic_target_armor", 10.0),
+            )
+            total += result.hpFinal + (result.armorDamage * misc_factor("weapon_heuristic_armor_damage_weight", 0.35))
+        return total / float(sample_count)
 
     def _heuristic_armor_impact(self, armor: Armor) -> float:
         training_weapon = self._training_weapon()
         prevented = 0.0
-        for index in range(30):
+        sample_count = max(1, misc_factor_int("armor_heuristic_sample_count", 30))
+        for index in range(sample_count):
             baseline_defender = self._build_character(name="Armor Baseline", primary_weapon=self._training_weapon())
             armored_defender = self._build_character(name="Armor Defender", primary_weapon=self._training_weapon(), armor=armor)
             attacker = self._build_character(name="Armor Attacker", primary_weapon=training_weapon)
@@ -782,18 +800,20 @@ class PowerRatingService:
             location = self._location_for_armor(armor)
             baseline = calculator_a.calculate_physical_hit_to_location(attacker=attacker, defender=baseline_defender, weapon=training_weapon, location=location, applyArmorDamageToGear=True)
             armored = calculator_b.calculate_physical_hit_to_location(attacker=attacker, defender=armored_defender, weapon=training_weapon, location=location, applyArmorDamageToGear=True)
-            prevented += max(0.0, baseline.hpFinal - armored.hpFinal) + (baseline.armorDamage - armored.armorDamage) * 0.15
-        base = prevented / 30.0
+            prevented += max(0.0, baseline.hpFinal - armored.hpFinal) + (
+                baseline.armorDamage - armored.armorDamage
+            ) * misc_factor("armor_heuristic_damage_prevent_weight", 0.15)
+        base = prevented / float(sample_count)
         if armor.slot == EquipSlot.OFFHAND:
-            base += max(0.0, float(getattr(armor, "maxArmor", 0.0) or 0.0)) * 0.15
+            base += max(0.0, float(getattr(armor, "maxArmor", 0.0) or 0.0)) * misc_factor("armor_heuristic_offhand_max_armor_weight", 0.15)
         return base
 
     def _heuristic_consumable_impact(self, item: Consumable) -> float:
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
-            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * 0.9)
+            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("offensive_consumable_impact_multiplier", 0.9))
         if item.consumableKind == ConsumableKind.FOOD:
-            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * 0.5)
-        return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * 0.7)
+            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("food_consumable_impact_multiplier", 0.5))
+        return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("default_consumable_impact_multiplier", 0.7))
 
     @staticmethod
     def _location_for_armor(armor: Armor) -> HitLocation:
@@ -820,7 +840,7 @@ class PowerRatingService:
             armorMultiplier=1.0,
             ignoreArmorFraction=0.0,
             penetrationBase=3.0,
-            staminaCost=10.0,
+            staminaCost=default_offensive_action_stamina_cost(),
             powerLevel=0.0,
         )
 
@@ -838,6 +858,6 @@ class PowerRatingService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
-            staminaCost=10.0,
+            staminaCost=default_offensive_action_stamina_cost(),
             powerLevel=0.0,
         )

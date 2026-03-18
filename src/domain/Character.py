@@ -9,6 +9,7 @@ from src.domain.combat_timing import (
     stamina_limit_from_physical_stamina,
     stamina_regen_per_second_from_physical_stamina,
 )
+from src.config.tuning import character_stat_factor
 from src.config.Globals import *
 
 class HealthState(Enum):
@@ -157,12 +158,13 @@ class Character:
 
     @classmethod
     def _scaled_primary_stat_multiplier(cls, value: float) -> float:
-        ratio = max(0.0001, float(value) / cls.PRIMARY_STAT_BASELINE)
-        return ratio ** cls.DERIVED_STAT_ALPHA
+        baseline = max(0.0001, character_stat_factor("primary_stat_baseline", cls.PRIMARY_STAT_BASELINE))
+        ratio = max(0.0001, float(value) / baseline)
+        return ratio ** character_stat_factor("derived_stat_alpha", cls.DERIVED_STAT_ALPHA)
 
     def GetMaxHealth(self) -> float:
         physical_resistance = float(getattr(self.finalAttributes, "physicalResistance", getattr(self.attributes, "physicalResistance", 5.0)))
-        return self.BASE_HEALTH_AT_BASELINE * self._scaled_primary_stat_multiplier(physical_resistance)
+        return character_stat_factor("base_health_at_baseline", self.BASE_HEALTH_AT_BASELINE) * self._scaled_primary_stat_multiplier(physical_resistance)
 
     def GetSpeed(self) -> float:
         physical_power = float(getattr(self.finalAttributes, "physicalPower", getattr(self.attributes, "physicalPower", 5.0)))
@@ -189,11 +191,11 @@ class Character:
         ratio = self.GetHealthRatio()
         if float(getattr(self, "health", 0.0) or 0.0) <= 0.0:
             self.healthState = HealthState.UNCONSCIOUS
-        elif ratio >= 0.76:
+        elif ratio >= character_stat_factor("healthy_health_ratio_threshold", 0.76):
             self.healthState = HealthState.HEALTHY
-        elif ratio >= 0.51:
+        elif ratio >= character_stat_factor("injured_health_ratio_threshold", 0.51):
             self.healthState = HealthState.INJURED
-        elif ratio >= 0.26:
+        elif ratio >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26):
             self.healthState = HealthState.HEAVILY_INJURED
         else:
             self.healthState = HealthState.DYING

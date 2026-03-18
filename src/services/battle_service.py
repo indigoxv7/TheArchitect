@@ -7,6 +7,7 @@ import random
 import re
 from typing import Any
 
+from src.config.tuning import battle_factor, battle_factor_int, character_stat_factor
 from src.domain.Character import Character, HealthState
 from src.domain.CharacterUtil import Attributes, EquipSlot, HitLocation, ItemType, PowerType
 from src.domain.Items import Consumable, Gear, Item, Weapon
@@ -15,14 +16,13 @@ from src.domain.Mission import EliminationObjective, MissionObjective, MissionOb
 from src.domain.Race import CreatureSize
 from src.domain.Spells import Spell
 from src.domain.combat_timing import (
-    BASELINE_TURN_SECONDS,
-    EXCHANGE_DURATION_SECONDS,
-    DEFAULT_OFFENSIVE_ACTION_STAMINA_COST,
     ExertionLevel,
     accuracy_bonus_for_exertion,
     can_take_offensive_action,
     damage_multiplier_for_exertion,
+    default_offensive_action_stamina_cost,
     defense_stat_penalty_for_exertion,
+    exchange_duration_seconds,
     initialize_runtime_fields,
     next_window_start,
     schedule_next_action,
@@ -137,7 +137,7 @@ class BattleService:
         getattr(self.context, "active_battles", {}).pop(player_id, None)
 
     def _reset_battle_runtime_for_new_scheduler(self, battle: BattleState):
-        battle.battle_time_seconds = float(battle.exchange_count) * EXCHANGE_DURATION_SECONDS
+        battle.battle_time_seconds = float(battle.exchange_count) * exchange_duration_seconds()
         for entity in self._all_entities(battle):
             self._ensure_entity_runtime(entity, battle.battle_time_seconds)
             entity.stamina_current = entity.stamina_limit
@@ -508,24 +508,18 @@ class BattleService:
         return str(getattr(entity, "unit_id", getattr(entity, "stack_id", getattr(entity, "name", "entity"))) or "entity")
 
     def _entity_speed(self, entity) -> float:
-        speed = getattr(entity, "speed", None)
-        if speed is not None:
-            try:
-                return max(0.1, float(speed))
-            except Exception:
-                pass
         return max(
-            0.1,
+            character_stat_factor("minimum_speed_factor", 0.1),
             speed_factor_from_attributes(
-                getattr(entity, "physical_power", 5.0),
-                getattr(entity, "magic_power", 5.0),
+                getattr(entity, "physical_power", character_stat_factor("primary_stat_baseline", 5.0)),
+                getattr(entity, "magic_power", character_stat_factor("primary_stat_baseline", 5.0)),
             ),
         )
 
     def _ensure_entity_runtime(self, entity, current_time: float = 0.0):
         physical_stamina = float(getattr(entity, "physical_stamina", 5.0) or 5.0)
-        stamina_limit = float(getattr(entity, "stamina_limit", stamina_limit_from_physical_stamina(physical_stamina)) or stamina_limit_from_physical_stamina(physical_stamina))
-        stamina_regen = float(getattr(entity, "stamina_regen_per_second", stamina_regen_per_second_from_physical_stamina(physical_stamina)) or stamina_regen_per_second_from_physical_stamina(physical_stamina))
+        stamina_limit = float(stamina_limit_from_physical_stamina(physical_stamina))
+        stamina_regen = float(stamina_regen_per_second_from_physical_stamina(physical_stamina))
         stamina_current = getattr(entity, "stamina_current", stamina_limit)
         stamina_last_update_time = getattr(entity, "stamina_last_update_time", current_time)
         next_action_time = getattr(entity, "next_action_time", 0.0)
@@ -636,14 +630,14 @@ class BattleService:
         )
         battle.mission_statistics.enemiesRemaining = self._count_remaining_enemies(battle)
         battle.mission_statistics.alliesRemaining = self._count_non_player_allies_remaining(battle)
-        battle.mission_statistics.timeInsideMissionHours = float(battle.exchange_count) * self.HOURS_PER_EXCHANGE
+        battle.mission_statistics.timeInsideMissionHours = float(battle.exchange_count) * battle_factor("hours_per_exchange", self.HOURS_PER_EXCHANGE)
         self._capture_starting_positions(battle)
 
     def _refresh_dynamic_mission_statistics(self, battle: BattleState):
         stats = battle.mission_statistics
         stats.enemiesRemaining = self._count_remaining_enemies(battle)
         stats.alliesRemaining = self._count_non_player_allies_remaining(battle)
-        stats.timeInsideMissionHours = float(battle.exchange_count) * self.HOURS_PER_EXCHANGE
+        stats.timeInsideMissionHours = float(battle.exchange_count) * battle_factor("hours_per_exchange", self.HOURS_PER_EXCHANGE)
         for entity in battle.ally_units:
             if bool(getattr(entity, "is_player_owned", False)):
                 continue
@@ -755,7 +749,7 @@ class BattleService:
             armorMultiplier=0.7,
             ignoreArmorFraction=0.0,
             penetrationBase=2.0,
-            staminaCost=10.0,
+            staminaCost=default_offensive_action_stamina_cost(),
             itemId="UNARMED",
         )
 
@@ -797,11 +791,11 @@ class BattleService:
         if health <= 0:
             return HealthState.UNCONSCIOUS
         percent = (float(health) / max(1.0, float(max_health))) * 100.0
-        if percent >= 76.0:
+        if percent >= character_stat_factor("healthy_health_ratio_threshold", 0.76) * 100.0:
             return HealthState.HEALTHY
-        if percent >= 51.0:
+        if percent >= character_stat_factor("injured_health_ratio_threshold", 0.51) * 100.0:
             return HealthState.INJURED
-        if percent >= 26.0:
+        if percent >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26) * 100.0:
             return HealthState.HEAVILY_INJURED
         return HealthState.DYING
 
@@ -901,22 +895,22 @@ class BattleService:
         if orders is None:
             return 0.0
         if orders.stance == CommanderStance.ADVANCE:
-            return 0.03
+            return battle_factor("stance_advance_attack_bonus", 0.03)
         if orders.stance == CommanderStance.AGGRESSIVE:
-            return 0.05
+            return battle_factor("stance_aggressive_attack_bonus", 0.05)
         if orders.stance == CommanderStance.DEFENSIVE:
-            return -0.03
+            return battle_factor("stance_defensive_attack_bonus", -0.03)
         return 0.0
 
     def _ranged_penalties(self, battle: BattleState, attacker, target) -> tuple[float, float, float]:
-        congestion_penalty = 0.05 if self._entity_lane_width(attacker) > 1 else 0.0
+        congestion_penalty = battle_factor("ranged_congestion_penalty", 0.05) if self._entity_lane_width(attacker) > 1 else 0.0
         line_distance = self._line_distance(attacker, target)
-        range_penalty = max(0.0, 0.05 * max(0, line_distance - 1))
+        range_penalty = max(0.0, battle_factor("ranged_range_penalty_per_line", 0.05) * max(0, line_distance - 1))
         firing_penalty = 0.0
         if getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE:
             frontline_enemy = self._frontline_targets(battle, getattr(attacker, "team", BattleTeam.ALLY))
             if any(self._lane_distance(attacker, enemy) == 0 for enemy in frontline_enemy):
-                firing_penalty = 0.1
+                firing_penalty = battle_factor("ranged_firing_through_engagement_penalty", 0.1)
         return congestion_penalty, firing_penalty, range_penalty
 
     def _resolve_attack(
@@ -1049,10 +1043,10 @@ class BattleService:
                     getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE
                     or float(getattr(spell, "power", 0) or 0) >= float(getattr(weapon, "damageMax", 0) or 0)
                 ):
-                    return DEFAULT_OFFENSIVE_ACTION_STAMINA_COST
+                    return default_offensive_action_stamina_cost()
             except Exception:
                 pass
-        return max(0.0, float(getattr(weapon, "staminaCost", 10.0) or 10.0))
+        return max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost()))
 
     def _timeline_needs_seeding(self, battle: BattleState) -> bool:
         active_entities = self._active_entities(battle)
@@ -1198,7 +1192,7 @@ class BattleService:
         for entity in entities:
             if int(getattr(entity, "line", 0)) != int(front_line):
                 continue
-            total += self._entity_health(entity) * (1.0 + 0.1 * self._entity_attack_count(entity))
+            total += self._entity_health(entity) * (1.0 + battle_factor("front_line_attack_count_weight", 0.10) * self._entity_attack_count(entity))
         return total
 
     def _broken_lane_count(self, battle: BattleState, team: BattleTeam) -> int:
@@ -1241,8 +1235,9 @@ class BattleService:
         battle.player_recenter_pressure += player_missing + player_broken + player_intrusion
         battle.enemy_recenter_pressure += enemy_missing + enemy_broken + enemy_intrusion
 
-        player_threshold = max(1, 3 - player_missing - player_broken)
-        enemy_threshold = max(1, 3 - enemy_missing - enemy_broken)
+        threshold_base = battle_factor_int("recentering_threshold_base", 3)
+        player_threshold = max(1, threshold_base - player_missing - player_broken)
+        enemy_threshold = max(1, threshold_base - enemy_missing - enemy_broken)
 
         if (player_missing > 0 or player_intrusion) and not enemy_progress and battle.player_recenter_pressure >= player_threshold:
             if battle.player_front_line < battle.default_player_front_line and battle.enemy_front_line < battle.total_lines:
@@ -1311,7 +1306,7 @@ class BattleService:
         highlights: list[str] = []
         triggers: list[BattleTrigger] = []
         exchange_start_time = float(battle.battle_time_seconds)
-        exchange_end_time = exchange_start_time + EXCHANGE_DURATION_SECONDS
+        exchange_end_time = exchange_start_time + exchange_duration_seconds()
         self._handle_reinforcements(battle, highlights)
         if self._timeline_needs_seeding(battle):
             self._seed_initial_action_times(battle)
@@ -1347,12 +1342,13 @@ class BattleService:
         else:
             ally_strength = self._team_strength_on_front(allies, battle.player_front_line)
             enemy_strength = self._team_strength_on_front(enemies, battle.enemy_front_line)
-            player_progress = ally_strength > (enemy_strength * 1.25)
-            enemy_progress = enemy_strength > (ally_strength * 1.25)
+            progress_multiplier = battle_factor("line_progress_advantage_multiplier", 1.25)
+            player_progress = ally_strength > (enemy_strength * progress_multiplier)
+            enemy_progress = enemy_strength > (ally_strength * progress_multiplier)
             if battle.orders.stance == CommanderStance.ADVANCE:
                 player_progress = player_progress or ally_strength > enemy_strength
             if battle.orders.stance == CommanderStance.DEFENSIVE:
-                enemy_progress = enemy_progress and (enemy_strength > ally_strength * 1.4)
+                enemy_progress = enemy_progress and (enemy_strength > ally_strength * battle_factor("defensive_line_hold_multiplier", 1.4))
 
             if player_progress and not enemy_progress:
                 self._advance_front(battle, BattleTeam.ALLY, highlights)
@@ -1372,7 +1368,7 @@ class BattleService:
                 triggers.append(BattleTrigger(BattleTriggerType.HERO_DOWN, f"{unit.name} is {unit.health_state.lower()}."))
         if battle.encounter.allow_retreat and battle.outcome == BattleOutcome.ONGOING:
             ally_hp_ratio = self._total_health_ratio(self._active_allies(battle), battle.ally_units)
-            if ally_hp_ratio <= 0.35:
+            if ally_hp_ratio <= battle_factor("retreat_opportunity_health_ratio_threshold", 0.35):
                 triggers.append(BattleTrigger(BattleTriggerType.RETREAT_OPPORTUNITY, "Retreat is available if you want to preserve the team."))
 
         summary = BattleExchangeSummary(
@@ -1552,7 +1548,10 @@ class BattleService:
             if not allies:
                 raise ValueError("No allied targets available.")
             target = min(allies, key=lambda entity: self._entity_health(entity) / max(1.0, self._entity_max_health(entity)))
-            healed = self._heal_entity(target, amount * max(0.5, 1.0 + battle.orders.resource_efficiency_modifier))
+            healed = self._heal_entity(
+                target,
+                amount * max(battle_factor("minimum_resource_efficiency_multiplier", 0.5), 1.0 + battle.orders.resource_efficiency_modifier),
+            )
             self._refresh_mission_state(battle, mission_complete=(battle.phase == BattlePhase.RESOLVED))
             message = f"Used {item.name} on {self._entity_name(target)} and restored {healed:.1f} health."
         self.player_service.persist_player(player)
@@ -1614,22 +1613,22 @@ class BattleService:
         battle.orders.strategy_reasons = list(judgment["reasons"])
         battle.orders.strategy_risk_flags = list(judgment["risk_flags"])
         battle.orders.strategy_confidence = float(judgment["confidence"])
-        if score <= 3:
-            battle.orders.lane_discipline_modifier = -0.05
-            battle.orders.resource_efficiency_modifier = -0.10
+        if score <= battle_factor_int("strategy_low_score_max", 3):
+            battle.orders.lane_discipline_modifier = battle_factor("strategy_low_lane_discipline_modifier", -0.05)
+            battle.orders.resource_efficiency_modifier = battle_factor("strategy_low_resource_efficiency_modifier", -0.10)
             battle.orders.width_control_bonus = 0
-        elif score <= 6:
-            battle.orders.lane_discipline_modifier = 0.0
-            battle.orders.resource_efficiency_modifier = 0.0
+        elif score <= battle_factor_int("strategy_mid_score_max", 6):
+            battle.orders.lane_discipline_modifier = battle_factor("strategy_mid_lane_discipline_modifier", 0.0)
+            battle.orders.resource_efficiency_modifier = battle_factor("strategy_mid_resource_efficiency_modifier", 0.0)
             battle.orders.width_control_bonus = 0
-        elif score <= 8:
-            battle.orders.lane_discipline_modifier = 0.05
-            battle.orders.resource_efficiency_modifier = 0.05
+        elif score <= battle_factor_int("strategy_high_score_max", 8):
+            battle.orders.lane_discipline_modifier = battle_factor("strategy_high_lane_discipline_modifier", 0.05)
+            battle.orders.resource_efficiency_modifier = battle_factor("strategy_high_resource_efficiency_modifier", 0.05)
             battle.orders.width_control_bonus = 0
         else:
-            battle.orders.lane_discipline_modifier = 0.10
-            battle.orders.resource_efficiency_modifier = 0.10
-            battle.orders.width_control_bonus = 1
+            battle.orders.lane_discipline_modifier = battle_factor("strategy_top_lane_discipline_modifier", 0.10)
+            battle.orders.resource_efficiency_modifier = battle_factor("strategy_top_resource_efficiency_modifier", 0.10)
+            battle.orders.width_control_bonus = battle_factor_int("strategy_top_width_control_bonus", 1)
         battle.cached_victory_odds = None
         battle.cached_orders_signature = ""
         self.save_battle(battle)

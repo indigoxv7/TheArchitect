@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import math
 import random
 
+from src.config.tuning import battle_factor, character_stat_factor
 from src.domain.Character import Character
 from src.domain.CharacterUtil import HitLocation
 from src.domain.Items import Weapon
@@ -24,6 +25,8 @@ class DamageCalculatorConfig:
     statDeltaHitScale: float = 0.03
     minHitChance: float = 0.35
     maxHitChance: float = 0.90
+    magicResistanceMinMultiplier: float = 0.05
+    magicResistanceSoftness: float = 12.0
 
 
 @dataclass(frozen=True)
@@ -77,8 +80,29 @@ class MagicDamageBreakdown:
 
 class DamageCalculator:
     def __init__(self, config: DamageCalculatorConfig | None = None, rng: random.Random | None = None):
-        self._config = config if config is not None else DamageCalculatorConfig()
+        self._static_config = config
         self._rng = rng if rng is not None else random.Random()
+
+    def _get_config(self) -> DamageCalculatorConfig:
+        if self._static_config is not None:
+            return self._static_config
+        return DamageCalculatorConfig(
+            alpha=character_stat_factor("derived_stat_alpha", 0.80),
+            penetrationPowerScale=battle_factor("penetration_power_scale", 0.50),
+            resistanceDeficitFloor=battle_factor("resistance_deficit_floor", 5.0),
+            resistanceDeficitScale=battle_factor("resistance_deficit_scale", 0.20),
+            resistanceFalloffSharpness=battle_factor("resistance_falloff_sharpness", 5.0),
+            armorSoakCoeff=battle_factor("armor_soak_coeff", 0.10),
+            bodyC=30.0,
+            bodyDelta=1.5,
+            bodyK=5.0,
+            baseHitChance=battle_factor("base_hit_chance", 0.65),
+            statDeltaHitScale=battle_factor("stat_delta_hit_scale", 0.03),
+            minHitChance=battle_factor("min_hit_chance", 0.35),
+            maxHitChance=battle_factor("max_hit_chance", 0.90),
+            magicResistanceMinMultiplier=battle_factor("magic_resistance_min_multiplier", 0.05),
+            magicResistanceSoftness=battle_factor("magic_resistance_softness", 12.0),
+        )
 
     def calculate_hit_chance(
         self,
@@ -89,13 +113,14 @@ class DamageCalculator:
         range_penalty: float = 0.0,
         bonus: float = 0.0,
     ) -> float:
-        chance = self._config.baseHitChance
-        chance += (float(attacker_stat) - float(defender_stat)) * self._config.statDeltaHitScale
+        config = self._get_config()
+        chance = config.baseHitChance
+        chance += (float(attacker_stat) - float(defender_stat)) * config.statDeltaHitScale
         chance -= float(congestion_penalty)
         chance -= float(firing_through_engagement_penalty)
         chance -= float(range_penalty)
         chance += float(bonus)
-        return max(self._config.minHitChance, min(self._config.maxHitChance, chance))
+        return max(config.minHitChance, min(config.maxHitChance, chance))
 
     def roll_hit(
         self,
@@ -123,6 +148,7 @@ class DamageCalculator:
         weapon: Weapon,
         targetArmor: float,
     ) -> DamageBreakdown:
+        config = self._get_config()
         attacker_physical_power = float(getattr(attacker.finalAttributes, "physicalPower", 5.0))
         defender_physical_resistance = float(getattr(defender.finalAttributes, "physicalResistance", 5.0))
 
@@ -149,7 +175,7 @@ class DamageCalculator:
         ignore_armor_fraction = self._clamp_01(float(getattr(weapon, "ignoreArmorFraction", 0.0)))
 
         hp_through_armor_raw = (roll_hp * power_multiplier * ignore_armor_fraction) - (
-            armor_after * self._config.armorSoakCoeff
+            armor_after * config.armorSoakCoeff
         )
         hp_through_armor = max(0.0, hp_through_armor_raw)
 
@@ -195,14 +221,18 @@ class DamageCalculator:
         hit_chance: float | None = None,
         did_hit: bool | None = None,
     ) -> MagicDamageBreakdown:
+        config = self._get_config()
         attacker_magic_power = max(0.0001, float(getattr(attacker.finalAttributes, "magicPower", 5.0)))
         defender_magic_resistance = max(0.0, float(getattr(defender.finalAttributes, "magicResistance", 5.0)))
         if hit_chance is None:
             hit_chance = self.calculate_hit_chance(attacker_magic_power, defender_magic_resistance)
         if did_hit is None:
             did_hit = self._rng.random() <= hit_chance
-        power_multiplier = (attacker_magic_power / 5.0) ** self._config.alpha
-        resistance_multiplier = max(0.05, 1.0 - (defender_magic_resistance / (defender_magic_resistance + 12.0)))
+        power_multiplier = (attacker_magic_power / max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))) ** config.alpha
+        resistance_multiplier = max(
+            config.magicResistanceMinMultiplier,
+            1.0 - (defender_magic_resistance / (defender_magic_resistance + max(0.0001, config.magicResistanceSoftness))),
+        )
         hp_final = 0.0
         if did_hit:
             hp_final = max(0.0, float(spell_power) * power_multiplier * resistance_multiplier)
@@ -244,19 +274,22 @@ class DamageCalculator:
         return result
 
     def _compute_power_multiplier(self, attacker_physical_power: float) -> float:
-        baseline_power = 5.0
+        config = self._get_config()
+        baseline_power = max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))
         ratio = attacker_physical_power / baseline_power
         ratio = max(0.0001, ratio)
-        return ratio ** self._config.alpha
+        return ratio ** config.alpha
 
     def _compute_penetration(self, weapon: Weapon, attacker_physical_power: float) -> float:
-        baseline_power = 5.0
+        config = self._get_config()
+        baseline_power = max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))
         bonus_power = max(0.0, attacker_physical_power - baseline_power)
         penetration_base = float(getattr(weapon, "penetrationBase", 0.0))
-        penetration = penetration_base + (self._config.penetrationPowerScale * bonus_power)
+        penetration = penetration_base + (config.penetrationPowerScale * bonus_power)
         return max(0.0, penetration)
 
     def _compute_coupling_fraction(self, penetration: float, defender_physical_resistance: float) -> float:
+        config = self._get_config()
         penetration = max(0.0, float(penetration))
         defender_physical_resistance = max(0.0, float(defender_physical_resistance))
 
@@ -265,14 +298,14 @@ class DamageCalculator:
 
         deficit = defender_physical_resistance - penetration
         falloff_window = max(
-            self._config.resistanceDeficitFloor,
-            defender_physical_resistance * self._config.resistanceDeficitScale,
+            config.resistanceDeficitFloor,
+            defender_physical_resistance * config.resistanceDeficitScale,
         )
         if deficit >= falloff_window:
             return 0.0
 
         normalized_deficit = self._clamp_01(deficit / falloff_window)
-        sharpness = max(0.0001, float(self._config.resistanceFalloffSharpness))
+        sharpness = max(0.0001, float(config.resistanceFalloffSharpness))
         decay = math.exp(-sharpness * normalized_deficit)
         floor_decay = math.exp(-sharpness)
         scaled_decay = (decay - floor_decay) / (1.0 - floor_decay)

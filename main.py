@@ -10,6 +10,7 @@ from discord.ext import commands
 
 from src.persistence.active_battle_store import ActiveBattleStore
 from src.persistence.player_memory_store import PlayerMemoryStore
+from src.config.tuning import configure_tuning_directory, get_tuning_registry
 from src.services.achievement_service import AchievementService
 from src.services.allegiance_service import AllegianceService
 from src.services.battle_runtime_service import BattleRuntimeService
@@ -57,6 +58,9 @@ PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
 PORTAL_ENCOUNTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PortalEncounters")
+TUNING_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Tuning")
+
+configure_tuning_directory(TUNING_DIRECTORY)
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -160,6 +164,7 @@ def initialize_game():
     if _is_initialized:
         return
 
+    get_tuning_registry().ensure_files()
     whitelist_service.load()
     player_service.initialize_storage()
     spell_service.load_spellbook()

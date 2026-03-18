@@ -1,0 +1,16 @@
+{
+    "primary_stat_baseline": 5.0,
+    "derived_stat_alpha": 0.8,
+    "base_health_at_baseline": 55.0,
+    "speed_physical_power_weight": 2.0,
+    "speed_magic_power_weight": 1.0,
+    "speed_normalization_divisor": 15.0,
+    "minimum_speed_factor": 0.1,
+    "baseline_stamina_limit": 75.0,
+    "stamina_limit_per_level": 10.0,
+    "baseline_stamina_regen_per_turn": 15.0,
+    "stamina_regen_per_level": 3.0,
+    "healthy_health_ratio_threshold": 0.76,
+    "injured_health_ratio_threshold": 0.51,
+    "heavily_injured_health_ratio_threshold": 0.26
+}

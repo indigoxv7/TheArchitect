@@ -30,6 +30,7 @@ from src.tools.mission_editor import MissionEditorFrame
 from src.tools.race_editor import RaceEditorFrame
 from src.tools.scrollable_frame import ScrollableEditorHost
 from src.tools.unit_editor import UnitEditorFrame
+from src.tools.variable_tuning_editor import VariableTuningFrame
 
 
 def _parse_label_id(label: str) -> str:
@@ -243,6 +244,7 @@ class AdminEditorApp:
         self.environment_frame = ScrollableEditorHost(self.container, EnvironmentEditorFrame, self)
         self.memory_frame = ScrollableEditorHost(self.container, MainCharacterMemoryFrame, self)
         self.combat_simulator_frame = ScrollableEditorHost(self.container, CombatSimulatorFrame, self)
+        self.variable_tuning_frame = ScrollableEditorHost(self.container, VariableTuningFrame, self)
 
         self._build_home()
         self.show_home()
@@ -260,6 +262,7 @@ class AdminEditorApp:
         ttk.Button(self.home_frame, text="Edit Missions", command=self.show_mission_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Campaigns", command=self.show_campaign_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Edit Environment", command=self.show_environment_editor).pack(fill=tk.X, pady=6)
+        ttk.Button(self.home_frame, text="Variable Tuning", command=self.show_variable_tuning_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Main Character Memory", command=self.show_memory_editor).pack(fill=tk.X, pady=6)
         ttk.Button(self.home_frame, text="Combat Simulator", command=self.show_combat_simulator).pack(fill=tk.X, pady=6)
 
@@ -277,6 +280,7 @@ class AdminEditorApp:
             self.mission_frame,
             self.campaign_frame,
             self.environment_frame,
+            self.variable_tuning_frame,
             self.memory_frame,
             self.combat_simulator_frame,
         ):
@@ -331,6 +335,10 @@ class AdminEditorApp:
     def show_environment_editor(self):
         self.environment_frame.refresh_all(reset_forms=True)
         self._show(self.environment_frame)
+
+    def show_variable_tuning_editor(self):
+        self.variable_tuning_frame.reload_from_disk(show_message=False)
+        self._show(self.variable_tuning_frame)
 
     def show_memory_editor(self):
         self.memory_frame.refresh_player_list(reset_form=True)
