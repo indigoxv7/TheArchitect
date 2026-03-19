@@ -46,6 +46,7 @@ class MenuRuntimeInteractionMixin:
 
     async def display_menu_with_interface(self, interface: MenuInterface, menu: Menu):
         player = await self.player_service.get_player(interface.user_id)
+        self.player_service.sync_player_name(player, interface.display_name, persist=True)
         original_message = OriginalMessage(
             player,
             is_developer_admin=self.whitelist_service.is_admin(interface.user_id),

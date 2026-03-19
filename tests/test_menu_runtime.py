@@ -1,12 +1,17 @@
 ﻿import unittest
 
+import asyncio
+import json
+import tempfile
+from pathlib import Path
+
 from src.config import EMOJI_PLACEHOLDERS, nanoEmoji
 import main as game
 from src.domain.player_functions import Player
 from src.domain.items import Weapon
 from src.domain.character_util import EquipSlot
 from src.persistence.menu_store import load_menus_from_directory
-from src.services.menu_runtime import OriginalMessage
+from src.services.menu_runtime import ConsoleMenuInterface, OriginalMessage
 from src.ui.menu import MenuContext, MenuState
 
 
@@ -99,6 +104,31 @@ class TestMenuRuntime(unittest.TestCase):
         ):
             self.assertNotIn(hidden_editor_menu, non_admin_visible)
             self.assertNotIn(hidden_editor_menu, admin_visible)
+
+    def test_display_menu_updates_player_name_from_live_interface_name(self):
+        sample_player = Player(555)
+        sample_player.playerName = "Old Saved Name"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_path = Path(temp_dir) / "555.json"
+            sample_player.AttachSavePath(str(save_path), enableAutoSave=True)
+            sample_player.Save()
+
+            original_get_player = game.menu_runtime_service.player_service.get_player
+
+            async def fake_get_player(_discord_id: int):
+                return sample_player
+
+            game.menu_runtime_service.player_service.get_player = fake_get_player
+            try:
+                interface = ConsoleMenuInterface(user_id=555, display_name="Fresh Discord Nick")
+                asyncio.run(game.menu_runtime_service.display_menu_with_interface(interface, game.context.root_menu))
+            finally:
+                game.menu_runtime_service.player_service.get_player = original_get_player
+
+            self.assertEqual(sample_player.playerName, "Fresh Discord Nick")
+            payload = json.loads(save_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["player_state"]["__state__"].get("playerName"), "Fresh Discord Nick")
 
 
 if __name__ == "__main__":

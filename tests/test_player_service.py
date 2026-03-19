@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from src.domain.character import Character
 from src.domain.player_functions import Player, save_player
@@ -11,12 +12,12 @@ from src.services.player_service import PlayerService
 
 
 class TestPlayerService(unittest.TestCase):
-    def _build_service(self, temp_dir: str):
+    def _build_service(self, temp_dir: str, bot=None):
         context = GameContext()
         player_saves = Path(temp_dir) / 'PlayerSaves'
         roster_path = Path(temp_dir) / 'ExistingPlayersRoster.json'
         service = PlayerService(
-            bot=None,
+            bot=bot,
             guild_id=123,
             context=context,
             player_save_directory=str(player_saves),
@@ -99,14 +100,35 @@ class TestPlayerService(unittest.TestCase):
 
             self.assertEqual(player.discordID, 303)
             self.assertTrue(player.isNewPlayer)
+            self.assertEqual(player.playerName, "PlayerName")
             self.assertEqual(context.player_cache[303], player)
             self.assertTrue(save_path.exists())
             payload = json.loads(save_path.read_text(encoding='utf-8'))
             self.assertEqual(payload.get('format_version'), 1)
+            self.assertEqual(payload['player_state']['__state__'].get('playerName'), "PlayerName")
 
             backups = list(player_saves.glob('303.corrupt-*.json'))
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding='utf-8'), '')
+
+    def test_get_player_sync_uses_cached_discord_name_when_available(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bot = SimpleNamespace(
+                get_guild=lambda _guild_id: None,
+                get_user=lambda _discord_id: SimpleNamespace(name='FallbackUser', display_name='Cached Nick'),
+            )
+            _context, service, player_saves = self._build_service(temp_dir, bot=bot)
+            save_path = player_saves / '404.json'
+
+            player = Player(404)
+            save_player(player, str(save_path))
+
+            loaded = service.get_player_sync(404)
+
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded.playerName, 'Cached Nick')
+            payload = json.loads(save_path.read_text(encoding='utf-8'))
+            self.assertEqual(payload['player_state']['__state__'].get('playerName'), 'Cached Nick')
 
 
 if __name__ == '__main__':

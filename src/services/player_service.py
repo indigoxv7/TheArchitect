@@ -176,9 +176,57 @@ class PlayerService:
             migrated = self.campaign_service.ensure_player_progress(player) or migrated
         return migrated
 
-    async def get_name_from_id(self, guild_obj, discord_id: int) -> str:
+    def _cached_name_from_id(self, guild_obj, discord_id: int) -> str:
         candidate_guild = guild_obj or self.context.guild
 
+        if candidate_guild is None and hasattr(self.bot, "get_guild"):
+            candidate_guild = self.bot.get_guild(self.guild_id)
+
+        if candidate_guild is not None and hasattr(candidate_guild, "get_member"):
+            member = candidate_guild.get_member(discord_id)
+            if member is not None:
+                return member.nick or member.display_name or member.name
+
+        if hasattr(self.bot, "get_user"):
+            cached_user = self.bot.get_user(discord_id)
+            if cached_user is not None:
+                return getattr(cached_user, "display_name", None) or cached_user.name
+
+        return ""
+
+    @staticmethod
+    def _is_placeholder_player_name(name: str, discord_id: int) -> bool:
+        text = str(name or "").strip()
+        return not text or text in {"PlayerName", str(discord_id)}
+
+    def sync_player_name(self, player: Player, resolved_name: str, persist: bool = False) -> bool:
+        name_text = str(resolved_name or "").strip()
+        discord_id = int(getattr(player, "discordID", 0) or 0)
+        if self._is_placeholder_player_name(name_text, discord_id):
+            return False
+
+        current_name = str(getattr(player, "playerName", "") or "").strip()
+        if current_name == name_text:
+            return False
+
+        previous_autosave = bool(getattr(player, "_auto_save_enabled", False))
+        if not persist and previous_autosave:
+            player.SetAutoSaveEnabled(False)
+        try:
+            player.playerName = name_text
+            if persist and not previous_autosave and getattr(player, "_save_path", None):
+                player.Save()
+        finally:
+            if not persist and previous_autosave:
+                player.SetAutoSaveEnabled(True)
+        return True
+
+    async def get_name_from_id(self, guild_obj, discord_id: int) -> str:
+        cached_name = self._cached_name_from_id(guild_obj, discord_id)
+        if cached_name:
+            return cached_name
+
+        candidate_guild = guild_obj or self.context.guild
         if candidate_guild is None and hasattr(self.bot, "get_guild"):
             candidate_guild = self.bot.get_guild(self.guild_id)
 
@@ -189,11 +237,6 @@ class PlayerService:
             except Exception:
                 pass
 
-        if hasattr(self.bot, "get_user"):
-            cached_user = self.bot.get_user(discord_id)
-            if cached_user is not None:
-                return getattr(cached_user, "display_name", None) or cached_user.name
-
         if hasattr(self.bot, "fetch_user"):
             try:
                 user = await self.bot.fetch_user(discord_id)
@@ -201,7 +244,7 @@ class PlayerService:
             except Exception:
                 pass
 
-        return str(discord_id)
+        return ""
 
     def get_player_save_path(self, discord_id: int) -> str:
         return os.path.join(self.player_save_directory, f"{discord_id}.json")
@@ -295,7 +338,7 @@ class PlayerService:
         new_player.AttachSavePath(player_save_path, enableAutoSave=False)
         self.context.existing_players[discord_id] = True
         self.save_existing_players_roster(self.existing_players_roster_path)
-        new_player.playerName = nickname or await self.get_name_from_id(self.context.guild, discord_id)
+        self.sync_player_name(new_player, nickname or await self.get_name_from_id(self.context.guild, discord_id), persist=False)
         new_player.isNewPlayer = True
         new_player.SetAutoSaveEnabled(True)
         new_player.Save()
@@ -307,7 +350,7 @@ class PlayerService:
         new_player.AttachSavePath(player_save_path, enableAutoSave=False)
         self.context.existing_players[discord_id] = True
         self.save_existing_players_roster(self.existing_players_roster_path)
-        new_player.playerName = str(discord_id)
+        self.sync_player_name(new_player, self._cached_name_from_id(self.context.guild, discord_id), persist=False)
         new_player.isNewPlayer = True
         new_player.SetAutoSaveEnabled(True)
         new_player.Save()
@@ -338,8 +381,8 @@ class PlayerService:
             migrated = self._normalize_loaded_player(player)
             player.AttachSavePath(player_save_path, enableAutoSave=True)
             nickname = await self.get_name_from_id(self.context.guild, discord_id)
-            player.playerName = nickname
-            if migrated:
+            name_changed = self.sync_player_name(player, nickname, persist=False)
+            if migrated or name_changed:
                 player.Save()
             self.context.player_cache[discord_id] = player
             return player
@@ -376,7 +419,8 @@ class PlayerService:
 
         migrated = self._normalize_loaded_player(player)
         player.AttachSavePath(player_save_path, enableAutoSave=True)
-        if migrated:
+        name_changed = self.sync_player_name(player, self._cached_name_from_id(self.context.guild, discord_id), persist=False)
+        if migrated or name_changed:
             player.Save()
         self.context.existing_players[discord_id] = True
         self.context.player_cache[discord_id] = player
