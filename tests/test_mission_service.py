@@ -6,6 +6,7 @@ from src.domain.mission import MissionObjectiveStatus, MissionStatistics, Missio
 from src.domain.player_functions import LEGACY_MODULE_MAP
 from src.services.allegiance_service import AllegianceService
 from src.services.character_service import CharacterService
+from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.mission_service import MissionService
@@ -23,6 +24,7 @@ class TestMissionService(unittest.TestCase):
         unitbook_path = base / "unitbook.json"
         allegiancebook_path = base / "allegiancebook.json"
         missionbook_path = base / "missionbook.json"
+        environmentbook_path = base / "environmentbook.json"
         characters_dir = base / "Characters"
 
         context = GameContext()
@@ -51,9 +53,22 @@ class TestMissionService(unittest.TestCase):
         unit_service.load_unitbook()
         allegiance_service = AllegianceService(str(allegiancebook_path), context)
         allegiance_service.load_allegiancebook()
-        mission_service = MissionService(str(missionbook_path), context, allegiance_service, unit_service)
+        environment_service = EnvironmentService(str(environmentbook_path), context)
+        environment_service.load_environmentbook()
+        mission_service = MissionService(
+            str(missionbook_path), context, allegiance_service, unit_service, environment_service
+        )
         mission_service.load_missionbook()
-        return context, item_service, race_service, unit_service, allegiance_service, mission_service, missionbook_path
+        return (
+            context,
+            item_service,
+            race_service,
+            unit_service,
+            allegiance_service,
+            environment_service,
+            mission_service,
+            missionbook_path,
+        )
 
     def _create_delivery_item(self, item_service: ItemService):
         item_service.create_item_from_dict(
@@ -73,9 +88,16 @@ class TestMissionService(unittest.TestCase):
 
     def test_create_edit_reload_missionbook(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            context, item_service, race_service, unit_service, allegiance_service, mission_service, missionbook_path = (
-                self._build_services(temp_dir)
-            )
+            (
+                context,
+                item_service,
+                race_service,
+                unit_service,
+                allegiance_service,
+                environment_service,
+                mission_service,
+                missionbook_path,
+            ) = self._build_services(temp_dir)
 
             race_service.create_race_from_dict({"name": "Goblin"})
             race_service.create_race_from_dict({"name": "Orc"})
@@ -89,10 +111,13 @@ class TestMissionService(unittest.TestCase):
 
             raiders = allegiance_service.create_allegiance_from_dict({"name": "Raiders"})
             cult = allegiance_service.create_allegiance_from_dict({"name": "Cult"})
+            wetlands = environment_service.create_biome_from_dict({"name": "Wetlands"})
+            ruins = environment_service.create_biome_from_dict({"name": "Ruins"})
 
             mission = mission_service.create_mission_from_dict(
                 {
                     "name": "Ruined Crossing",
+                    "biomeId": wetlands.biomeId,
                     "objective": {
                         "objectiveType": "DELIVERY",
                         "requiredItemId": delivery_item.itemId,
@@ -139,6 +164,7 @@ class TestMissionService(unittest.TestCase):
             )
 
             self.assertEqual(len(mission.allegianceConfigs), 2)
+            self.assertEqual(mission.biomeId, wetlands.biomeId)
             self.assertTrue(mission.portalMission)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbability, 1.0)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbabilityVariance, 0.0)
@@ -150,6 +176,7 @@ class TestMissionService(unittest.TestCase):
             updated = mission_service.edit_mission_from_patch(
                 mission.missionId,
                 {
+                    "biomeId": ruins.biomeId,
                     "objective": {
                         "objectiveType": "ASSASSINATION",
                         "requiredBossesDefeated": 2,
@@ -177,6 +204,7 @@ class TestMissionService(unittest.TestCase):
                 },
             )
             self.assertFalse(updated.portalMission)
+            self.assertEqual(updated.biomeId, ruins.biomeId)
             self.assertEqual(updated.allegianceConfigs[0].powerPointCap, 40)
             self.assertEqual(updated.allegianceConfigs[0].unitOptions[0].capacityMin, 2)
             self.assertAlmostEqual(updated.allegianceConfigs[0].unitOptions[0].eliteChance, 0.6)
@@ -212,14 +240,23 @@ class TestMissionService(unittest.TestCase):
                 str(Path(temp_dir) / "allegiancebook.json"), reloaded_context
             )
             reloaded_allegiance_service.load_allegiancebook()
+            reloaded_environment_service = EnvironmentService(
+                str(Path(temp_dir) / "environmentbook.json"), reloaded_context
+            )
+            reloaded_environment_service.load_environmentbook()
             reloaded_mission_service = MissionService(
-                str(missionbook_path), reloaded_context, reloaded_allegiance_service, reloaded_unit_service
+                str(missionbook_path),
+                reloaded_context,
+                reloaded_allegiance_service,
+                reloaded_unit_service,
+                reloaded_environment_service,
             )
             reloaded_mission_service.load_missionbook()
 
             loaded = reloaded_mission_service.get_mission_by_id(mission.missionId)
             self.assertIsNotNone(loaded)
             self.assertFalse(loaded.portalMission)
+            self.assertEqual(loaded.biomeId, ruins.biomeId)
             self.assertEqual(len(loaded.allegianceConfigs), 1)
             self.assertEqual(loaded.allegianceConfigs[0].unitOptions[0].unitId, goblin_unit.unitId)
             self.assertEqual(loaded.objective.objectiveType.name, "ASSASSINATION")
@@ -232,6 +269,7 @@ class TestMissionService(unittest.TestCase):
                 race_service,
                 unit_service,
                 allegiance_service,
+                _environment_service,
                 mission_service,
                 _missionbook_path,
             ) = self._build_services(temp_dir)
@@ -269,6 +307,16 @@ class TestMissionService(unittest.TestCase):
                     }
                 )
 
+            with self.assertRaises(ValueError):
+                mission_service.create_mission_from_dict(
+                    {
+                        "name": "Broken Biome Mission",
+                        "biomeId": "MissingBiome999",
+                        "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 1.0},
+                        "allegianceConfigs": [],
+                    }
+                )
+
     def test_duplicate_names_get_unique_ids(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             (
@@ -277,6 +325,7 @@ class TestMissionService(unittest.TestCase):
                 _race_service,
                 _unit_service,
                 _allegiance_service,
+                _environment_service,
                 mission_service,
                 _missionbook_path,
             ) = self._build_services(temp_dir)

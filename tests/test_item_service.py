@@ -33,6 +33,7 @@ class TestItemService(unittest.TestCase):
                 "armorMultiplier": 1.15,
                 "ignoreArmorFraction": 0.1,
                 "penetrationBase": 7,
+                "staminaCost": 12,
                 "statBonuses": [],
                 "powerLevel": 12.5,
             }
@@ -43,6 +44,7 @@ class TestItemService(unittest.TestCase):
             self.assertTrue(created.itemId)
             self.assertEqual(created.slot.name, "PRIMARY_WEAPON")
             self.assertEqual(created.powerLevel, 12.5)
+            self.assertEqual(created.staminaCost, 12)
 
             created_id = created.itemId
             service.edit_item_from_patch(
@@ -56,6 +58,7 @@ class TestItemService(unittest.TestCase):
                     "armorMultiplier": 1.5,
                     "ignoreArmorFraction": 0.25,
                     "penetrationBase": 14,
+                    "staminaCost": 18,
                 },
             )
 
@@ -70,6 +73,7 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(edited.armorMultiplier, 1.5)
             self.assertEqual(edited.ignoreArmorFraction, 0.25)
             self.assertEqual(edited.penetrationBase, 14)
+            self.assertEqual(edited.staminaCost, 18)
 
             reloaded_context = GameContext()
             reloaded_service = ItemService(str(path), reloaded_context)
@@ -85,6 +89,7 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(loaded.armorMultiplier, 1.5)
             self.assertEqual(loaded.ignoreArmorFraction, 0.25)
             self.assertEqual(loaded.penetrationBase, 14)
+            self.assertEqual(loaded.staminaCost, 18)
 
     def test_legacy_itembook_without_ids_auto_migrates(self):
         with tempfile.TemporaryDirectory() as temp_dir:

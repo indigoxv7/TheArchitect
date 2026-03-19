@@ -2,6 +2,104 @@
     "format_version": 1,
     "units": [
         {
+            "unitId": "Goblin02",
+            "baseRaceId": "Goblin0",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1",
+                    "__NONE__"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2",
+                    "__NONE__"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5",
+                    "__NONE__"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
+        },
+        {
+            "unitId": "Goblin03",
+            "baseRaceId": "Goblin0",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1",
+                    "__NONE__"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2",
+                    "__NONE__"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5",
+                    "__NONE__"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
+        },
+        {
+            "unitId": "Goblin04",
+            "baseRaceId": "Goblin0",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1",
+                    "__NONE__"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
+        },
+        {
+            "unitId": "Goblin05",
+            "baseRaceId": "Goblin0",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1",
+                    "__NONE__"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2",
+                    "__NONE__"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5",
+                    "__NONE__"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
+        },
+        {
             "unitId": "GoblinAssassin0",
             "baseRaceId": "Goblin0",
             "name": "Goblin Assassin",
@@ -35,7 +133,27 @@
         {
             "unitId": "Goblinfighter1",
             "baseRaceId": "Goblin0",
-            "name": "Goblin fighter"
+            "name": "Goblin fighter",
+            "gearOptions": {
+                "headOptions": [],
+                "neckOptions": [],
+                "bodyOptions": [
+                    "BodyArmor1",
+                    "__NONE__"
+                ],
+                "handsOptions": [],
+                "ringOptions": [],
+                "legsOptions": [],
+                "feetOptions": [
+                    "Boots2",
+                    "__NONE__"
+                ],
+                "primaryWeaponOptions": [
+                    "Dagger5"
+                ],
+                "offhandOptions": [],
+                "inventoryOptions": []
+            }
         }
     ]
 }

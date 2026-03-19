@@ -7,6 +7,7 @@ from src.domain.player_functions import Player
 from src.services.allegiance_service import AllegianceService
 from src.services.campaign_service import CampaignService
 from src.services.character_service import CharacterService
+from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.mission_service import MissionService
@@ -25,6 +26,7 @@ class TestCampaignService(unittest.TestCase):
         allegiancebook_path = base / "allegiancebook.json"
         missionbook_path = base / "missionbook.json"
         campaignbook_path = base / "campaignbook.json"
+        environmentbook_path = base / "environmentbook.json"
         characters_dir = base / "Characters"
 
         context = GameContext()
@@ -53,7 +55,11 @@ class TestCampaignService(unittest.TestCase):
         unit_service.load_unitbook()
         allegiance_service = AllegianceService(str(allegiancebook_path), context)
         allegiance_service.load_allegiancebook()
-        mission_service = MissionService(str(missionbook_path), context, allegiance_service, unit_service)
+        environment_service = EnvironmentService(str(environmentbook_path), context)
+        environment_service.load_environmentbook()
+        mission_service = MissionService(
+            str(missionbook_path), context, allegiance_service, unit_service, environment_service
+        )
         mission_service.load_missionbook()
         campaign_service = CampaignService(str(campaignbook_path), context, mission_service)
         campaign_service.load_campaignbook()

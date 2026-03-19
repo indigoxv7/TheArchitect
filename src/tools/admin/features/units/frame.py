@@ -99,6 +99,8 @@ class UnitEditorFrame(UnitEditorFrameMixin, ttk.Frame):
         race = self._get_selected_race()
         if race is not None:
             self.race_var.set(self._race_label(race))
+        self.refresh_unit_list(reset_form=False)
+        self.pick_var.set(self.app.unit_service.get_unit_label(unit))
         self.average_specimine_character_id_override = (
             self.app.unit_service._resolve_character_id(unit.averageSpecimine)
             if unit.averageSpecimine is not None
@@ -420,7 +422,7 @@ class UnitEditorFrame(UnitEditorFrameMixin, ttk.Frame):
 
         try:
             if self.current_unit_id:
-                unit = self.app.unit_service.edit_unit_from_patch(self.current_unit_id, payload)
+                unit = self.app.unit_service.replace_unit_from_dict(self.current_unit_id, payload)
                 messagebox.showinfo("Unit Editor", "Unit saved.")
                 self.refresh_unit_list(reset_form=False)
                 self.pick_var.set(self.app.unit_service.get_unit_label(unit))

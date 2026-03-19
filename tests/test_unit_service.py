@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.domain.gear_options import GearOptions
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
@@ -150,6 +151,116 @@ class TestUnitService(unittest.TestCase):
             labels = [unit_service.get_unit_label(unit) for unit in unit_service.list_units()]
             self.assertTrue(labels[0].startswith("Goblin Sneak"))
             self.assertTrue(labels[1].startswith("Orc Brute"))
+
+    def test_parse_unit_id_from_label_accepts_race_suffix(self):
+        unit_id = UnitService.parse_unit_id_from_label("Goblin Fighter [GoblinFighter0] (Goblin)")
+        self.assertEqual(unit_id, "GoblinFighter0")
+
+    def test_replace_unit_from_dict_removes_overrides_and_allows_base_race_change(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, item_service, spell_service, character_service, race_service, unit_service, unitbook_path = (
+                self._build_services(temp_dir)
+            )
+
+            item_service.create_item_from_dict({"name": "Club", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"})
+            item_service.create_item_from_dict(
+                {
+                    "name": "Scrap Vest",
+                    "itemClass": "Armor",
+                    "slot": "BODY",
+                    "itemType": "ARMOR",
+                    "maxArmor": 10,
+                    "currentArmor": 10,
+                    "statBonuses": [],
+                }
+            )
+            club = item_service.get_item("Club")
+            armor = item_service.get_item("Scrap Vest")
+            spell_service.create_spell_from_dict(
+                {
+                    "name": "Hex",
+                    "level": 1,
+                    "power": 2,
+                    "affinity": "Mana",
+                    "casting_time": 1,
+                    "range": 30,
+                    "components": {"verbal": True, "somatic": False, "material": False},
+                    "duration": 0,
+                    "description": "A nasty curse.",
+                }
+            )
+            avg_id, _ = character_service.create_character_from_dict({"name": "Average Goblin", "level": 2})
+
+            race_service.create_race_from_dict(
+                {
+                    "name": "Goblin",
+                    "averageSpecimineCharacterId": avg_id,
+                    "spellList": [["Hex"]],
+                    "gearOptions": {"primaryWeaponOptions": [club.itemId]},
+                }
+            )
+            race_service.create_race_from_dict({"name": "Orc"})
+            goblin = race_service.get_race("Goblin")
+            orc = race_service.get_race("Orc")
+
+            unit = unit_service.create_unit_from_dict(
+                {
+                    "baseRaceId": goblin.raceId,
+                    "name": "Goblin Fighter",
+                    "spellList": [["Hex"], ["Hex"]],
+                    "gearOptions": {
+                        "bodyOptions": [armor.itemId, GearOptions.NONE_OPTION_ID],
+                        "primaryWeaponOptions": [club.itemId],
+                    },
+                }
+            )
+
+            replaced = unit_service.replace_unit_from_dict(
+                unit.unitId,
+                {
+                    "baseRaceId": orc.raceId,
+                    "name": "Orc Fighter",
+                },
+            )
+
+            self.assertEqual(replaced.baseRaceId, orc.raceId)
+            self.assertEqual(replaced.name, "Orc Fighter")
+            self.assertIsNone(replaced.spellList)
+            self.assertIsNone(replaced.gearOptions)
+
+            reloaded_context = GameContext()
+            reloaded_item_service = ItemService(str(Path(temp_dir) / "itembook.json"), reloaded_context)
+            reloaded_item_service.load_itembook()
+            reloaded_spell_service = SpellService(str(Path(temp_dir) / "spellbook.json"), reloaded_context)
+            reloaded_spell_service.load_spellbook()
+            reloaded_character_service = CharacterService(
+                str(Path(temp_dir) / "Characters"), context=reloaded_context, item_service=reloaded_item_service
+            )
+            reloaded_character_service.load_characters()
+            reloaded_race_service = RaceService(
+                racebook_path=str(Path(temp_dir) / "racebook.json"),
+                context=reloaded_context,
+                character_service=reloaded_character_service,
+                spell_service=reloaded_spell_service,
+                item_service=reloaded_item_service,
+            )
+            reloaded_race_service.load_racebook()
+            reloaded_unit_service = UnitService(
+                unitbook_path=str(unitbook_path),
+                context=reloaded_context,
+                race_service=reloaded_race_service,
+                character_service=reloaded_character_service,
+                spell_service=reloaded_spell_service,
+                item_service=reloaded_item_service,
+            )
+            reloaded_unit_service.load_unitbook()
+
+            loaded = reloaded_unit_service.get_unit_by_id(unit.unitId)
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded.baseRaceId, orc.raceId)
+            self.assertEqual(loaded.name, "Orc Fighter")
+            self.assertIsNone(loaded.spellList)
+            self.assertIsNone(loaded.gearOptions)
 
 
 if __name__ == "__main__":

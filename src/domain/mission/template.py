@@ -119,6 +119,7 @@ class MissionTemplate:
     name: str
     objective: MissionObjective
     allegianceConfigs: list[MissionAllegianceConfig] = field(default_factory=list)
+    biomeId: str = ""
     portalMission: bool = True
     missionId: str = ""
 
@@ -128,6 +129,7 @@ class MissionTemplate:
         self.allegianceConfigs = [
             entry for entry in (self.allegianceConfigs or []) if isinstance(entry, MissionAllegianceConfig)
         ]
+        self.biomeId = clean_text(self.biomeId)
         self.portalMission = bool(self.portalMission)
         self.missionId = str(self.missionId or "")
 
@@ -153,6 +155,7 @@ class MissionTemplate:
             "name": self.name,
             "objective": self.objective.to_dict(),
             "allegianceConfigs": [entry.to_dict() for entry in self.allegianceConfigs],
+            "biomeId": self.biomeId,
             "portalMission": self.portalMission,
         }
 
@@ -173,6 +176,7 @@ class MissionTemplate:
             name=name,
             objective=objective,
             allegianceConfigs=allegiance_configs,
+            biomeId=clean_text(data.get("biomeId", "")),
             portalMission=bool(data.get("portalMission", True)),
             missionId=str(data.get("missionId", "") or ""),
         )

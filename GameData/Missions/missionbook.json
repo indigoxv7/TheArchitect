@@ -1,5 +1,5 @@
 {
-    "format_version": 2,
+    "format_version": 3,
     "missions": [
         {
             "missionId": "GoblinAssassinAssassin1",
@@ -33,7 +33,9 @@
                     "levelMin": 0,
                     "levelMax": 0
                 }
-            ]
+            ],
+            "biomeId": "Jungle0",
+            "portalMission": true
         },
         {
             "missionId": "GoblinEliminationlvl00",
@@ -45,7 +47,7 @@
             "allegianceConfigs": [
                 {
                     "allegianceId": "Bandit0",
-                    "powerPointCap": 1000,
+                    "powerPointCap": 500,
                     "unitOptions": [
                         {
                             "unitId": "Goblinfighter1",
@@ -62,12 +64,14 @@
                             "isBoss": false
                         }
                     ],
-                    "clusterProbability": 0.0,
+                    "clusterProbability": 0.2,
                     "clusterProbabilityVariance": 0.0,
                     "levelMin": 0,
                     "levelMax": 0
                 }
-            ]
+            ],
+            "biomeId": "Jungle0",
+            "portalMission": true
         }
     ]
 }

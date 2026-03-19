@@ -6,6 +6,8 @@ from src.tools.admin.shared.pickers import ItemSelectDialog
 
 
 GEAR_OPTION_FIELDS = GearOptions.FIELD_SPECS
+NONE_OPTION_ID = GearOptions.NONE_OPTION_ID
+NONE_OPTION_LABEL = "<Nothing>"
 
 
 def default_gear_options_payload() -> dict[str, list[str]]:
@@ -24,7 +26,9 @@ def normalize_gear_options_payload(payload) -> dict[str, list[str]]:
         clean_values = []
         for value in values:
             item_id = str(value or "").strip()
-            if item_id and item_id not in clean_values:
+            if item_id == NONE_OPTION_ID and item_id not in clean_values:
+                clean_values.append(item_id)
+            elif item_id and item_id not in clean_values:
                 clean_values.append(item_id)
         normalized[field_name] = clean_values
     return normalized
@@ -36,8 +40,11 @@ def build_gear_options_summary(item_service, payload: dict[str, list[str]]) -> s
     for field_name, label, _slot in GEAR_OPTION_FIELDS:
         item_labels = []
         for item_id in normalized[field_name]:
-            item = item_service.get_item(item_id)
-            item_labels.append(item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]")
+            if item_id == NONE_OPTION_ID:
+                item_labels.append(NONE_OPTION_LABEL)
+            else:
+                item = item_service.get_item(item_id)
+                item_labels.append(item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]")
         if item_labels:
             lines.append(f"{label}: {', '.join(item_labels)}")
         else:
@@ -73,11 +80,17 @@ class GearOptionsEditorDialog(tk.Toplevel):
                 text="Add",
                 command=lambda key=field_name, slot=allowed_slot: self._add_item(key, slot),
             ).pack(side=tk.LEFT)
+            if allowed_slot is not None:
+                ttk.Button(
+                    buttons,
+                    text="Add Nothing",
+                    command=lambda key=field_name: self._add_nothing_option(key),
+                ).pack(side=tk.LEFT, padx=6)
             ttk.Button(
                 buttons,
                 text="Remove Selected",
                 command=lambda key=field_name: self._remove_selected(key),
-            ).pack(side=tk.LEFT, padx=6)
+            ).pack(side=tk.LEFT, padx=6 if allowed_slot is None else 0)
             ttk.Button(
                 buttons,
                 text="Clear",
@@ -101,8 +114,11 @@ class GearOptionsEditorDialog(tk.Toplevel):
         listbox = self.listboxes[field_name]
         listbox.delete(0, tk.END)
         for item_id in self.draft[field_name]:
-            item = self.item_service.get_item(item_id)
-            label = self.item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]"
+            if item_id == NONE_OPTION_ID:
+                label = NONE_OPTION_LABEL
+            else:
+                item = self.item_service.get_item(item_id)
+                label = self.item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]"
             listbox.insert(tk.END, label)
 
     def _add_item(self, field_name: str, allowed_slot):
@@ -114,6 +130,11 @@ class GearOptionsEditorDialog(tk.Toplevel):
                 self._refresh_field(field_name)
 
         ItemSelectDialog(self, self.item_service, _on_select, allowed_slots=allowed_slots)
+
+    def _add_nothing_option(self, field_name: str):
+        if NONE_OPTION_ID not in self.draft[field_name]:
+            self.draft[field_name].append(NONE_OPTION_ID)
+            self._refresh_field(field_name)
 
     def _remove_selected(self, field_name: str):
         listbox = self.listboxes[field_name]

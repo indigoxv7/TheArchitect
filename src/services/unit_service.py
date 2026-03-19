@@ -103,8 +103,9 @@ class UnitService:
     @staticmethod
     def parse_unit_id_from_label(label: str) -> str:
         text = str(label or "").strip()
-        if text.endswith("]") and "[" in text:
-            return text[text.rfind("[") + 1 : -1].strip()
+        matches = re.findall(r"\[([^\[\]]+)\]", text)
+        if matches:
+            return matches[-1].strip()
         return text
 
     def load_unitbook(self):
@@ -231,6 +232,30 @@ class UnitService:
         updated.unitId = existing.unitId
         updated.baseRaceId = existing.baseRaceId
 
+        self.context.all_units[updated.unitId] = updated
+        self.save_unitbook()
+        return updated
+
+    def replace_unit_from_dict(self, unit_identifier: str, data: dict):
+        existing = self.get_unit(unit_identifier)
+        if existing is None:
+            raise ValueError(f"Unit '{unit_identifier}' does not exist or is ambiguous.")
+
+        payload = dict(data or {})
+        if not str(payload.get("baseRaceId", "") or "").strip():
+            payload["baseRaceId"] = existing.baseRaceId
+
+        updated = Unit.from_dict(
+            payload,
+            resolve_character=self._resolve_character,
+            resolve_spell=self._resolve_spell,
+            resolve_item=self._resolve_item,
+        )
+
+        if self.race_service.get_race_by_id(updated.baseRaceId) is None:
+            raise ValueError(f"Base race '{updated.baseRaceId}' does not exist.")
+
+        updated.unitId = existing.unitId
         self.context.all_units[updated.unitId] = updated
         self.save_unitbook()
         return updated

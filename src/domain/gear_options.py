@@ -7,6 +7,7 @@ from src.domain.items import Item
 
 
 class GearOptions:
+    NONE_OPTION_ID = "__NONE__"
     FIELD_SPECS = [
         ("headOptions", "Head", EquipSlot.HEAD),
         ("neckOptions", "Neck", EquipSlot.NECK),
@@ -22,16 +23,16 @@ class GearOptions:
 
     def __init__(
         self,
-        headOptions: list[Item] | None = None,
-        neckOptions: list[Item] | None = None,
-        bodyOptions: list[Item] | None = None,
-        handsOptions: list[Item] | None = None,
-        ringOptions: list[Item] | None = None,
-        legsOptions: list[Item] | None = None,
-        feetOptions: list[Item] | None = None,
-        primaryWeaponOptions: list[Item] | None = None,
-        offhandOptions: list[Item] | None = None,
-        inventoryOptions: list[Item] | None = None,
+        headOptions: list[Item | None] | None = None,
+        neckOptions: list[Item | None] | None = None,
+        bodyOptions: list[Item | None] | None = None,
+        handsOptions: list[Item | None] | None = None,
+        ringOptions: list[Item | None] | None = None,
+        legsOptions: list[Item | None] | None = None,
+        feetOptions: list[Item | None] | None = None,
+        primaryWeaponOptions: list[Item | None] | None = None,
+        offhandOptions: list[Item | None] | None = None,
+        inventoryOptions: list[Item | None] | None = None,
     ):
         self.headOptions = self._normalize_items(headOptions)
         self.neckOptions = self._normalize_items(neckOptions)
@@ -45,10 +46,18 @@ class GearOptions:
         self.inventoryOptions = self._normalize_items(inventoryOptions)
 
     @staticmethod
-    def _normalize_items(items: Any) -> list[Item]:
+    def _normalize_items(items: Any) -> list[Item | None]:
         if not isinstance(items, list):
             return []
-        return [item for item in items if isinstance(item, Item)]
+        normalized: list[Item | None] = []
+        for item in items:
+            if item is None:
+                if None not in normalized:
+                    normalized.append(None)
+                continue
+            if isinstance(item, Item):
+                normalized.append(item)
+        return normalized
 
     @classmethod
     def empty_payload(cls) -> dict[str, list[str]]:
@@ -60,6 +69,7 @@ class GearOptions:
             item_ids: list[str] = []
             for item in getattr(self, field_name, []) or []:
                 if item is None:
+                    item_ids.append(self.NONE_OPTION_ID)
                     continue
                 item_id = None
                 if callable(resolve_item_id):
@@ -82,14 +92,20 @@ class GearOptions:
 
         kwargs = {}
         for field_name, _label, _slot in cls.FIELD_SPECS:
-            resolved_items: list[Item] = []
+            resolved_items: list[Item | None] = []
             raw_value = data.get(field_name, [])
             if isinstance(raw_value, list):
                 for entry in raw_value:
+                    if entry is None:
+                        resolved_items.append(None)
+                        continue
                     if isinstance(entry, Item):
                         resolved_items.append(entry)
                         continue
                     item_id = str(entry or "").strip()
+                    if item_id == cls.NONE_OPTION_ID:
+                        resolved_items.append(None)
+                        continue
                     if not item_id or not callable(resolve_item):
                         continue
                     resolved = resolve_item(item_id)

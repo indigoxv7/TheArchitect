@@ -107,16 +107,17 @@ combat_simulator_service = CombatSimulatorService(
     spell_service=spell_service,
     race_service=race_service,
 )
+environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 mission_service = MissionService(
     missionbook_path=MISSIONBOOK_PATH,
     context=context,
     allegiance_service=allegiance_service,
     unit_service=unit_service,
+    environment_service=environment_service,
 )
 campaign_service = CampaignService(
     campaignbook_path=CAMPAIGNBOOK_PATH, context=context, mission_service=mission_service
 )
-environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
     emoji_placeholders=EMOJI_PLACEHOLDERS,
@@ -178,9 +179,9 @@ def initialize_game():
     character_service.load_characters()
     race_service.load_racebook()
     unit_service.load_unitbook()
+    environment_service.load_environmentbook()
     mission_service.load_missionbook()
     campaign_service.load_campaignbook()
-    environment_service.load_environmentbook()
     memory_service.initialize()
     battle_service.initialize()
     menu_service.load_menus()

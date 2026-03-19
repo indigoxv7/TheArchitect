@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from src.domain.mission import MissionTemplate
+from src.services.mission_unit_populator import MissionUnitPopulator
+from src.tools.admin.shared.character_viewer import ReadonlyCharacterViewer
 from .dialogs import MissionAllegianceConfigDialog, MissionObjectiveDialog, _objective_description
 
 
@@ -11,6 +14,9 @@ class MissionEditorFrame(ttk.Frame):
         self.current_mission_id = None
         self.allegiance_configs_draft = []
         self.objective_draft = {}
+        self.unit_populator = MissionUnitPopulator(self.app.unit_service, self.app.power_rating_service)
+        self.population_preview = None
+        self.preview_units = []
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -34,11 +40,20 @@ class MissionEditorFrame(ttk.Frame):
         self.pick.bind("<<ComboboxSelected>>", self._on_pick)
 
         self.name_var = tk.StringVar()
+        self.biome_var = tk.StringVar(value="<None>")
         self.portal_mission_var = tk.BooleanVar(value=True)
+        self._biome_ids_by_label = {}
         name_row = ttk.Frame(self)
         name_row.pack(fill=tk.X, pady=2)
         ttk.Label(name_row, text="Name", width=18).pack(side=tk.LEFT)
         ttk.Entry(name_row, textvariable=self.name_var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        biome_row = ttk.Frame(self)
+        biome_row.pack(fill=tk.X, pady=2)
+        ttk.Label(biome_row, text="Biome", width=18).pack(side=tk.LEFT)
+        self.biome_pick = ttk.Combobox(biome_row, state="readonly", textvariable=self.biome_var)
+        self.biome_pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.biome_pick.bind("<<ComboboxSelected>>", lambda _evt: self._refresh_summary())
 
         portal_row = ttk.Frame(self)
         portal_row.pack(fill=tk.X, pady=2)
@@ -67,6 +82,34 @@ class MissionEditorFrame(ttk.Frame):
         )
         ttk.Button(actions, text="Remove Selected", command=self._remove_selected_allegiance_config).pack(side=tk.LEFT)
 
+        preview_frame = ttk.LabelFrame(self, text="Unit Population Preview")
+        preview_frame.pack(fill=tk.BOTH, expand=False, pady=6)
+        preview_actions = ttk.Frame(preview_frame)
+        preview_actions.pack(fill=tk.X, padx=6, pady=(6, 0))
+        ttk.Button(preview_actions, text="Generate Example Units", command=self._generate_population_preview).pack(
+            side=tk.LEFT
+        )
+        ttk.Button(preview_actions, text="View Unit", command=self._view_selected_preview_unit).pack(
+            side=tk.LEFT, padx=6
+        )
+        ttk.Button(preview_actions, text="Clear Preview", command=self._clear_population_preview).pack(side=tk.LEFT)
+
+        self.preview_summary = tk.Text(preview_frame, height=7, wrap=tk.WORD)
+        self.preview_summary.pack(fill=tk.X, padx=6, pady=6)
+
+        preview_list_frame = ttk.Frame(preview_frame)
+        preview_list_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=(0, 6))
+        preview_scrollbar = ttk.Scrollbar(preview_list_frame, orient=tk.VERTICAL)
+        preview_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.preview_listbox = tk.Listbox(
+            preview_list_frame,
+            height=10,
+            yscrollcommand=preview_scrollbar.set,
+        )
+        self.preview_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        preview_scrollbar.configure(command=self.preview_listbox.yview)
+        self.preview_listbox.bind("<Double-Button-1>", lambda _evt: self._view_selected_preview_unit())
+
         self.summary = tk.Text(self, height=14, wrap=tk.WORD)
         self.summary.pack(fill=tk.BOTH, expand=False, pady=6)
         ttk.Button(self, text="Save Mission", command=self._save).pack(fill=tk.X, pady=8)
@@ -75,12 +118,51 @@ class MissionEditorFrame(ttk.Frame):
     def _clear_form(self):
         self.current_mission_id = None
         self.name_var.set("")
+        self.biome_var.set("<None>")
         self.objective_draft = {}
         self.portal_mission_var.set(True)
         self.objective_label_var.set("<No Objective>")
         self.allegiance_configs_draft = []
+        self._clear_population_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
+
+    def _refresh_biome_options(self):
+        labels = ["<None>"]
+        self._biome_ids_by_label = {}
+        for biome in self.app.environment_service.list_biomes():
+            label = self.app.environment_service.get_biome_label(biome)
+            labels.append(label)
+            self._biome_ids_by_label[label] = biome.biomeId
+
+        selected_biome_id = self._selected_biome_id()
+        self.biome_pick["values"] = labels
+        self._set_biome_selection(selected_biome_id)
+
+    def _selected_biome_id(self):
+        selected = self.biome_var.get().strip()
+        if not selected or selected == "<None>":
+            return ""
+        if selected in self._biome_ids_by_label:
+            return self._biome_ids_by_label[selected]
+        if selected.endswith("]") and "[" in selected:
+            return selected[selected.rfind("[") + 1 : -1].strip()
+        return selected
+
+    def _set_biome_selection(self, biome_id):
+        biome_id = str(biome_id or "").strip()
+        if not biome_id:
+            self.biome_var.set("<None>")
+            return
+
+        biome = self.app.environment_service.get_biome_by_id(biome_id)
+        if biome is None:
+            self.biome_var.set("<None>")
+            return
+
+        label = self.app.environment_service.get_biome_label(biome)
+        self._biome_ids_by_label[label] = biome.biomeId
+        self.biome_var.set(label)
 
     def _filtered_missions(self):
         query = self.search_var.get().strip().lower()
@@ -91,6 +173,7 @@ class MissionEditorFrame(ttk.Frame):
         ]
 
     def refresh_mission_list(self, reset_form):
+        self._refresh_biome_options()
         labels = ["<New Mission>"] + [
             self.app.mission_service.get_mission_label(mission) for mission in self._filtered_missions()
         ]
@@ -113,10 +196,12 @@ class MissionEditorFrame(ttk.Frame):
         mission_data = mission.to_dict()
         self.current_mission_id = mission.missionId
         self.name_var.set(str(mission.name or ""))
+        self._set_biome_selection(mission_data.get("biomeId", ""))
         self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
         self.objective_draft = dict(mission_data.get("objective", {}) or {})
         self.objective_label_var.set(_objective_description(self.objective_draft))
         self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]
+        self._clear_population_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -126,6 +211,7 @@ class MissionEditorFrame(ttk.Frame):
     def _set_objective(self, payload):
         self.objective_draft = dict(payload or {})
         self.objective_label_var.set(_objective_description(self.objective_draft))
+        self._clear_population_preview()
         self._refresh_summary()
 
     def _clear_objective(self):
@@ -161,9 +247,13 @@ class MissionEditorFrame(ttk.Frame):
             self.allegiance_listbox.insert(tk.END, self._allegiance_config_label(payload))
 
     def _refresh_summary(self):
+        biome_id = self._selected_biome_id()
+        biome = self.app.environment_service.get_biome_by_id(biome_id) if biome_id else None
+        biome_text = self.app.environment_service.get_biome_label(biome) if biome is not None else "<None>"
         lines = [
             f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}",
             f"Mission ID: {self.current_mission_id or '<Unsaved>'}",
+            f"Biome: {biome_text}",
             f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}",
             f"Objective: {_objective_description(self.objective_draft)}",
             "",
@@ -200,6 +290,7 @@ class MissionEditorFrame(ttk.Frame):
             messagebox.showerror("Mission Editor", "That allegiance is already included in this mission.")
             return
         self.allegiance_configs_draft.append(payload)
+        self._clear_population_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -232,6 +323,7 @@ class MissionEditorFrame(ttk.Frame):
             messagebox.showerror("Mission Editor", "That allegiance is already included in this mission.")
             return
         self.allegiance_configs_draft[index] = payload
+        self._clear_population_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -240,12 +332,124 @@ class MissionEditorFrame(ttk.Frame):
         if index is None:
             return
         self.allegiance_configs_draft.pop(index)
+        self._clear_population_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
+
+    def _build_preview_template(self):
+        objective_payload = (
+            dict(self.objective_draft)
+            if self.objective_draft
+            else {
+                "objectiveType": "SURVIVAL",
+                "requiredHoursSurvived": 1.0,
+            }
+        )
+        return MissionTemplate.from_dict(
+            {
+                "name": str(self.name_var.get() or "").strip() or "Mission Preview",
+                "biomeId": self._selected_biome_id(),
+                "portalMission": bool(self.portal_mission_var.get()),
+                "objective": objective_payload,
+                "allegianceConfigs": list(self.allegiance_configs_draft),
+            }
+        )
+
+    def _preview_unit_label(self, populated_unit):
+        allegiance = self.app.allegiance_service.get_allegiance_by_id(populated_unit.allegianceId)
+        allegiance_label = (
+            self.app.allegiance_service.get_allegiance_label(allegiance)
+            if allegiance is not None
+            else f"Unknown [{populated_unit.allegianceId}]"
+        )
+        flags = []
+        if populated_unit.isRequired:
+            flags.append("required")
+        if populated_unit.isBoss:
+            flags.append("boss")
+        elif populated_unit.isElite:
+            flags.append("elite")
+        flag_text = f" | {', '.join(flags)}" if flags else ""
+        return (
+            f"{getattr(populated_unit.character, 'name', 'Unit')} | {allegiance_label}"
+            f" | {populated_unit.pointsSpent} PP{flag_text}"
+        )
+
+    def _refresh_population_preview(self):
+        self.preview_summary.configure(state="normal")
+        self.preview_summary.delete("1.0", tk.END)
+        self.preview_listbox.delete(0, tk.END)
+
+        if self.population_preview is None:
+            self.preview_summary.insert(
+                tk.END,
+                "No preview generated yet. Use 'Generate Example Units' to sample units from the current mission draft.",
+            )
+            self.preview_summary.configure(state="disabled")
+            return
+
+        lines = [
+            f"Mission: {self.population_preview.missionName}",
+            f"Total Points Spent: {self.population_preview.totalPointsSpent}",
+            f"Total Unused Points: {self.population_preview.totalUnusedPoints}",
+            "",
+        ]
+        for result in self.population_preview.allegiances:
+            allegiance = self.app.allegiance_service.get_allegiance_by_id(result.allegianceId)
+            allegiance_label = (
+                self.app.allegiance_service.get_allegiance_label(allegiance)
+                if allegiance is not None
+                else f"Unknown [{result.allegianceId}]"
+            )
+            lines.append(
+                f"{allegiance_label}: spent {result.pointsSpent}/{result.powerPointCap} PP, unused {result.unusedPoints} PP"
+            )
+            for group in result.groups:
+                lines.append(f"  - {group.unitLabel}: {group.count} generated, {group.pointsSpent} PP")
+            if not result.groups:
+                lines.append("  - No units generated")
+
+        self.preview_summary.insert(tk.END, "\n".join(lines))
+        self.preview_units = list(self.population_preview.generatedUnits)
+        for populated_unit in self.preview_units:
+            self.preview_listbox.insert(tk.END, self._preview_unit_label(populated_unit))
+        self.preview_summary.configure(state="disabled")
+
+    def _clear_population_preview(self):
+        self.population_preview = None
+        self.preview_units = []
+        if hasattr(self, "preview_summary") and hasattr(self, "preview_listbox"):
+            self._refresh_population_preview()
+
+    def _generate_population_preview(self):
+        if not self.allegiance_configs_draft:
+            messagebox.showerror("Mission Editor", "Add at least one mission allegiance before generating a preview.")
+            return
+        try:
+            preview_template = self._build_preview_template()
+            self.population_preview = self.unit_populator.populate(preview_template)
+            self._refresh_population_preview()
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate mission units: {exc}")
+
+    def _selected_preview_unit(self):
+        selection = self.preview_listbox.curselection()
+        if not selection:
+            return None
+        index = int(selection[0])
+        return self.preview_units[index] if 0 <= index < len(self.preview_units) else None
+
+    def _view_selected_preview_unit(self):
+        populated_unit = self._selected_preview_unit()
+        if populated_unit is None:
+            messagebox.showerror("Mission Editor", "Select a generated unit to view.")
+            return
+        ReadonlyCharacterViewer(self, populated_unit.character, title=f"Unit Preview - {populated_unit.character.name}")
 
     def _save(self):
         payload = {
             "name": str(self.name_var.get() or "").strip(),
+            "biomeId": self._selected_biome_id(),
             "portalMission": bool(self.portal_mission_var.get()),
             "objective": dict(self.objective_draft),
             "allegianceConfigs": list(self.allegiance_configs_draft),
@@ -267,6 +471,7 @@ class MissionEditorFrame(ttk.Frame):
             self.pick_var.set(self.app.mission_service.get_mission_label(mission))
             self.current_mission_id = mission.missionId
             mission_data = mission.to_dict()
+            self._set_biome_selection(mission_data.get("biomeId", ""))
             self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
             self.objective_draft = dict(mission_data.get("objective", {}) or {})
             self.objective_label_var.set(_objective_description(self.objective_draft))

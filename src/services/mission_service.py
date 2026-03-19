@@ -6,10 +6,13 @@ from src.services.game_context import GameContext
 
 
 class MissionService:
-    def __init__(self, missionbook_path: str, context: GameContext, allegiance_service, unit_service):
+    def __init__(
+        self, missionbook_path: str, context: GameContext, allegiance_service, unit_service, environment_service
+    ):
         self.context = context
         self.allegiance_service = allegiance_service
         self.unit_service = unit_service
+        self.environment_service = environment_service
         self.store = MissionbookStore(missionbook_path)
 
     @staticmethod
@@ -41,6 +44,8 @@ class MissionService:
     def _validate_mission(self, mission: MissionTemplate):
         if not getattr(mission, "objective", None):
             raise ValueError("Mission must include an objective.")
+        if mission.biomeId and self.environment_service.get_biome_by_id(mission.biomeId) is None:
+            raise ValueError(f"Biome '{mission.biomeId}' does not exist.")
 
         if isinstance(mission.objective, DeliveryObjective):
             if not mission.objective.requiredItemId:
@@ -113,7 +118,7 @@ class MissionService:
 
     def save_missionbook(self):
         payload = {
-            "format_version": 2,
+            "format_version": 3,
             "missions": [mission.to_dict() for mission in self.list_missions()],
         }
         self.store.save(payload)

@@ -49,7 +49,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 8.06,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -118,13 +118,15 @@
                 "damageMax": 12,
                 "armorMultiplier": 1.0,
                 "ignoreArmorFraction": 0.0,
-                "penetrationBase": 0.0
+                "penetrationBase": 0.0,
+                "staminaCost": 10.0
             },
             "damageMin": 12,
             "damageMax": 12,
             "armorMultiplier": 1.0,
             "ignoreArmorFraction": 0.0,
-            "penetrationBase": 0.0
+            "penetrationBase": 0.0,
+            "staminaCost": 10.0
         },
         {
             "itemId": "ButcherKnife4",
@@ -132,14 +134,14 @@
             "name": "Butcher Knife",
             "slot": "PRIMARY_WEAPON",
             "tier": 0,
-            "durability": 100,
+            "durability": 32,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
-            "powerLevel": 0,
+            "powerLevel": 10.52,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
-                    "power": 9,
+                    "power": 25,
                     "spellName": ""
                 }
             ],
@@ -150,17 +152,19 @@
                 "damageTypes": [
                     "SLASHING"
                 ],
-                "damageMin": 9,
-                "damageMax": 9,
-                "armorMultiplier": 1.0,
-                "ignoreArmorFraction": 0.0,
-                "penetrationBase": 0.0
+                "damageMin": 15,
+                "damageMax": 25,
+                "armorMultiplier": 0.5,
+                "ignoreArmorFraction": 0.2,
+                "penetrationBase": 10.0,
+                "staminaCost": 7.0
             },
-            "damageMin": 9,
-            "damageMax": 9,
-            "armorMultiplier": 1.0,
-            "ignoreArmorFraction": 0.0,
-            "penetrationBase": 0.0
+            "damageMin": 15,
+            "damageMax": 25,
+            "armorMultiplier": 0.5,
+            "ignoreArmorFraction": 0.2,
+            "penetrationBase": 10.0,
+            "staminaCost": 7.0
         },
         {
             "itemId": "Dagger5",
@@ -168,14 +172,14 @@
             "name": "Dagger",
             "slot": "PRIMARY_WEAPON",
             "tier": 0,
-            "durability": 100,
+            "durability": 40,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
-            "powerLevel": 7.66,
+            "powerLevel": 12.72,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
-                    "power": 50,
+                    "power": 35,
                     "spellName": ""
                 }
             ],
@@ -186,17 +190,19 @@
                 "damageTypes": [
                     "PIERCING"
                 ],
-                "damageMin": 35,
-                "damageMax": 50,
-                "armorMultiplier": 0.5,
-                "ignoreArmorFraction": 0.4,
-                "penetrationBase": 10.0
+                "damageMin": 15,
+                "damageMax": 35,
+                "armorMultiplier": 0.6,
+                "ignoreArmorFraction": 0.2,
+                "penetrationBase": 10.0,
+                "staminaCost": 7.0
             },
-            "damageMin": 35,
-            "damageMax": 50,
-            "armorMultiplier": 0.5,
-            "ignoreArmorFraction": 0.4,
-            "penetrationBase": 10.0
+            "damageMin": 15,
+            "damageMax": 35,
+            "armorMultiplier": 0.6,
+            "ignoreArmorFraction": 0.2,
+            "penetrationBase": 10.0,
+            "staminaCost": 7.0
         },
         {
             "itemId": "Fists16",
@@ -211,7 +217,7 @@
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
-                    "power": 5,
+                    "power": 8,
                     "spellName": ""
                 }
             ],
@@ -223,16 +229,18 @@
                     "BLUDGEONING"
                 ],
                 "damageMin": 3,
-                "damageMax": 5,
+                "damageMax": 8,
                 "armorMultiplier": 1.0,
                 "ignoreArmorFraction": 0.1,
-                "penetrationBase": 0.0
+                "penetrationBase": 0.0,
+                "staminaCost": 10.0
             },
             "damageMin": 3,
-            "damageMax": 5,
+            "damageMax": 8,
             "armorMultiplier": 1.0,
             "ignoreArmorFraction": 0.1,
-            "penetrationBase": 0.0
+            "penetrationBase": 0.0,
+            "staminaCost": 10.0
         },
         {
             "itemId": "Gloves6",
@@ -255,7 +263,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 6.71,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -264,6 +272,44 @@
             },
             "maxArmor": 100,
             "currentArmor": 100
+        },
+        {
+            "itemId": "Greatsword17",
+            "itemClass": "Weapon",
+            "name": "Greatsword",
+            "slot": "PRIMARY_WEAPON",
+            "tier": 0,
+            "durability": 72,
+            "statBonuses": [],
+            "itemType": "MELEE_WEAPON",
+            "powerLevel": 61.84,
+            "itemPower": [
+                {
+                    "powerType": "PHYSICAL_ATTACK",
+                    "power": 100,
+                    "spellName": ""
+                }
+            ],
+            "damageType": [
+                "SLASHING"
+            ],
+            "weaponStats": {
+                "damageTypes": [
+                    "SLASHING"
+                ],
+                "damageMin": 85,
+                "damageMax": 100,
+                "armorMultiplier": 1.0,
+                "ignoreArmorFraction": 1.0,
+                "penetrationBase": 10.0,
+                "staminaCost": 15.0
+            },
+            "damageMin": 85,
+            "damageMax": 100,
+            "armorMultiplier": 1.0,
+            "ignoreArmorFraction": 1.0,
+            "penetrationBase": 10.0,
+            "staminaCost": 15.0
         },
         {
             "itemId": "Helmet7",
@@ -286,7 +332,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 6.27,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -317,7 +363,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 5.47,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -348,7 +394,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 6.71,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -392,7 +438,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 5.47,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -423,7 +469,7 @@
                 }
             ],
             "itemType": "ARMOR",
-            "powerLevel": 0,
+            "powerLevel": 6.71,
             "itemPower": [],
             "damageType": [],
             "armorStats": {
@@ -442,11 +488,11 @@
             "durability": 100,
             "statBonuses": [],
             "itemType": "MELEE_WEAPON",
-            "powerLevel": 0,
+            "powerLevel": 11.56,
             "itemPower": [
                 {
                     "powerType": "PHYSICAL_ATTACK",
-                    "power": 12,
+                    "power": 30,
                     "spellName": ""
                 }
             ],
@@ -457,17 +503,19 @@
                 "damageTypes": [
                     "PIERCING"
                 ],
-                "damageMin": 12,
-                "damageMax": 12,
-                "armorMultiplier": 1.0,
-                "ignoreArmorFraction": 0.0,
-                "penetrationBase": 0.0
+                "damageMin": 25,
+                "damageMax": 30,
+                "armorMultiplier": 0.9,
+                "ignoreArmorFraction": 0.25,
+                "penetrationBase": 10.0,
+                "staminaCost": 10.0
             },
-            "damageMin": 12,
-            "damageMax": 12,
-            "armorMultiplier": 1.0,
-            "ignoreArmorFraction": 0.0,
-            "penetrationBase": 0.0
+            "damageMin": 25,
+            "damageMax": 30,
+            "armorMultiplier": 0.9,
+            "ignoreArmorFraction": 0.25,
+            "penetrationBase": 10.0,
+            "staminaCost": 10.0
         },
         {
             "itemId": "Sword14",
@@ -497,13 +545,15 @@
                 "damageMax": 12,
                 "armorMultiplier": 1.0,
                 "ignoreArmorFraction": 0.0,
-                "penetrationBase": 0.0
+                "penetrationBase": 0.0,
+                "staminaCost": 10.0
             },
             "damageMin": 12,
             "damageMax": 12,
             "armorMultiplier": 1.0,
             "ignoreArmorFraction": 0.0,
-            "penetrationBase": 0.0
+            "penetrationBase": 0.0,
+            "staminaCost": 10.0
         },
         {
             "itemId": "Warhammer15",
@@ -533,13 +583,15 @@
                 "damageMax": 12,
                 "armorMultiplier": 1.0,
                 "ignoreArmorFraction": 0.0,
-                "penetrationBase": 0.0
+                "penetrationBase": 0.0,
+                "staminaCost": 10.0
             },
             "damageMin": 12,
             "damageMax": 12,
             "armorMultiplier": 1.0,
             "ignoreArmorFraction": 0.0,
-            "penetrationBase": 0.0
+            "penetrationBase": 0.0,
+            "staminaCost": 10.0
         }
     ]
 }
