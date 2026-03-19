@@ -206,23 +206,47 @@ class TuningRegistry:
         with self._lock:
             return copy.deepcopy(self._load_category(category))
 
+    def reload_section(self, category: str) -> dict[str, Any]:
+        with self._lock:
+            return copy.deepcopy(self._load_category(category, force_reload=True))
+
+    def reload_all(self) -> dict[str, dict[str, Any]]:
+        with self._lock:
+            return {
+                category: copy.deepcopy(self._load_category(category, force_reload=True))
+                for category in TUNING_SCHEMA
+            }
+
     def get_value(self, category: str, key: str, default=None):
-        section = self.get_section(category)
-        if key in section:
-            return section[key]
-        if default is not None:
-            return default
-        return copy.deepcopy(DEFAULT_TUNING_VALUES.get(category, {}).get(key))
+        with self._lock:
+            section = self._load_category(category)
+            if key in section:
+                return copy.deepcopy(section[key])
+            if default is not None:
+                return default
+            return copy.deepcopy(DEFAULT_TUNING_VALUES.get(category, {}).get(key))
 
     def get_float(self, category: str, key: str, default: float = 0.0) -> float:
         try:
-            return float(self.get_value(category, key, default))
+            with self._lock:
+                section = self._load_category(category)
+                if key in section:
+                    return float(section[key])
+                if default is not None:
+                    return float(default)
+                return float(copy.deepcopy(DEFAULT_TUNING_VALUES.get(category, {}).get(key, 0.0)))
         except Exception:
             return float(default)
 
     def get_int(self, category: str, key: str, default: int = 0) -> int:
         try:
-            return int(self.get_value(category, key, default))
+            with self._lock:
+                section = self._load_category(category)
+                if key in section:
+                    return int(section[key])
+                if default is not None:
+                    return int(default)
+                return int(copy.deepcopy(DEFAULT_TUNING_VALUES.get(category, {}).get(key, 0)))
         except Exception:
             return int(default)
 
@@ -262,15 +286,15 @@ class TuningRegistry:
         if not os.path.exists(path):
             store.save(copy.deepcopy(DEFAULT_TUNING_VALUES.get(category, {})))
 
-    def _load_category(self, category: str) -> dict[str, Any]:
+    def _load_category(self, category: str, force_reload: bool = False) -> dict[str, Any]:
+        if not force_reload and category in self._cache:
+            return self._cache[category]
         self._ensure_category_file(category)
-        current_mtime = self._get_mtime(category)
-        cached_mtime = self._mtimes.get(category)
-        if category not in self._cache or current_mtime != cached_mtime:
+        if force_reload or category not in self._cache:
             raw = self._store_for(category).load()
             normalized = self._normalize_loaded_section(category, raw)
             self._cache[category] = normalized
-            self._mtimes[category] = current_mtime
+            self._mtimes[category] = self._get_mtime(category)
         return self._cache[category]
 
     def _normalize_loaded_section(self, category: str, raw: dict[str, Any]) -> dict[str, Any]:

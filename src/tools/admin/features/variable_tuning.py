@@ -104,8 +104,9 @@ class VariableTuningFrame(ttk.Frame):
         return None
 
     def reload_from_disk(self, show_message: bool = True):
+        sections = self.registry.reload_all()
         for category in self.registry.list_categories():
-            section = self.registry.get_section(category)
+            section = sections.get(category, {})
             for field in self.section_fields.get(category, []):
                 key = field["key"]
                 if key in self.section_vars.get(category, {}):

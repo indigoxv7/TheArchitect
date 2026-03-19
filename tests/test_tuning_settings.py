@@ -1,6 +1,8 @@
+import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from src.config.tuning import (
     BATTLE_FACTORS_CATEGORY,
@@ -81,6 +83,25 @@ class TestTuningSettings(unittest.TestCase):
         self.registry.save_section(BATTLE_FACTORS_CATEGORY, section)
 
         self.assertAlmostEqual(action_interval_seconds(2.0, ExertionLevel.FRESH.name), 4.0)
+
+    def test_hot_path_getters_reuse_cached_values_without_disk_checks(self):
+        self.registry.get_section(BATTLE_FACTORS_CATEGORY)
+
+        with patch.object(self.registry, "_get_mtime", wraps=self.registry._get_mtime) as get_mtime:
+            for _ in range(20):
+                self.registry.get_float(BATTLE_FACTORS_CATEGORY, "base_hit_chance", 0.65)
+            self.assertEqual(get_mtime.call_count, 0)
+
+    def test_reload_section_refreshes_cache_after_external_file_change(self):
+        path = self.registry.get_category_path(BATTLE_FACTORS_CATEGORY)
+        payload = self.registry.get_section(BATTLE_FACTORS_CATEGORY)
+        payload["base_hit_chance"] = 0.77
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=4, ensure_ascii=False)
+
+        self.assertAlmostEqual(self.registry.get_float(BATTLE_FACTORS_CATEGORY, "base_hit_chance", 0.65), 0.65)
+        self.registry.reload_section(BATTLE_FACTORS_CATEGORY)
+        self.assertAlmostEqual(self.registry.get_float(BATTLE_FACTORS_CATEGORY, "base_hit_chance", 0.65), 0.77)
 
 
 if __name__ == "__main__":
