@@ -1,2 +1,4 @@
-from .dialogs import MainCharacterInfoDialog
-from .frame import CharacterEditorFrame
+from .dialogs import MainCharacterInfoDialog as MainCharacterInfoDialog
+from .frame import CharacterEditorFrame as CharacterEditorFrame
+
+__all__ = ["CharacterEditorFrame", "MainCharacterInfoDialog"]

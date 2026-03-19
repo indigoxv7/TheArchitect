@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.character_util import TitlePreference
@@ -72,8 +72,12 @@ class PlayerEditorFrame(ttk.Frame):
         character_actions = ttk.Frame(character_panel)
         character_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(character_actions, text="Add Character", command=self._add_character).pack(side=tk.LEFT)
-        ttk.Button(character_actions, text="Remove Selected", command=self._remove_selected_character).pack(side=tk.LEFT, padx=6)
-        ttk.Button(character_actions, text="Add to Mission Party", command=self._add_selected_character_to_mission_party).pack(side=tk.LEFT)
+        ttk.Button(character_actions, text="Remove Selected", command=self._remove_selected_character).pack(
+            side=tk.LEFT, padx=6
+        )
+        ttk.Button(
+            character_actions, text="Add to Mission Party", command=self._add_selected_character_to_mission_party
+        ).pack(side=tk.LEFT)
 
         mission_party_panel = ttk.LabelFrame(self, text="Selected for Mission")
         mission_party_panel.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -81,8 +85,12 @@ class PlayerEditorFrame(ttk.Frame):
         self.mission_party_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         mission_party_actions = ttk.Frame(mission_party_panel)
         mission_party_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
-        ttk.Button(mission_party_actions, text="Add Selected Owned", command=self._add_selected_character_to_mission_party).pack(side=tk.LEFT)
-        ttk.Button(mission_party_actions, text="Remove Selected", command=self._remove_selected_mission_party_member).pack(side=tk.LEFT, padx=6)
+        ttk.Button(
+            mission_party_actions, text="Add Selected Owned", command=self._add_selected_character_to_mission_party
+        ).pack(side=tk.LEFT)
+        ttk.Button(
+            mission_party_actions, text="Remove Selected", command=self._remove_selected_mission_party_member
+        ).pack(side=tk.LEFT, padx=6)
 
         inventory_panel = ttk.LabelFrame(self, text="Inventory Items")
         inventory_panel.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -91,15 +99,21 @@ class PlayerEditorFrame(ttk.Frame):
         inventory_actions = ttk.Frame(inventory_panel)
         inventory_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(inventory_actions, text="Add Item", command=self._add_inventory_item).pack(side=tk.LEFT)
-        ttk.Button(inventory_actions, text="Remove Selected", command=self._remove_selected_inventory_item).pack(side=tk.LEFT, padx=6)
+        ttk.Button(inventory_actions, text="Remove Selected", command=self._remove_selected_inventory_item).pack(
+            side=tk.LEFT, padx=6
+        )
 
         self.summary_var = tk.StringVar(value="No player selected.")
         ttk.Label(self, textvariable=self.summary_var, justify=tk.LEFT, anchor="w").pack(fill=tk.X, pady=(2, 8))
 
         action_row = ttk.Frame(self)
         action_row.pack(fill=tk.X, pady=8)
-        ttk.Button(action_row, text="Edit Campaign Progress", command=self._edit_campaign_progress).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
-        ttk.Button(action_row, text="Save Player", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+        ttk.Button(action_row, text="Edit Campaign Progress", command=self._edit_campaign_progress).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4)
+        )
+        ttk.Button(action_row, text="Save Player", command=self._save).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0)
+        )
         self._clear_form()
 
     def _row_entry(self, label, var, state="normal"):
@@ -200,8 +214,12 @@ class PlayerEditorFrame(ttk.Frame):
         self.vars["nano"].set(str(_safe_int(getattr(player, "nano", 0), 0)))
         self.vars["energy"].set(str(_safe_float(getattr(player, "energy", 0.0), 0.0)))
         self.vars["energyCap"].set(str(_safe_float(getattr(player, "energyCap", 100.0), 100.0)))
-        self.vars["energyLastCalculatedTime"].set(str(_safe_float(getattr(player, "energyLastCalculatedTime", 0.0), 0.0)))
-        self.vars["energyRegenRatePerSecond"].set(str(_safe_float(getattr(player, "energyRegenRatePerSecond", 1.0 / 60.0), 1.0 / 60.0)))
+        self.vars["energyLastCalculatedTime"].set(
+            str(_safe_float(getattr(player, "energyLastCalculatedTime", 0.0), 0.0))
+        )
+        self.vars["energyRegenRatePerSecond"].set(
+            str(_safe_float(getattr(player, "energyRegenRatePerSecond", 1.0 / 60.0), 1.0 / 60.0))
+        )
 
         title_pref = getattr(player, "titlePreference", TitlePreference.Masculine)
         title_pref_name = getattr(title_pref, "name", TitlePreference.Masculine.name)
@@ -228,7 +246,11 @@ class PlayerEditorFrame(ttk.Frame):
         try:
             selected_party = list(player.GetMissionPartyCharacterIds())
         except Exception:
-            selected_party = [str(entry or "").strip() for entry in getattr(player, "missionPartyCharacterIds", []) or [] if str(entry or "").strip()]
+            selected_party = [
+                str(entry or "").strip()
+                for entry in getattr(player, "missionPartyCharacterIds", []) or []
+                if str(entry or "").strip()
+            ]
         self.mission_party_ids_draft = [
             character_id
             for character_id in selected_party
@@ -275,7 +297,9 @@ class PlayerEditorFrame(ttk.Frame):
         self.mission_party_listbox.delete(0, tk.END)
         ordered_party_ids = self._ordered_mission_party_ids()
         for character_id in ordered_party_ids:
-            character = next((entry for entry in self.characters_draft if self._resolve_character_id(entry) == character_id), None)
+            character = next(
+                (entry for entry in self.characters_draft if self._resolve_character_id(entry) == character_id), None
+            )
             if character is not None:
                 self.mission_party_listbox.insert(tk.END, self._character_label(character))
 
@@ -283,7 +307,11 @@ class PlayerEditorFrame(ttk.Frame):
         for item in self.inventory_draft:
             self.inventory_listbox.insert(tk.END, self._item_label(item))
 
-        campaign_count = len(getattr(self.current_player, "campaignProgressById", {}) or {}) if self.current_player is not None else 0
+        campaign_count = (
+            len(getattr(self.current_player, "campaignProgressById", {}) or {})
+            if self.current_player is not None
+            else 0
+        )
         self.summary_var.set(
             f"Characters: {len(self.characters_draft)} | Mission Party: {len(ordered_party_ids)} | Inventory Items: {len(self.inventory_draft)} | Campaigns: {campaign_count}"
         )
@@ -420,4 +448,3 @@ class PlayerEditorFrame(ttk.Frame):
             self._refresh_lists()
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
-

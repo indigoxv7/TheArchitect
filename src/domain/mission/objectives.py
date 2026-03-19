@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from enum import Enum
 from typing import Any
@@ -266,8 +266,7 @@ class RescueObjective(MissionObjective):
 
     def describe(self) -> str:
         return (
-            f"Rescue {self.requiredAlliesEscaped} ally/allies and move them "
-            f"{self.requiredEscapeDistance:g}+ distance"
+            f"Rescue {self.requiredAlliesEscaped} ally/allies and move them {self.requiredEscapeDistance:g}+ distance"
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -345,4 +344,3 @@ OBJECTIVE_TYPE_MAP: dict[MissionObjectiveType, type[MissionObjective]] = {
     MissionObjectiveType.SCAVENGE: ScavengeObjective,
     MissionObjectiveType.RECRUIT: RecruitObjective,
 }
-

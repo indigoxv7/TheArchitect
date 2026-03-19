@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -36,7 +36,9 @@ class Unit:
         self.maxAverageAttributes = maxAverageAttributes
         self.minAverageAttributes = minAverageAttributes
         self.spellList = self._normalize_optional_spell_list(spellList)
-        self.FamedEnemyList = None if FamedEnemyList is None else [entry for entry in FamedEnemyList if entry is not None]
+        self.FamedEnemyList = (
+            None if FamedEnemyList is None else [entry for entry in FamedEnemyList if entry is not None]
+        )
         self.gearOptions = gearOptions if isinstance(gearOptions, GearOptions) else None
         self.unitId = str(unitId or "")
 
@@ -209,4 +211,3 @@ class Unit:
             gearOptions=gear_options,
             unitId=str(data.get("unitId", "") or ""),
         )
-

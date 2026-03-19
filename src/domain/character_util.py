@@ -1,6 +1,5 @@
-
-
 from enum import Enum
+
 DEFAULT_DURABILITY = 100
 
 
@@ -79,11 +78,13 @@ class ItemType(Enum):
     RANGED_WEAPON = 4
     ARMOR = 5
 
+
 class ConsumableKind(Enum):
     NONE = 0
     POTION = 1
     BOMB = 2
     FOOD = 3
+
 
 class TitlePreference(Enum):
     Masculine = True
@@ -98,7 +99,7 @@ class FriendlyFireTolerance(Enum):
 
 
 def AffinityFormula(affinity: float, factor: float):
-    return affinity * (1+factor*(1-(affinity/100)))
+    return affinity * (1 + factor * (1 - (affinity / 100)))
 
 
 def AbbreviateNumber(number: int) -> str:
@@ -110,6 +111,7 @@ def AbbreviateNumber(number: int) -> str:
         return f"{number / 1_000_000:.1f}M"
     else:
         return str(number)
+
 
 class ItemPower:
     def __init__(self, powerType: PowerType, power: int, spellName: str = ""):
@@ -125,7 +127,15 @@ class AttributeBonus:
 
 
 class Attributes:
-    def __init__(self, physicalPower: float = 5, physicalStamina: float = 5, physicalResistance: float = 5, magicPower: float = 5, magicStamina: float = 5, magicResistance: float = 5):
+    def __init__(
+        self,
+        physicalPower: float = 5,
+        physicalStamina: float = 5,
+        physicalResistance: float = 5,
+        magicPower: float = 5,
+        magicStamina: float = 5,
+        magicResistance: float = 5,
+    ):
         self.physicalPower = physicalPower
         self.physicalStamina = physicalStamina
         self.physicalResistance = physicalResistance
@@ -154,7 +164,7 @@ class Attributes:
             self.magicStamina += value
             self.magicResistance += value
 
-    def AddAttributes(self, otherAttributes: 'Attributes'):
+    def AddAttributes(self, otherAttributes: "Attributes"):
         self.physicalPower += otherAttributes.physicalPower
         self.physicalStamina += otherAttributes.physicalStamina
         self.physicalResistance += otherAttributes.physicalResistance
@@ -162,18 +172,19 @@ class Attributes:
         self.magicStamina += otherAttributes.magicStamina
         self.magicResistance += otherAttributes.magicResistance
 
-    def MultiplyAttributes(self, otherAttributes: 'Attributes'):
-        self.physicalPower *= (1 + otherAttributes.physicalPower)
-        self.physicalStamina *= (1 + otherAttributes.physicalStamina)
-        self.physicalResistance *= (1 + otherAttributes.physicalResistance)
-        self.magicPower *= (1 + otherAttributes.magicPower)
-        self.magicStamina *= (1 + otherAttributes.magicStamina)
-        self.magicResistance *= (1 + otherAttributes.magicResistance)
+    def MultiplyAttributes(self, otherAttributes: "Attributes"):
+        self.physicalPower *= 1 + otherAttributes.physicalPower
+        self.physicalStamina *= 1 + otherAttributes.physicalStamina
+        self.physicalResistance *= 1 + otherAttributes.physicalResistance
+        self.magicPower *= 1 + otherAttributes.magicPower
+        self.magicStamina *= 1 + otherAttributes.magicStamina
+        self.magicResistance *= 1 + otherAttributes.magicResistance
 
 
 def _percentage_points_to_multiplier(value: float) -> float:
     # Percentage bonuses are stored as whole percentage points, e.g. 10 means +10%.
     return float(value) / 100.0
+
 
 # each value is a percentage, from 0.01 at the lowest to 0.9 at the highest.
 class Affinities:
@@ -183,20 +194,21 @@ class Affinities:
         self.psi = psi
         self.aether = aether
 
-    def AddAffinities(self, otherAffinities: 'Affinities'):
+    def AddAffinities(self, otherAffinities: "Affinities"):
         self.chi += otherAffinities.chi
         self.mana += otherAffinities.mana
         self.psi += otherAffinities.psi
         self.aether += otherAffinities.aether
 
-    def MultiplyAffinities(self, otherAffinities: 'Affinities'):
+    def MultiplyAffinities(self, otherAffinities: "Affinities"):
         self.chi = AffinityFormula(self.chi, otherAffinities.chi)
         self.mana = AffinityFormula(self.mana, otherAffinities.mana)
         self.psi = AffinityFormula(self.psi, otherAffinities.psi)
         self.aether = AffinityFormula(self.aether, otherAffinities.aether)
 
+
 class BonusType(Enum):
-    FLAT = 0,
+    FLAT = (0,)
     PERCENTAGE = 1
 
 
@@ -204,13 +216,21 @@ class BonusType(Enum):
 # Flat bonus's should be applied first, then multipliers.
 # if the bonus type is flat, add it. if the bonus is percentage, multiply.
 class Bonus:
-    def __init__(self, bonusType: BonusType, attributeBonus: AttributeBonus = None, affinities: Affinities = None, nanoMultiplier: float = 0, reason: str = "", permanent: bool = False):
+    def __init__(
+        self,
+        bonusType: BonusType,
+        attributeBonus: AttributeBonus = None,
+        affinities: Affinities = None,
+        nanoMultiplier: float = 0,
+        reason: str = "",
+        permanent: bool = False,
+    ):
         self.bonusType = bonusType
         self.attributeBonus = attributeBonus
         self.affinities = affinities
         self.nanoMultiplier = nanoMultiplier
         self.reason = reason
-        self.permanent = permanent # this tells us if the stat should be treated as a base stat, E.G. an achievement that gives you +1 to all stats.
+        self.permanent = permanent  # this tells us if the stat should be treated as a base stat, E.G. an achievement that gives you +1 to all stats.
 
 
 class TotalBonus:
@@ -220,7 +240,7 @@ class TotalBonus:
         self.percentAttributes = Attributes(0, 0, 0, 0, 0, 0)
         self.flatAffinities = Affinities(0, 0, 0, 0)
         self.percentAffinities = Affinities(0, 0, 0, 0)
-        self.allStatBonusUIAmount = 0.0 # This is just so that we can keep track of the total increase for regular
+        self.allStatBonusUIAmount = 0.0  # This is just so that we can keep track of the total increase for regular
         # attributes like shown in the lore. Not to be applied again on top of stats, as they are individually correct already.
         self.nanoMultiplier = 0.0
         if allBonuses is not None:
@@ -230,9 +250,13 @@ class TotalBonus:
         if bonus.bonusType == BonusType.FLAT:
             if bonus.attributeBonus is not None:
                 if bonus.permanent:
-                    self.flatInherentAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
+                    self.flatInherentAttributes.IncreaseAttribute(
+                        bonus.attributeBonus.attribute, bonus.attributeBonus.bonus
+                    )
                 else:
-                    self.flatBonusAttributes.IncreaseAttribute(bonus.attributeBonus.attribute, bonus.attributeBonus.bonus)
+                    self.flatBonusAttributes.IncreaseAttribute(
+                        bonus.attributeBonus.attribute, bonus.attributeBonus.bonus
+                    )
             if bonus.affinities is not None:
                 self.flatAffinities.AddAffinities(bonus.affinities)
 
@@ -255,7 +279,9 @@ class TotalBonus:
 
 
 class Achievement:
-    def __init__(self, name: str, bonus: Bonus = None, title: str = "", description:str = "", bonuses: list[Bonus] = None):
+    def __init__(
+        self, name: str, bonus: Bonus = None, title: str = "", description: str = "", bonuses: list[Bonus] = None
+    ):
         self.name = name
         self.title = title
         self.description = description
@@ -273,6 +299,7 @@ class Achievement:
     @bonus.setter
     def bonus(self, value: Bonus | None):
         self.bonuses = [value] if value is not None else []
+
 
 class CharacterStatistics:
     def __init__(
@@ -300,7 +327,7 @@ class CharacterStatistics:
         normalized_units_killed: dict[str, int] = {}
         if isinstance(unitsKilled, dict):
             for key, value in unitsKilled.items():
-                name = str(key or '').strip()
+                name = str(key or "").strip()
                 if not name:
                     continue
                 try:
@@ -335,10 +362,9 @@ class CharacterStatistics:
         if count <= 0:
             return
         self.kills += count
-        name = str(unit_name or '').strip() or 'Unknown Unit'
+        name = str(unit_name or "").strip() or "Unknown Unit"
         self.unitsKilled[name] = self.unitsKilled.get(name, 0) + count
         if is_boss:
             self.bossesKilled += count
         if is_elite:
             self.elitesKilled += count
-

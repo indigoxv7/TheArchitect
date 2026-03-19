@@ -23,9 +23,10 @@ def transform_line(raw_line):
 
 
 def main():
-    with open(INPUT_FILE_NAME, "r", encoding="utf-8") as input_file, open(
-        OUTPUT_FILE_NAME, "w", encoding="utf-8", newline=""
-    ) as output_file:
+    with (
+        open(INPUT_FILE_NAME, "r", encoding="utf-8") as input_file,
+        open(OUTPUT_FILE_NAME, "w", encoding="utf-8", newline="") as output_file,
+    ):
         csv_writer = csv.writer(output_file)
 
         csv_writer.writerow(["trait_group", "trait_name", "option", "weight"])

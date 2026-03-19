@@ -1,15 +1,14 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import ttk
 
 from src.domain.character_util import Attribute, BonusType
 from .bonus_payloads import (
-    BONUS_ATTRIBUTE_OPTIONS,
     _bonus_summary_text,
     _default_bonus_payload,
     _normalize_bonus_payload,
     _normalize_buff_entry,
 )
-from .forms import _safe_float, _safe_int
+from .forms import BONUS_ATTRIBUTE_OPTIONS, _safe_float, _safe_int
 
 
 class BonusFieldsSection:
@@ -325,4 +324,3 @@ class BonusListEditorDialog(tk.Toplevel):
             self._apply_current()
         self.on_save(list(self.entries))
         self.destroy()
-

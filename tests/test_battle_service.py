@@ -1,4 +1,4 @@
-﻿import tempfile
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,7 +9,14 @@ from src.domain.mission import MissionObjectiveStatus
 from src.domain.character_util import Attributes
 from src.domain.items import Gear
 from src.domain.race import CreatureSize, Race
-from src.domain.combat import BattleOutcome, BattlePhase, BattleState, EncounterDefinition, EncounterEnemyEntry, EncounterType
+from src.domain.combat import (
+    BattleOutcome,
+    BattlePhase,
+    BattleState,
+    EncounterDefinition,
+    EncounterEnemyEntry,
+    EncounterType,
+)
 from src.domain.player_functions import Player
 from src.persistence.active_battle_store import ActiveBattleStore
 from src.services.battle import BattleService
@@ -88,7 +95,14 @@ class TestBattleService(unittest.TestCase):
             name="Hero",
             race="Human1",
             level=3,
-            attributes=Attributes(physicalPower=7, physicalStamina=7, physicalResistance=6, magicPower=5, magicStamina=5, magicResistance=5),
+            attributes=Attributes(
+                physicalPower=7,
+                physicalStamina=7,
+                physicalResistance=6,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
             gear=Gear(primaryWeapon=sword),
         )
         ally.playerInstanceId = "Hero0"
@@ -98,14 +112,25 @@ class TestBattleService(unittest.TestCase):
             name="Goblin Raider",
             race="Goblin0",
             level=1,
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=4, magicPower=3, magicStamina=3, magicResistance=3),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=4,
+                magicPower=3,
+                magicStamina=3,
+                magicResistance=3,
+            ),
             gear=Gear(primaryWeapon=sword),
         )
         enemy_template.health = 60
         context.all_characters["GoblinRaider0"] = enemy_template
 
-        context.all_races["Human1"] = Race(name="Human", size=CreatureSize.STANDARD, averageSpecimine=ally, raceId="Human1")
-        context.all_races["Goblin0"] = Race(name="Goblin", size=CreatureSize.SMALL, averageSpecimine=enemy_template, raceId="Goblin0")
+        context.all_races["Human1"] = Race(
+            name="Human", size=CreatureSize.STANDARD, averageSpecimine=ally, raceId="Human1"
+        )
+        context.all_races["Goblin0"] = Race(
+            name="Goblin", size=CreatureSize.SMALL, averageSpecimine=enemy_template, raceId="Goblin0"
+        )
 
         player = Player(111, characters=[ally], inventory=[bandage.itemId])
         player.playerName = "Tester"
@@ -140,7 +165,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_start_battle_saves_and_resumes(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
 
             battle, resumed = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
             self.assertFalse(resumed)
@@ -153,7 +180,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_battle_state_round_trips_through_serialization(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
 
             battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
             payload = battle.to_dict()
@@ -163,7 +192,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_recentering_shifts_pressed_side_toward_equilibrium(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             player = player_service.get_player_sync(111)
             encounter = EncounterDefinition(
                 encounter_id="test_recentering",
@@ -184,7 +215,9 @@ class TestBattleService(unittest.TestCase):
             battle.player_recenter_pressure = 10.0
             highlights = []
 
-            battle_service._apply_recentering(battle, player_progress=False, enemy_progress=False, highlights=highlights)
+            battle_service._apply_recentering(
+                battle, player_progress=False, enemy_progress=False, highlights=highlights
+            )
 
             self.assertEqual(battle.player_front_line, 2)
             self.assertEqual(battle.enemy_front_line, 3)
@@ -192,7 +225,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_player_off_map_in_scavenging_forces_retreat(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             player = player_service.get_player_sync(111)
             encounter = EncounterDefinition(
                 encounter_id="test_retreat",
@@ -220,7 +255,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_enemy_off_map_breaks_and_player_wins(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             player = player_service.get_player_sync(111)
             encounter = EncounterDefinition(
                 encounter_id="test_victory",
@@ -246,7 +283,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_estimate_victory_odds_is_cached_by_orders(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
 
             first = battle_service.estimate_victory_odds(battle, simulations=4)
@@ -259,7 +298,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_exchange_advances_battle_time_by_twelve_seconds(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
 
             battle_service.resolve_exchange(battle, persist=False, record_memory=False)
@@ -268,7 +309,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_faster_units_act_more_often_within_exchange(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             player = player_service.get_player_sync(111)
             player.characters[0].attributes.physicalPower = 12
             player.characters[0].attributes.magicPower = 9
@@ -285,7 +328,9 @@ class TestBattleService(unittest.TestCase):
                 total_lines=5,
                 objective_text="Win.",
                 allow_retreat=True,
-                enemy_entries=[EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)],
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
                 player_front_line=2,
                 enemy_front_line=3,
             )
@@ -315,7 +360,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_use_consumable_consumes_inventory_and_heals(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, bandage = self._build_services(
+                temp_dir
+            )
             battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
             battle.ally_units[0].health = 40
             player = player_service.get_player_sync(111)
@@ -330,7 +377,9 @@ class TestBattleService(unittest.TestCase):
     def test_apply_strategy_uses_median_score(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             fake_openai = _FakeOpenAIService([2, 9, 7])
-            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir, openai_service=fake_openai)
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir, openai_service=fake_openai
+            )
             battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
 
             judgment = battle_service.apply_strategy(battle, "Advance on the weak flank while keeping reserves tight.")
@@ -342,7 +391,9 @@ class TestBattleService(unittest.TestCase):
 
     def test_main_character_stats_and_objective_status_update_from_combat(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
             battle_service.damage_calculator._rng = _DeterministicRng()
             if battle_service.spell_service.get_spell("Arc Bolt") is None:
                 battle_service.spell_service.create_spell_from_dict(
@@ -373,7 +424,9 @@ class TestBattleService(unittest.TestCase):
                 total_lines=5,
                 objective_text="Eliminate the threat.",
                 allow_retreat=True,
-                enemy_entries=[EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)],
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
                 player_front_line=2,
                 enemy_front_line=3,
             )
@@ -383,8 +436,12 @@ class TestBattleService(unittest.TestCase):
             battle.enemy_units[0].is_boss = True
 
             highlights = []
-            battle_service._resolve_attack(battle, battle.enemy_units[0], battle.ally_units[0], battle.orders, highlights)
-            battle_service._resolve_attack(battle, battle.ally_units[0], battle.enemy_units[0], battle.orders, highlights)
+            battle_service._resolve_attack(
+                battle, battle.enemy_units[0], battle.ally_units[0], battle.orders, highlights
+            )
+            battle_service._resolve_attack(
+                battle, battle.ally_units[0], battle.enemy_units[0], battle.orders, highlights
+            )
             battle_service._refresh_mission_state(battle, mission_complete=True)
 
             hero = player.characters[0]
@@ -399,7 +456,5 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(battle.mission_objective_status, MissionObjectiveStatus.SUCCESS)
 
 
-
 if __name__ == "__main__":
     unittest.main()
-

@@ -1,8 +1,6 @@
-﻿import json
+import json
 import tkinter as tk
 from tkinter import messagebox, ttk
-
-from src.domain.main_character import MainCharacter
 
 
 def _pretty(value) -> str:
@@ -157,7 +155,15 @@ class MainCharacterMemoryFrame(ttk.Frame):
         self.character_pick["values"] = ["<Select Main Character>"]
         self.participant_listbox.delete(0, tk.END)
         self.summary_var.set("Select a player-owned MainCharacter.")
-        for widget in (self.events_text, self.memories_text, self.facts_text, self.relationships_text, self.prompt_preview, self.turn_output, self.persisted_output):
+        for widget in (
+            self.events_text,
+            self.memories_text,
+            self.facts_text,
+            self.relationships_text,
+            self.prompt_preview,
+            self.turn_output,
+            self.persisted_output,
+        ):
             widget.delete("1.0", tk.END)
 
     def _on_player_pick(self, _event=None):
@@ -222,7 +228,9 @@ class MainCharacterMemoryFrame(ttk.Frame):
             self.summary_var.set("Select a player-owned MainCharacter.")
             return
         try:
-            snapshot = self.app.memory_service.build_character_snapshot(self.current_player_id, self.current_character_instance_id)
+            snapshot = self.app.memory_service.build_character_snapshot(
+                self.current_player_id, self.current_character_instance_id
+            )
         except Exception as exc:
             self.summary_var.set(f"Failed to load memory snapshot: {exc}")
             return
@@ -274,4 +282,3 @@ class MainCharacterMemoryFrame(ttk.Frame):
         self.persisted_output.insert(tk.END, result.get("persisted_summary", ""))
         self._refresh_snapshot()
         messagebox.showinfo("Main Character Memory", "Turn generated and stored.")
-

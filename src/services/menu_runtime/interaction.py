@@ -37,7 +37,9 @@ class MenuRuntimeInteractionMixin:
     def build_field_edit_modal(self, menu: Menu, original_message: OriginalMessage) -> discord.ui.Modal:
         return build_field_edit_modal(self, menu, original_message)
 
-    async def _handle_special_menu_action(self, interface: MenuInterface, menu: Menu, original_message: OriginalMessage):
+    async def _handle_special_menu_action(
+        self, interface: MenuInterface, menu: Menu, original_message: OriginalMessage
+    ):
         return await self._special_action_router.handle(interface, menu, original_message)
 
     async def display_menu(self, interaction: discord.Interaction, menu: Menu):

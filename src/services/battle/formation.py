@@ -52,11 +52,17 @@ class BattleFormationMixin:
         }
         sorted_entities = sorted(
             entities,
-            key=lambda entity: (role_order.get(getattr(entity, "role", CombatRole.FRONTLINE), 0), -self._entity_lane_width(entity), self._entity_name(entity)),
+            key=lambda entity: (
+                role_order.get(getattr(entity, "role", CombatRole.FRONTLINE), 0),
+                -self._entity_lane_width(entity),
+                self._entity_name(entity),
+            ),
         )
 
         for entity in sorted_entities:
-            preferred_line = front_line if getattr(entity, "role", CombatRole.FRONTLINE) == CombatRole.FRONTLINE else rear_line
+            preferred_line = (
+                front_line if getattr(entity, "role", CombatRole.FRONTLINE) == CombatRole.FRONTLINE else rear_line
+            )
             line_candidates = [preferred_line] + [line for line in accessible_lines if line != preferred_line]
             placed = False
             entity_width = self._entity_lane_width(entity)
@@ -97,7 +103,9 @@ class BattleFormationMixin:
         for entity in entities:
             if int(getattr(entity, "line", 0)) != int(front_line):
                 continue
-            total += self._entity_health(entity) * (1.0 + battle_factor("front_line_attack_count_weight", 0.10) * self._entity_attack_count(entity))
+            total += self._entity_health(entity) * (
+                1.0 + battle_factor("front_line_attack_count_weight", 0.10) * self._entity_attack_count(entity)
+            )
         return total
 
     def _broken_lane_count(self, battle: BattleState, team: BattleTeam) -> int:
@@ -116,8 +124,19 @@ class BattleFormationMixin:
 
     def _backline_intrusion(self, battle: BattleState, team: BattleTeam) -> int:
         if team == BattleTeam.ALLY:
-            return 1 if any(int(getattr(enemy, "line", 0)) < int(battle.player_front_line) for enemy in self._active_enemies(battle)) else 0
-        return 1 if any(int(getattr(ally, "line", 0)) > int(battle.enemy_front_line) for ally in self._active_allies(battle)) else 0
+            return (
+                1
+                if any(
+                    int(getattr(enemy, "line", 0)) < int(battle.player_front_line)
+                    for enemy in self._active_enemies(battle)
+                )
+                else 0
+            )
+        return (
+            1
+            if any(int(getattr(ally, "line", 0)) > int(battle.enemy_front_line) for ally in self._active_allies(battle))
+            else 0
+        )
 
     def _advance_front(self, battle: BattleState, team: BattleTeam, highlights: list[str]):
         if team == BattleTeam.ALLY:
@@ -129,7 +148,9 @@ class BattleFormationMixin:
             battle.enemy_front_line -= 1
             highlights.append("The enemy line advances.")
 
-    def _apply_recentering(self, battle: BattleState, player_progress: bool, enemy_progress: bool, highlights: list[str]):
+    def _apply_recentering(
+        self, battle: BattleState, player_progress: bool, enemy_progress: bool, highlights: list[str]
+    ):
         player_missing = max(0, int(battle.default_player_front_line) - int(battle.player_front_line))
         enemy_missing = max(0, int(battle.enemy_front_line) - int(battle.default_enemy_front_line))
         player_broken = self._broken_lane_count(battle, BattleTeam.ALLY)
@@ -144,14 +165,25 @@ class BattleFormationMixin:
         player_threshold = max(1, threshold_base - player_missing - player_broken)
         enemy_threshold = max(1, threshold_base - enemy_missing - enemy_broken)
 
-        if (player_missing > 0 or player_intrusion) and not enemy_progress and battle.player_recenter_pressure >= player_threshold:
-            if battle.player_front_line < battle.default_player_front_line and battle.enemy_front_line < battle.total_lines:
+        if (
+            (player_missing > 0 or player_intrusion)
+            and not enemy_progress
+            and battle.player_recenter_pressure >= player_threshold
+        ):
+            if (
+                battle.player_front_line < battle.default_player_front_line
+                and battle.enemy_front_line < battle.total_lines
+            ):
                 battle.player_front_line += 1
                 battle.enemy_front_line += 1
                 battle.player_recenter_pressure = 0.0
                 highlights.append("The allied lines recover ground and re-center.")
 
-        if (enemy_missing > 0 or enemy_intrusion) and not player_progress and battle.enemy_recenter_pressure >= enemy_threshold:
+        if (
+            (enemy_missing > 0 or enemy_intrusion)
+            and not player_progress
+            and battle.enemy_recenter_pressure >= enemy_threshold
+        ):
             if battle.enemy_front_line > battle.default_enemy_front_line and battle.player_front_line >= 0:
                 battle.player_front_line -= 1
                 battle.enemy_front_line -= 1
@@ -182,7 +214,11 @@ class BattleFormationMixin:
 
     def _handle_reinforcements(self, battle: BattleState, highlights: list[str]) -> list:
         arrivals: list = []
-        due = [entry for entry in battle.encounter.reinforcements if int(entry.exchange_number) == int(battle.exchange_count)]
+        due = [
+            entry
+            for entry in battle.encounter.reinforcements
+            if int(entry.exchange_number) == int(battle.exchange_count)
+        ]
         for reinforcement in due:
             for entry in reinforcement.entries:
                 new_units, new_stacks = self._spawn_enemy_entry(entry)

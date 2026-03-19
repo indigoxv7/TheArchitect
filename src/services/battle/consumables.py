@@ -25,7 +25,11 @@ class BattleConsumablesMixin:
             if not isinstance(item, Consumable):
                 continue
             item_id = str(getattr(item, "itemId", "") or "")
-            label = self.item_service.get_item_label(item) if item_id else str(getattr(item, "name", "Consumable") or "Consumable")
+            label = (
+                self.item_service.get_item_label(item)
+                if item_id
+                else str(getattr(item, "name", "Consumable") or "Consumable")
+            )
             results.append((item_id or label, label))
         return results
 
@@ -44,14 +48,22 @@ class BattleConsumablesMixin:
         remaining = []
         for entry in inventory:
             resolved = self._resolve_inventory_item(player, entry)
-            if not removed and resolved is not None and str(getattr(resolved, "itemId", "") or "") == str(getattr(item, "itemId", "") or ""):
+            if (
+                not removed
+                and resolved is not None
+                and str(getattr(resolved, "itemId", "") or "") == str(getattr(item, "itemId", "") or "")
+            ):
                 removed = True
                 continue
             remaining.append(entry)
         if not removed:
             raise ValueError("That consumable is not in the player's inventory.")
         player.inventory = remaining
-        power_values = [power for power in getattr(item, "itemPower", []) or [] if getattr(power, "powerType", None) == PowerType.CONSUMABLE_POWER]
+        power_values = [
+            power
+            for power in getattr(item, "itemPower", []) or []
+            if getattr(power, "powerType", None) == PowerType.CONSUMABLE_POWER
+        ]
         amount = float(getattr(power_values[0], "power", 10) if power_values else 10)
         offensive = bool(getattr(item, "damageType", []))
         if offensive:
@@ -69,10 +81,16 @@ class BattleConsumablesMixin:
             allies = self._active_allies(battle)
             if not allies:
                 raise ValueError("No allied targets available.")
-            target = min(allies, key=lambda entity: self._entity_health(entity) / max(1.0, self._entity_max_health(entity)))
+            target = min(
+                allies, key=lambda entity: self._entity_health(entity) / max(1.0, self._entity_max_health(entity))
+            )
             healed = self._heal_entity(
                 target,
-                amount * max(battle_factor("minimum_resource_efficiency_multiplier", 0.5), 1.0 + battle.orders.resource_efficiency_modifier),
+                amount
+                * max(
+                    battle_factor("minimum_resource_efficiency_multiplier", 0.5),
+                    1.0 + battle.orders.resource_efficiency_modifier,
+                ),
             )
             self._refresh_mission_state(battle, mission_complete=(battle.phase == BattlePhase.RESOLVED))
             message = f"Used {item.name} on {self._entity_name(target)} and restored {healed:.1f} health."

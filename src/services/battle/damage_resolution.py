@@ -183,20 +183,24 @@ class BattleDamageResolutionMixin:
             return False
         attacker_character = self._character_snapshot_for_entity(battle, attacker)
         defender_character = self._character_snapshot_for_entity(battle, target)
-        attack_bonus = self._stance_attack_bonus(orders) + accuracy_bonus_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name))
+        attack_bonus = self._stance_attack_bonus(orders) + accuracy_bonus_for_exertion(
+            getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)
+        )
         if orders is not None:
             attack_bonus += float(orders.lane_discipline_modifier)
         congestion_penalty, firing_penalty, range_penalty = self._ranged_penalties(battle, attacker, target)
 
-        weapon = select_active_character_weapon(attacker_character, race_lookup=self._race_lookup) or self._default_unarmed_weapon()
+        weapon = (
+            select_active_character_weapon(attacker_character, race_lookup=self._race_lookup)
+            or self._default_unarmed_weapon()
+        )
         spell = self._spell_for_entity(attacker)
         use_spell = False
         if spell is not None:
             try:
-                use_spell = (
-                    getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE
-                    or float(getattr(spell, "power", 0) or 0) >= float(getattr(weapon, "damageMax", 0) or 0)
-                )
+                use_spell = getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE or float(
+                    getattr(spell, "power", 0) or 0
+                ) >= float(getattr(weapon, "damageMax", 0) or 0)
             except Exception:
                 use_spell = False
 
@@ -218,7 +222,8 @@ class BattleDamageResolutionMixin:
             breakdown = self.damage_calculator.calculate_magic_hit(
                 attacker=attacker_character,
                 defender=defender_character,
-                spell_power=float(getattr(spell, "power", 0) or 0) * damage_multiplier_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)),
+                spell_power=float(getattr(spell, "power", 0) or 0)
+                * damage_multiplier_for_exertion(getattr(attacker, "exertion_level", ExertionLevel.FRESH.name)),
                 hit_chance=hit_chance,
                 did_hit=hit,
             )
@@ -230,9 +235,13 @@ class BattleDamageResolutionMixin:
                 self._record_damage_taken(battle, target, damage_result["damage"])
                 if damage_result["defeated_units"] > 0:
                     self._record_kill(battle, attacker, target, damage_result["defeated_units"])
-                highlights.append(f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
+                highlights.append(
+                    f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage_result['damage']:.1f} damage."
+                )
             else:
-                highlights.append(f"{self._entity_name(attacker)} misses {self._entity_name(target)} with {getattr(spell, 'name', 'a spell')}.")
+                highlights.append(
+                    f"{self._entity_name(attacker)} misses {self._entity_name(target)} with {getattr(spell, 'name', 'a spell')}."
+                )
             return True
 
         hit, _hit_chance = self.damage_calculator.roll_hit(
@@ -269,7 +278,9 @@ class BattleDamageResolutionMixin:
             self._record_damage_taken(battle, target, damage_result["damage"])
             if damage_result["defeated_units"] > 0:
                 self._record_kill(battle, attacker, target, damage_result["defeated_units"])
-            highlights.append(f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage_result['damage']:.1f} damage.")
+            highlights.append(
+                f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage_result['damage']:.1f} damage."
+            )
         else:
             highlights.append(f"{self._entity_name(attacker)} fails to injure {self._entity_name(target)}.")
         return True
@@ -280,20 +291,32 @@ class BattleDamageResolutionMixin:
             return weapon
         scaled_weapon = copy.deepcopy(weapon)
         scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
-        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
+        scaled_weapon.damageMax = max(
+            scaled_weapon.damageMin,
+            float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin)
+            * float(damage_multiplier),
+        )
         return scaled_weapon
 
     def _offensive_action_cost(self, battle: BattleState, attacker) -> float:
         attacker_character = self._character_snapshot_for_entity(battle, attacker)
-        weapon = select_active_character_weapon(attacker_character, race_lookup=self._race_lookup) or self._default_unarmed_weapon()
+        weapon = (
+            select_active_character_weapon(attacker_character, race_lookup=self._race_lookup)
+            or self._default_unarmed_weapon()
+        )
         spell = self._spell_for_entity(attacker)
         if spell is not None:
             try:
-                if (
-                    getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE
-                    or float(getattr(spell, "power", 0) or 0) >= float(getattr(weapon, "damageMax", 0) or 0)
-                ):
+                if getattr(attacker, "role", CombatRole.FRONTLINE) != CombatRole.FRONTLINE or float(
+                    getattr(spell, "power", 0) or 0
+                ) >= float(getattr(weapon, "damageMax", 0) or 0):
                     return default_offensive_action_stamina_cost()
             except Exception:
                 pass
-        return max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost()))
+        return max(
+            0.0,
+            float(
+                getattr(weapon, "staminaCost", default_offensive_action_stamina_cost())
+                or default_offensive_action_stamina_cost()
+            ),
+        )

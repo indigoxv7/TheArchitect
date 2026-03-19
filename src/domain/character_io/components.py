@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -183,4 +183,3 @@ def _llm_control_profile_from_dict(data: Any) -> LLMControlProfile | None:
     if not isinstance(data, dict):
         return None
     return LLMControlProfile.from_dict(data)
-

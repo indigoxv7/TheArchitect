@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import random
 
@@ -56,8 +56,16 @@ def randomize_attributes_point_buy(
         base_attributes = getattr(race.averageSpecimine, "attributes", None)
     current = _attributes_to_int_dict(base_attributes, default=5)
 
-    minimums = _attributes_to_int_dict(getattr(race, "minAverageAttributes", None), default=0) if race is not None else {field: 0 for field in ATTRIBUTE_FIELDS}
-    maximums = _attributes_to_int_dict(getattr(race, "maxAverageAttributes", None), default=99) if race is not None else {field: 99 for field in ATTRIBUTE_FIELDS}
+    minimums = (
+        _attributes_to_int_dict(getattr(race, "minAverageAttributes", None), default=0)
+        if race is not None
+        else {field: 0 for field in ATTRIBUTE_FIELDS}
+    )
+    maximums = (
+        _attributes_to_int_dict(getattr(race, "maxAverageAttributes", None), default=99)
+        if race is not None
+        else {field: 99 for field in ATTRIBUTE_FIELDS}
+    )
     current = _clamp_attribute_dict(current, minimums, maximums)
 
     removable_total = sum(max(0, current[field] - minimums[field]) for field in ATTRIBUTE_FIELDS)
@@ -100,4 +108,3 @@ def apply_build_modifier(
         values[field] = values.get(field, 5) + int(delta)
 
     return _attributes_from_int_dict(_clamp_attribute_dict(values, minimums, maximums))
-

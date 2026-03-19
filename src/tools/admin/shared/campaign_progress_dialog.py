@@ -1,9 +1,8 @@
-import copy
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.campaign import CampaignProgress
-from src.tools.admin.shared.forms import _safe_int
+from src.tools.admin.shared.pickers import MissionSelectDialog
 
 
 class PlayerCampaignProgressDialog(tk.Toplevel):
@@ -27,7 +26,9 @@ class PlayerCampaignProgressDialog(tk.Toplevel):
         container.pack(fill=tk.BOTH, expand=True)
 
         player_label = str(getattr(self.player, "playerName", "") or f"Player {getattr(self.player, 'discordID', 0)}")
-        ttk.Label(container, text=f"Campaign progress for {player_label}", font=("Segoe UI", 12, "bold")).pack(anchor="w", pady=(0, 8))
+        ttk.Label(container, text=f"Campaign progress for {player_label}", font=("Segoe UI", 12, "bold")).pack(
+            anchor="w", pady=(0, 8)
+        )
 
         pick_row = ttk.Frame(container)
         pick_row.pack(fill=tk.X, pady=4)
@@ -65,11 +66,15 @@ class PlayerCampaignProgressDialog(tk.Toplevel):
         ttk.Button(completed_actions, text="Remove", command=self._remove_completed_mission).pack(side=tk.LEFT, padx=6)
 
         self.summary_var = tk.StringVar(value="Select a campaign.")
-        ttk.Label(container, textvariable=self.summary_var, justify=tk.LEFT, wraplength=820).pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(container, textvariable=self.summary_var, justify=tk.LEFT, wraplength=820).pack(
+            fill=tk.X, pady=(0, 8)
+        )
 
         action_row = ttk.Frame(container)
         action_row.pack(fill=tk.X)
-        ttk.Button(action_row, text="Rebuild from Conditions", command=self._rebuild_current_progress).pack(side=tk.LEFT)
+        ttk.Button(action_row, text="Rebuild from Conditions", command=self._rebuild_current_progress).pack(
+            side=tk.LEFT
+        )
         ttk.Button(action_row, text="Save Progress", command=self._save).pack(side=tk.LEFT, padx=6)
         ttk.Button(action_row, text="Close", command=self.destroy).pack(side=tk.RIGHT)
 
@@ -100,7 +105,9 @@ class PlayerCampaignProgressDialog(tk.Toplevel):
 
     def _ensure_draft(self, campaign_id: str) -> dict:
         if campaign_id not in self.progress_draft_by_id:
-            progress = self.app.campaign_service.get_player_campaign_progress(self.player, campaign_id, create_if_missing=True)
+            progress = self.app.campaign_service.get_player_campaign_progress(
+                self.player, campaign_id, create_if_missing=True
+            )
             if progress is None:
                 self.progress_draft_by_id[campaign_id] = CampaignProgress(campaignId=campaign_id).to_dict()
             else:
@@ -122,8 +129,16 @@ class PlayerCampaignProgressDialog(tk.Toplevel):
 
         campaign = self.app.campaign_service.get_campaign_by_id(self.current_campaign_id)
         draft = self._ensure_draft(self.current_campaign_id)
-        unlocked_ids = [str(entry or "").strip() for entry in (draft.get("unlockedMissionIds", []) or []) if str(entry or "").strip()]
-        completed_ids = [str(entry or "").strip() for entry in (draft.get("completedMissionIds", []) or []) if str(entry or "").strip()]
+        unlocked_ids = [
+            str(entry or "").strip()
+            for entry in (draft.get("unlockedMissionIds", []) or [])
+            if str(entry or "").strip()
+        ]
+        completed_ids = [
+            str(entry or "").strip()
+            for entry in (draft.get("completedMissionIds", []) or [])
+            if str(entry or "").strip()
+        ]
 
         for mission_id in unlocked_ids:
             self.unlocked_listbox.insert(tk.END, self._mission_label(mission_id))

@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import ttk
 
 from src.domain.main_character import CharacterInfo, HobbyInterestLevel, LLMControlProfile
@@ -38,7 +38,9 @@ class MainCharacterInfoDialog(tk.Toplevel):
             hobby_name = str(entry.get("name", "") or "").strip()
             if not hobby_name:
                 continue
-            interest_level = str(entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value) or HobbyInterestLevel.INDIFFERENT.value)
+            interest_level = str(
+                entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value) or HobbyInterestLevel.INDIFFERENT.value
+            )
             hobby_lines.append(f"{hobby_name} | {interest_level}")
         if not hobby_lines:
             hobby_lines = [f"No particular hobby | {HobbyInterestLevel.INDIFFERENT.value}"]
@@ -96,7 +98,8 @@ class MainCharacterInfoDialog(tk.Toplevel):
         payload = {
             "characterInfo": {},
             "llmControlProfile": {},
-            "hobbies": self._parse_hobbies() or [
+            "hobbies": self._parse_hobbies()
+            or [
                 {
                     "name": "No particular hobby",
                     "interestLevel": HobbyInterestLevel.INDIFFERENT.value,
@@ -113,4 +116,3 @@ class MainCharacterInfoDialog(tk.Toplevel):
             payload["llmControlProfile"][field_key] = self.profile_widgets[field_key].get("1.0", tk.END).strip()
         self.on_save(payload)
         self.destroy()
-

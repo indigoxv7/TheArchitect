@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
 from .dialogs import ClimateEditorTab, EffectEditorTab, TerrainEditorTab, _EditorTabBase
 from src.domain.environment import CompatibilitySelectionMode, IncompatibilityMode
@@ -33,7 +33,9 @@ class BiomeEditorTab(_EditorTabBase):
         effect_actions = ttk.Frame(effect_panel)
         effect_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(effect_actions, text="Add Effect", command=self._add_effect).pack(side=tk.LEFT)
-        ttk.Button(effect_actions, text="Remove Selected", command=self._remove_selected_effect).pack(side=tk.LEFT, padx=6)
+        ttk.Button(effect_actions, text="Remove Selected", command=self._remove_selected_effect).pack(
+            side=tk.LEFT, padx=6
+        )
 
         terrain_mode_row = ttk.Frame(self)
         terrain_mode_row.pack(fill=tk.X, pady=2)
@@ -63,9 +65,13 @@ class BiomeEditorTab(_EditorTabBase):
         self.compatible_terrain_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         compatible_terrain_actions = ttk.Frame(compatible_terrain_panel)
         compatible_terrain_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
-        self.compatible_terrain_add_button = ttk.Button(compatible_terrain_actions, text="Add", command=self._add_compatible_terrain)
+        self.compatible_terrain_add_button = ttk.Button(
+            compatible_terrain_actions, text="Add", command=self._add_compatible_terrain
+        )
         self.compatible_terrain_add_button.pack(side=tk.LEFT)
-        self.compatible_terrain_remove_button = ttk.Button(compatible_terrain_actions, text="Remove", command=self._remove_selected_compatible_terrain)
+        self.compatible_terrain_remove_button = ttk.Button(
+            compatible_terrain_actions, text="Remove", command=self._remove_selected_compatible_terrain
+        )
         self.compatible_terrain_remove_button.pack(side=tk.LEFT, padx=6)
 
         incompatible_terrain_panel = ttk.LabelFrame(terrain_lists, text="Incompatible Terrains")
@@ -74,9 +80,13 @@ class BiomeEditorTab(_EditorTabBase):
         self.incompatible_terrain_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         incompatible_terrain_actions = ttk.Frame(incompatible_terrain_panel)
         incompatible_terrain_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
-        self.incompatible_terrain_add_button = ttk.Button(incompatible_terrain_actions, text="Add", command=self._add_incompatible_terrain)
+        self.incompatible_terrain_add_button = ttk.Button(
+            incompatible_terrain_actions, text="Add", command=self._add_incompatible_terrain
+        )
         self.incompatible_terrain_add_button.pack(side=tk.LEFT)
-        self.incompatible_terrain_remove_button = ttk.Button(incompatible_terrain_actions, text="Remove", command=self._remove_selected_incompatible_terrain)
+        self.incompatible_terrain_remove_button = ttk.Button(
+            incompatible_terrain_actions, text="Remove", command=self._remove_selected_incompatible_terrain
+        )
         self.incompatible_terrain_remove_button.pack(side=tk.LEFT, padx=6)
 
         climate_mode_row = ttk.Frame(self)
@@ -107,9 +117,13 @@ class BiomeEditorTab(_EditorTabBase):
         self.compatible_climate_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         compatible_climate_actions = ttk.Frame(compatible_climate_panel)
         compatible_climate_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
-        self.compatible_climate_add_button = ttk.Button(compatible_climate_actions, text="Add", command=self._add_compatible_climate)
+        self.compatible_climate_add_button = ttk.Button(
+            compatible_climate_actions, text="Add", command=self._add_compatible_climate
+        )
         self.compatible_climate_add_button.pack(side=tk.LEFT)
-        self.compatible_climate_remove_button = ttk.Button(compatible_climate_actions, text="Remove", command=self._remove_selected_compatible_climate)
+        self.compatible_climate_remove_button = ttk.Button(
+            compatible_climate_actions, text="Remove", command=self._remove_selected_compatible_climate
+        )
         self.compatible_climate_remove_button.pack(side=tk.LEFT, padx=6)
 
         incompatible_climate_panel = ttk.LabelFrame(climate_lists, text="Incompatible Climates")
@@ -118,9 +132,13 @@ class BiomeEditorTab(_EditorTabBase):
         self.incompatible_climate_listbox.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         incompatible_climate_actions = ttk.Frame(incompatible_climate_panel)
         incompatible_climate_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
-        self.incompatible_climate_add_button = ttk.Button(incompatible_climate_actions, text="Add", command=self._add_incompatible_climate)
+        self.incompatible_climate_add_button = ttk.Button(
+            incompatible_climate_actions, text="Add", command=self._add_incompatible_climate
+        )
         self.incompatible_climate_add_button.pack(side=tk.LEFT)
-        self.incompatible_climate_remove_button = ttk.Button(incompatible_climate_actions, text="Remove", command=self._remove_selected_incompatible_climate)
+        self.incompatible_climate_remove_button = ttk.Button(
+            incompatible_climate_actions, text="Remove", command=self._remove_selected_incompatible_climate
+        )
         self.incompatible_climate_remove_button.pack(side=tk.LEFT, padx=6)
 
         ttk.Button(self, text="Save Biome", command=self._save).pack(fill=tk.X, pady=8)
@@ -154,11 +172,26 @@ class BiomeEditorTab(_EditorTabBase):
 
     def _refresh_all_lists(self):
         service = self.app.environment_service
-        self._refresh_listbox(self.effect_listbox, self._labels_for_ids(self.effect_ids, service.get_effect_by_id, service.get_effect_label))
-        self._refresh_listbox(self.compatible_terrain_listbox, self._labels_for_ids(self.compatible_terrain_ids, service.get_terrain_by_id, service.get_terrain_label))
-        self._refresh_listbox(self.incompatible_terrain_listbox, self._labels_for_ids(self.incompatible_terrain_ids, service.get_terrain_by_id, service.get_terrain_label))
-        self._refresh_listbox(self.compatible_climate_listbox, self._labels_for_ids(self.compatible_climate_ids, service.get_climate_by_id, service.get_climate_label))
-        self._refresh_listbox(self.incompatible_climate_listbox, self._labels_for_ids(self.incompatible_climate_ids, service.get_climate_by_id, service.get_climate_label))
+        self._refresh_listbox(
+            self.effect_listbox,
+            self._labels_for_ids(self.effect_ids, service.get_effect_by_id, service.get_effect_label),
+        )
+        self._refresh_listbox(
+            self.compatible_terrain_listbox,
+            self._labels_for_ids(self.compatible_terrain_ids, service.get_terrain_by_id, service.get_terrain_label),
+        )
+        self._refresh_listbox(
+            self.incompatible_terrain_listbox,
+            self._labels_for_ids(self.incompatible_terrain_ids, service.get_terrain_by_id, service.get_terrain_label),
+        )
+        self._refresh_listbox(
+            self.compatible_climate_listbox,
+            self._labels_for_ids(self.compatible_climate_ids, service.get_climate_by_id, service.get_climate_label),
+        )
+        self._refresh_listbox(
+            self.incompatible_climate_listbox,
+            self._labels_for_ids(self.incompatible_climate_ids, service.get_climate_by_id, service.get_climate_label),
+        )
 
     def _clear_form(self):
         self.current_id = None
@@ -195,11 +228,16 @@ class BiomeEditorTab(_EditorTabBase):
         self.incompatible_climate_ids = list(biome.incompatibleClimateIds)
         self._refresh_all_lists()
         self._refresh_mode_state()
+
     def _refresh_mode_state(self, *_args):
         terrain_any = self.vars["terrainCompatibilityMode"].get() == CompatibilitySelectionMode.ANY.value
-        terrain_all_except = self.vars["terrainIncompatibilityMode"].get() == IncompatibilityMode.ALL_EXCEPT_COMPATIBLE.value
+        terrain_all_except = (
+            self.vars["terrainIncompatibilityMode"].get() == IncompatibilityMode.ALL_EXCEPT_COMPATIBLE.value
+        )
         climate_any = self.vars["climateCompatibilityMode"].get() == CompatibilitySelectionMode.ANY.value
-        climate_all_except = self.vars["climateIncompatibilityMode"].get() == IncompatibilityMode.ALL_EXCEPT_COMPATIBLE.value
+        climate_all_except = (
+            self.vars["climateIncompatibilityMode"].get() == IncompatibilityMode.ALL_EXCEPT_COMPATIBLE.value
+        )
 
         self.compatible_terrain_listbox.configure(state=(tk.DISABLED if terrain_any else tk.NORMAL))
         self.compatible_terrain_add_button.configure(state=(tk.DISABLED if terrain_any else tk.NORMAL))

@@ -47,7 +47,9 @@ class TestUnitService(unittest.TestCase):
 
     def test_unit_overrides_fall_back_to_race(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, item_service, spell_service, character_service, race_service, unit_service, unitbook_path = self._build_services(temp_dir)
+            _context, item_service, spell_service, character_service, race_service, unit_service, unitbook_path = (
+                self._build_services(temp_dir)
+            )
 
             item_service.create_item_from_dict({"name": "Club", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"})
             club = item_service.get_item("Club")
@@ -105,7 +107,9 @@ class TestUnitService(unittest.TestCase):
             reloaded_item_service.load_itembook()
             reloaded_spell_service = SpellService(str(Path(temp_dir) / "spellbook.json"), reloaded_context)
             reloaded_spell_service.load_spellbook()
-            reloaded_character_service = CharacterService(str(Path(temp_dir) / "Characters"), context=reloaded_context, item_service=reloaded_item_service)
+            reloaded_character_service = CharacterService(
+                str(Path(temp_dir) / "Characters"), context=reloaded_context, item_service=reloaded_item_service
+            )
             reloaded_character_service.load_characters()
             reloaded_race_service = RaceService(
                 racebook_path=str(Path(temp_dir) / "racebook.json"),
@@ -134,7 +138,9 @@ class TestUnitService(unittest.TestCase):
 
     def test_units_are_sorted_by_race(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _item_service, _spell_service, _character_service, race_service, unit_service, _unitbook_path = self._build_services(temp_dir)
+            _context, _item_service, _spell_service, _character_service, race_service, unit_service, _unitbook_path = (
+                self._build_services(temp_dir)
+            )
             race_service.create_race_from_dict({"name": "Goblin"})
             race_service.create_race_from_dict({"name": "Orc"})
             goblin = race_service.get_race("Goblin")

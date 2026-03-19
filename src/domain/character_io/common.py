@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -233,4 +233,3 @@ def _stats_from_dict(data: Any) -> CharacterStatistics | None:
         elitesKilled=_coerce_int(data.get("elitesKilled", 0), 0),
         unitsKilled=data.get("unitsKilled", {}),
     )
-

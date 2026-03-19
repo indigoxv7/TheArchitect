@@ -17,9 +17,9 @@ class TestMenuView(unittest.TestCase):
         self.assertIsNone(button.emoji)
 
     def test_menu_button_keeps_valid_unicode_emoji(self):
-        button = MenuButton(SimpleNamespace(myEmoji="\U0001F300"), None, "Portal Mission", lambda *args: None)
+        button = MenuButton(SimpleNamespace(myEmoji="\U0001f300"), None, "Portal Mission", lambda *args: None)
         self.assertIsNotNone(button.emoji)
-        self.assertEqual(button.emoji.name, "\U0001F300")
+        self.assertEqual(button.emoji.name, "\U0001f300")
 
 
 if __name__ == "__main__":

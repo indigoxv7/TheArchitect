@@ -15,12 +15,12 @@ from src.domain.combat_timing import (
 )
 from src.domain.combat.units import CombatUnitState, EnemyStackState
 from src.services.combat_loadout_service import select_active_character_weapon
-from src.config.tuning import character_stat_factor
 from src.domain.mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
-from src.domain.combat.encounter import EncounterDefinition, EncounterEnemyEntry
+from src.domain.combat.encounter import EncounterDefinition
 from src.domain.combat.enums import BattleOutcome, BattlePhase, EncounterType
 from src.domain.combat.state import BattleState, CommanderOrders
 from src.domain.combat_timing import exchange_duration_seconds
+
 
 class BattleRosterBuilder:
     def __init__(self, context, item_service, character_service, health_state_for_ratio: Callable[[float, float], Any]):
@@ -161,14 +161,28 @@ class BattleRosterBuilder:
         gear = getattr(character, "gear", Gear())
         size = self.resolve_size_for_character(character)
         get_max_health = getattr(character, "GetMaxHealth", None)
-        max_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
+        max_health = max(
+            1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0)
+        )
         current_health = max(0.0, min(float(getattr(character, "health", max_health) or max_health), max_health))
         get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
+        speed = float(
+            get_speed()
+            if callable(get_speed)
+            else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0))
+        )
         get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        stamina_limit = float(
+            get_stamina_limit()
+            if callable(get_stamina_limit)
+            else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0))
+        )
         get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        stamina_regen = float(
+            get_stamina_regen()
+            if callable(get_stamina_regen)
+            else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0))
+        )
         inventory_item_ids = []
         for item in getattr(gear, "inventory", []) or []:
             item_id = self.resolve_item_id(item)
@@ -225,13 +239,27 @@ class BattleRosterBuilder:
         gear = getattr(character, "gear", Gear())
         size = self.resolve_size_for_character(character)
         get_max_health = getattr(character, "GetMaxHealth", None)
-        unit_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
+        unit_health = max(
+            1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0)
+        )
         get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
+        speed = float(
+            get_speed()
+            if callable(get_speed)
+            else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0))
+        )
         get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        stamina_limit = float(
+            get_stamina_limit()
+            if callable(get_stamina_limit)
+            else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0))
+        )
         get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
+        stamina_regen = float(
+            get_stamina_regen()
+            if callable(get_stamina_regen)
+            else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0))
+        )
         return EnemyStackState(
             stack_id=stack_id,
             name=name_override,
@@ -378,7 +406,9 @@ class BattleSetupMixin:
         player_front = max(0, min(total_lines - 2, int(encounter.player_front_line)))
         enemy_front = max(player_front + 1, min(total_lines - 1, int(encounter.enemy_front_line)))
 
-        objective = mission_objective if mission_objective is not None else self._default_objective_for_encounter(encounter)
+        objective = (
+            mission_objective if mission_objective is not None else self._default_objective_for_encounter(encounter)
+        )
         stats = mission_statistics if mission_statistics is not None else MissionStatistics()
         battle = BattleState(
             player_id=int(player.discordID),

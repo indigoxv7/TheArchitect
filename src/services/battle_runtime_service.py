@@ -38,7 +38,9 @@ class BattleRuntimeService:
 
     def _is_active_tab(self, player_id: int, tab_name: str) -> bool:
         battle = self.battle_service.get_active_battle(player_id)
-        return battle is not None and str(getattr(battle, "active_tab", "Orders") or "Orders") == str(tab_name or "Orders")
+        return battle is not None and str(getattr(battle, "active_tab", "Orders") or "Orders") == str(
+            tab_name or "Orders"
+        )
 
     def build_embed(self, battle) -> discord.Embed:
         snapshot = self.battle_service.build_battle_snapshot(battle)
@@ -98,7 +100,9 @@ class BattleRuntimeService:
                 f"{enemy['name']}{count_suffix} | {enemy['health']:.0f}/{enemy['max_health']:.0f} | {enemy['state']} | L{enemy['line']}"
             )
         embed.add_field(name="Allies", value="\n".join(ally_lines) if ally_lines else "No allied units.", inline=False)
-        embed.add_field(name="Enemies", value="\n".join(enemy_lines) if enemy_lines else "No enemy units.", inline=False)
+        embed.add_field(
+            name="Enemies", value="\n".join(enemy_lines) if enemy_lines else "No enemy units.", inline=False
+        )
 
         highlights = snapshot["recent_highlights"][:8]
         trigger_lines = snapshot["recent_triggers"][:4]
@@ -115,12 +119,16 @@ class BattleRuntimeService:
         elif battle.active_tab == "Intel":
             reasons = battle.orders.strategy_reasons[:4]
             if reasons:
-                embed.add_field(name="Strategy Notes", value="\n".join(f"- {reason}" for reason in reasons), inline=False)
+                embed.add_field(
+                    name="Strategy Notes", value="\n".join(f"- {reason}" for reason in reasons), inline=False
+                )
         elif battle.active_tab == "Resources":
             consumables = self.battle_service.list_available_consumables(battle)
             embed.add_field(
                 name="Consumables",
-                value="\n".join(label for _value, label in consumables[:10]) if consumables else "No consumables available.",
+                value="\n".join(label for _value, label in consumables[:10])
+                if consumables
+                else "No consumables available.",
                 inline=False,
             )
         elif battle.active_tab == "Retreat":
@@ -137,12 +145,16 @@ class BattleRuntimeService:
             return discord.ui.View(timeout=30)
         return CombatView(self, battle)
 
-    async def start_or_resume_battle(self, interaction: discord.Interaction, player_id: int, encounter_type: EncounterType):
+    async def start_or_resume_battle(
+        self, interaction: discord.Interaction, player_id: int, encounter_type: EncounterType
+    ):
         battle, resumed = self.battle_service.start_or_resume_battle(player_id, encounter_type)
         note = "Resumed active battle." if resumed else f"Started {encounter_type.name.lower()} battle."
         await self.render_battle(interaction, battle, note=note)
 
-    async def render_battle(self, interaction: discord.Interaction, battle, message: discord.Message | None = None, note: str | None = None):
+    async def render_battle(
+        self, interaction: discord.Interaction, battle, message: discord.Message | None = None, note: str | None = None
+    ):
         embed = self.build_embed(battle)
         view = self.build_view(battle)
         if message is None:

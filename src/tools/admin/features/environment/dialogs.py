@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.environment import CompatibilitySelectionMode, IncompatibilityMode
-from src.tools.admin.shared.pickers import ClimateSelectDialog, EffectSelectDialog, TerrainSelectDialog
+from src.tools.admin.shared.pickers import EffectSelectDialog
 
 
 class _EditorTabBase(ttk.Frame):
@@ -168,7 +167,11 @@ class TerrainEditorTab(_EditorTabBase):
         self.effect_listbox.delete(0, tk.END)
         for effect_id in self.effect_ids:
             effect = self.app.environment_service.get_effect_by_id(effect_id)
-            label = self.app.environment_service.get_effect_label(effect) if effect is not None else f"Unknown [{effect_id}]"
+            label = (
+                self.app.environment_service.get_effect_label(effect)
+                if effect is not None
+                else f"Unknown [{effect_id}]"
+            )
             self.effect_listbox.insert(tk.END, label)
 
     def _clear_form(self):
@@ -271,7 +274,11 @@ class ClimateEditorTab(_EditorTabBase):
         self.effect_listbox.delete(0, tk.END)
         for effect_id in self.effect_ids:
             effect = self.app.environment_service.get_effect_by_id(effect_id)
-            label = self.app.environment_service.get_effect_label(effect) if effect is not None else f"Unknown [{effect_id}]"
+            label = (
+                self.app.environment_service.get_effect_label(effect)
+                if effect is not None
+                else f"Unknown [{effect_id}]"
+            )
             self.effect_listbox.insert(tk.END, label)
 
     def _clear_form(self):

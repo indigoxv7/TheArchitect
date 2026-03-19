@@ -46,7 +46,9 @@ class TestAllegianceService(unittest.TestCase):
             self.assertIsNotNone(kingdom)
             self.assertEqual(kingdom.defaultPolicy, AllegianceDefaultPolicy.NEUTRAL_BY_DEFAULT)
             self.assertEqual(kingdom.get_relationship_to(second.allegianceId), AllegianceRelationship.HATED_ENEMIES)
-            self.assertEqual(service.get_relationship(second.allegianceId, first.allegianceId), AllegianceRelationship.ENEMIES)
+            self.assertEqual(
+                service.get_relationship(second.allegianceId, first.allegianceId), AllegianceRelationship.ENEMIES
+            )
             self.assertIn(first.allegianceId, context.allegiancebook_overview)
 
             reloaded_context = GameContext()

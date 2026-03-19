@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import copy
 import random
@@ -128,7 +128,9 @@ def initialize_duel_timeline(rng: random.Random) -> DuelTimeline:
     )
 
 
-def select_next_duel_side(alive_sides: list[str], next_action_times: dict[str, float], tie_break_order: list[str]) -> str | None:
+def select_next_duel_side(
+    alive_sides: list[str], next_action_times: dict[str, float], tie_break_order: list[str]
+) -> str | None:
     if not alive_sides:
         return None
     if len(alive_sides) == 1:
@@ -174,7 +176,8 @@ def scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float
     scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
     scaled_weapon.damageMax = max(
         scaled_weapon.damageMin,
-        float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier),
+        float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin)
+        * float(damage_multiplier),
     )
     return scaled_weapon
 
@@ -198,4 +201,3 @@ def health_state_for_character(character: Character) -> HealthState:
     if percent >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26):
         return HealthState.HEAVILY_INJURED
     return HealthState.DYING
-

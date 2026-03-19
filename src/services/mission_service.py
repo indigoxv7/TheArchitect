@@ -76,7 +76,11 @@ class MissionService:
                     raise ValueError(f"Mission allegiance '{allegiance_id}' includes duplicate unit '{unit_id}'.")
                 if self.unit_service.get_unit_by_id(unit_id) is None:
                     raise ValueError(f"Unit '{unit_id}' does not exist.")
-                if option.capacityMin is not None and option.capacityMax is not None and option.capacityMin > option.capacityMax:
+                if (
+                    option.capacityMin is not None
+                    and option.capacityMax is not None
+                    and option.capacityMin > option.capacityMax
+                ):
                     raise ValueError(f"Unit '{unit_id}' has capacity min greater than max.")
                 seen_units.add(unit_id)
 

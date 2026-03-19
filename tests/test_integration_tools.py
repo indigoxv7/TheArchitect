@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 import tempfile
 import unittest
@@ -22,8 +22,8 @@ class TestIntegrationTools(unittest.TestCase):
                 {"type": "open", "menu": "mainMenu"},
                 {"type": "select", "target": "partyMembers"},
                 {"type": "back"},
-                {"type": "assert_menu", "target": "mainMenu"}
-            ]
+                {"type": "assert_menu", "target": "mainMenu"},
+            ],
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -35,4 +35,3 @@ class TestIntegrationTools(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

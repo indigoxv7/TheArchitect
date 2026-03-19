@@ -1,4 +1,4 @@
-﻿import json
+import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -74,7 +74,9 @@ class CharacterEditorFrame(ttk.Frame):
 
         self._row_entry("Health", self.vars["health"])
         self._row_combo("Health State", self.vars["healthState"], [e.name for e in HealthState])
-        self._row_combo("Friendly Fire", self.vars["friendlyFireTolerance"], [entry.value for entry in FriendlyFireTolerance])
+        self._row_combo(
+            "Friendly Fire", self.vars["friendlyFireTolerance"], [entry.value for entry in FriendlyFireTolerance]
+        )
 
         actions = ttk.Frame(self)
         actions.pack(fill=tk.X, pady=8)
@@ -82,10 +84,16 @@ class CharacterEditorFrame(ttk.Frame):
         ttk.Button(actions, text="Edit Gear", command=self._edit_gear).pack(side=tk.LEFT, padx=4)
         ttk.Button(actions, text="Edit Bonus (Buff List)", command=self._edit_buffs).pack(side=tk.LEFT, padx=4)
         ttk.Button(actions, text="Add Achievement", command=self._add_achievement).pack(side=tk.LEFT, padx=4)
-        ttk.Button(actions, text="Remove Achievement", command=self._remove_selected_achievement).pack(side=tk.LEFT, padx=4)
-        self.main_character_button = ttk.Button(actions, text="Convert to Main Character", command=self._edit_main_character)
+        ttk.Button(actions, text="Remove Achievement", command=self._remove_selected_achievement).pack(
+            side=tk.LEFT, padx=4
+        )
+        self.main_character_button = ttk.Button(
+            actions, text="Convert to Main Character", command=self._edit_main_character
+        )
         self.main_character_button.pack(side=tk.LEFT, padx=4)
-        ttk.Button(actions, text="Generate Main Character", command=self._generate_main_character_from_scratch).pack(side=tk.LEFT, padx=4)
+        ttk.Button(actions, text="Generate Main Character", command=self._generate_main_character_from_scratch).pack(
+            side=tk.LEFT, padx=4
+        )
 
         achievement_panel = ttk.LabelFrame(self, text="Assigned Achievements")
         achievement_panel.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -156,7 +164,10 @@ class CharacterEditorFrame(ttk.Frame):
         for entry in payload:
             if isinstance(entry, dict):
                 hobby_name = str(entry.get("name", "") or "").strip()
-                interest_value = str(entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value) or HobbyInterestLevel.INDIFFERENT.value)
+                interest_value = str(
+                    entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value)
+                    or HobbyInterestLevel.INDIFFERENT.value
+                )
             elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
                 hobby_name = str(entry[0] or "").strip()
                 interest_value = str(getattr(entry[1], "value", entry[1]) or HobbyInterestLevel.INDIFFERENT.value)
@@ -165,7 +176,11 @@ class CharacterEditorFrame(ttk.Frame):
             if not hobby_name:
                 continue
             valid_interest = next(
-                (option.value for option in HobbyInterestLevel if interest_value.upper() == option.name or interest_value.lower() == option.value.lower()),
+                (
+                    option.value
+                    for option in HobbyInterestLevel
+                    if interest_value.upper() == option.name or interest_value.lower() == option.value.lower()
+                ),
                 HobbyInterestLevel.INDIFFERENT.value,
             )
             normalized.append({"name": hobby_name, "interestLevel": valid_interest})
@@ -212,7 +227,9 @@ class CharacterEditorFrame(ttk.Frame):
         return result
 
     def refresh_character_list(self, reset_form: bool):
-        labels = ["<New Character>"] + [f"{character.name} [{character_id}]" for character_id, character in self._filtered_characters()]
+        labels = ["<New Character>"] + [
+            f"{character.name} [{character_id}]" for character_id, character in self._filtered_characters()
+        ]
         self.pick["values"] = labels
         if reset_form:
             self.pick_var.set("<New Character>")
@@ -247,7 +264,12 @@ class CharacterEditorFrame(ttk.Frame):
         self.vars["race"].set(str(state.get("race", "Human1") or "Human1"))
         self.vars["health"].set(str(state.get("health", 100)))
         self.vars["healthState"].set(str(state.get("healthState", HealthState.HEALTHY.name)))
-        self.vars["friendlyFireTolerance"].set(str(state.get("friendlyFireTolerance", FriendlyFireTolerance.NO_FRIENDLY_FIRE.value) or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value))
+        self.vars["friendlyFireTolerance"].set(
+            str(
+                state.get("friendlyFireTolerance", FriendlyFireTolerance.NO_FRIENDLY_FIRE.value)
+                or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value
+            )
+        )
         attrs = state.get("attributes", {})
         self.attributes_draft = {
             "physical_power": _safe_int(attrs.get("physicalPower", 5), 5),
@@ -280,11 +302,14 @@ class CharacterEditorFrame(ttk.Frame):
     def _format_hobby_summary(self) -> str:
         if not self.main_character_hobbies_draft:
             return "No particular hobby [Indifferent]"
-        return ", ".join(
-            f"{entry.get('name', '')} [{entry.get('interestLevel', HobbyInterestLevel.INDIFFERENT.value)}]"
-            for entry in self.main_character_hobbies_draft
-            if str(entry.get("name", "") or "").strip()
-        ) or "No particular hobby [Indifferent]"
+        return (
+            ", ".join(
+                f"{entry.get('name', '')} [{entry.get('interestLevel', HobbyInterestLevel.INDIFFERENT.value)}]"
+                for entry in self.main_character_hobbies_draft
+                if str(entry.get("name", "") or "").strip()
+            )
+            or "No particular hobby [Indifferent]"
+        )
 
     def _refresh_summary(self):
         lines = [
@@ -351,7 +376,9 @@ class CharacterEditorFrame(ttk.Frame):
         race_id = str(self.vars["race"].get() or "Human1").strip() or "Human1"
         race = self.app.race_service.get_race(race_id)
         if race is None:
-            messagebox.showerror("Character Editor", f"Select a valid race before generating. '{race_id}' was not found.")
+            messagebox.showerror(
+                "Character Editor", f"Select a valid race before generating. '{race_id}' was not found."
+            )
             return
 
         generated_name = self.vars["name"].get().strip()
@@ -399,7 +426,13 @@ class CharacterEditorFrame(ttk.Frame):
 
         self._refresh_main_character_button()
         self._refresh_summary()
-        MainCharacterInfoDialog(self, self.main_character_info_draft, self.llm_control_profile_draft, self.main_character_hobbies_draft, self._on_main_character_info_saved)
+        MainCharacterInfoDialog(
+            self,
+            self.main_character_info_draft,
+            self.llm_control_profile_draft,
+            self.main_character_hobbies_draft,
+            self._on_main_character_info_saved,
+        )
 
     def _on_main_character_info_saved(self, payload):
         self.main_character_info_draft = self._normalize_main_character_info(payload.get("characterInfo"))
@@ -436,7 +469,10 @@ class CharacterEditorFrame(ttk.Frame):
             achievement_name = str(entry.get("name", "") or "").strip()
             if not achievement_name:
                 return
-            if any(str(existing.get("name", "") or "").strip().lower() == achievement_name.lower() for existing in self.achievements_draft):
+            if any(
+                str(existing.get("name", "") or "").strip().lower() == achievement_name.lower()
+                for existing in self.achievements_draft
+            ):
                 messagebox.showinfo("Character Editor", f"Achievement '{achievement_name}' is already assigned.")
                 return
             self.achievements_draft.append(entry)
@@ -465,7 +501,8 @@ class CharacterEditorFrame(ttk.Frame):
             "description": self.vars["description"].get().strip(),
             "portraitURL": self.vars["portraitURL"].get().strip(),
             "footerImageURL": self.vars["footerImageURL"].get().strip(),
-            "friendlyFireTolerance": self.vars["friendlyFireTolerance"].get().strip() or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value,
+            "friendlyFireTolerance": self.vars["friendlyFireTolerance"].get().strip()
+            or FriendlyFireTolerance.NO_FRIENDLY_FIRE.value,
             "attributes": {
                 "physicalPower": _safe_float(self.attributes_draft.get("physical_power", 5), 5),
                 "physicalStamina": _safe_float(self.attributes_draft.get("physical_stamina", 5), 5),
@@ -504,4 +541,3 @@ class CharacterEditorFrame(ttk.Frame):
             self.refresh_character_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Character Editor", f"Failed to save character: {exc}")
-

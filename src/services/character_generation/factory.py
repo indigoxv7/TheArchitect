@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import copy
 import random
@@ -63,9 +63,13 @@ def generate_main_character_from_scratch(
     character_info: CharacterInfo | None = None,
 ) -> MainCharacter:
     rng = rng if rng is not None else random.Random()
-    info = copy.deepcopy(character_info) if character_info is not None else generate_character_info(
-        generation_data_directory=generation_data_directory,
-        rng=rng,
+    info = (
+        copy.deepcopy(character_info)
+        if character_info is not None
+        else generate_character_info(
+            generation_data_directory=generation_data_directory,
+            rng=rng,
+        )
     )
     race_name = str(getattr(race, "name", "") or "").strip()
     resolved_name = str(name or "").strip()
@@ -127,4 +131,3 @@ def generate_main_character(
         rng=rng,
         character_info=character_info,
     )
-

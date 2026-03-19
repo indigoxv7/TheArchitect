@@ -1,4 +1,4 @@
-﻿import copy
+import copy
 import enum
 
 from src.domain.character import Character
@@ -292,12 +292,9 @@ class MainCharacter(Character):
         )
         main_character.health = int(getattr(base_character, "health", 100))
         main_character.healthState = getattr(base_character, "healthState", main_character.healthState)
-        main_character.activeAchievementTitle = str(
-            getattr(base_character, "activeAchievementTitle", "") or ""
-        )
+        main_character.activeAchievementTitle = str(getattr(base_character, "activeAchievementTitle", "") or "")
         main_character.description = str(getattr(base_character, "description", "") or "")
         main_character.portraitURL = str(getattr(base_character, "portraitURL", "") or "")
         main_character.footerImageURL = str(getattr(base_character, "footerImageURL", "") or "")
         main_character.CalculateBonus()
         return main_character
-

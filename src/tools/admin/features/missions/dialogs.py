@@ -41,8 +41,12 @@ class MissionUnitOptionDialog(tk.Toplevel):
         initial = initial_payload or {}
         self.unit_id = str(initial.get("unitId", "") or "").strip()
         self.unit_label_var = tk.StringVar(value=self._unit_label(self.unit_id))
-        self.capacity_min_var = tk.StringVar(value="" if initial.get("capacityMin") is None else str(initial.get("capacityMin")))
-        self.capacity_max_var = tk.StringVar(value="" if initial.get("capacityMax") is None else str(initial.get("capacityMax")))
+        self.capacity_min_var = tk.StringVar(
+            value="" if initial.get("capacityMin") is None else str(initial.get("capacityMin"))
+        )
+        self.capacity_max_var = tk.StringVar(
+            value="" if initial.get("capacityMax") is None else str(initial.get("capacityMax"))
+        )
         self.elite_chance_var = tk.StringVar(value=str(float(initial.get("eliteChance", 0.0) or 0.0)))
         self.is_boss_var = tk.BooleanVar(value=bool(initial.get("isBoss", False)))
 
@@ -117,7 +121,11 @@ class MissionUnitOptionDialog(tk.Toplevel):
         if capacity_max_value is not None and capacity_max_value < 0:
             messagebox.showerror("Mission Unit Option", "Capacity Max cannot be negative.")
             return
-        if capacity_min_value is not None and capacity_max_value is not None and capacity_min_value > capacity_max_value:
+        if (
+            capacity_min_value is not None
+            and capacity_max_value is not None
+            and capacity_min_value > capacity_max_value
+        ):
             messagebox.showerror("Mission Unit Option", "Capacity Min cannot exceed Capacity Max.")
             return
         if elite_chance < 0.0 or elite_chance > 1.0:
@@ -150,12 +158,22 @@ class MissionObjectiveDialog(tk.Toplevel):
         self.target_allegiance_id = str(initial.get("targetAllegianceId", "") or "").strip()
         self.escort_unit_id = str(initial.get("escortUnitId", "") or "").strip()
 
-        objective_type_name = str(initial.get("objectiveType", MissionObjectiveType.ELIMINATION.name) or MissionObjectiveType.ELIMINATION.name)
-        objective_type = MissionObjectiveType[objective_type_name] if objective_type_name in MissionObjectiveType.__members__ else MissionObjectiveType.ELIMINATION
+        objective_type_name = str(
+            initial.get("objectiveType", MissionObjectiveType.ELIMINATION.name) or MissionObjectiveType.ELIMINATION.name
+        )
+        objective_type = (
+            MissionObjectiveType[objective_type_name]
+            if objective_type_name in MissionObjectiveType.__members__
+            else MissionObjectiveType.ELIMINATION
+        )
         self.objective_type_var = tk.StringVar(value=objective_type.value)
-        self.elimination_fraction_var = tk.StringVar(value=str(float(initial.get("requiredEliminationFraction", 1.0) or 1.0)))
+        self.elimination_fraction_var = tk.StringVar(
+            value=str(float(initial.get("requiredEliminationFraction", 1.0) or 1.0))
+        )
         self.bosses_defeated_var = tk.StringVar(value=str(_safe_int(initial.get("requiredBossesDefeated", 1), 1)))
-        self.allies_remaining_fraction_var = tk.StringVar(value=str(float(initial.get("requiredAlliesRemainingFraction", 1.0) or 1.0)))
+        self.allies_remaining_fraction_var = tk.StringVar(
+            value=str(float(initial.get("requiredAlliesRemainingFraction", 1.0) or 1.0))
+        )
         self.required_packages_var = tk.StringVar(value=str(_safe_int(initial.get("requiredPackagesDelivered", 1), 1)))
         self.survival_hours_var = tk.StringVar(value=str(float(initial.get("requiredHoursSurvived", 1.0) or 1.0)))
         self.rescue_allies_var = tk.StringVar(value=str(_safe_int(initial.get("requiredAlliesEscaped", 1), 1)))
@@ -171,23 +189,49 @@ class MissionObjectiveDialog(tk.Toplevel):
         type_row = ttk.Frame(container)
         type_row.pack(fill=tk.X, pady=2)
         ttk.Label(type_row, text="Objective Type", width=18).pack(side=tk.LEFT)
-        ttk.Combobox(type_row, state="readonly", textvariable=self.objective_type_var, values=self.TYPE_VALUES).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Combobox(type_row, state="readonly", textvariable=self.objective_type_var, values=self.TYPE_VALUES).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
 
         self.frames = {}
         for objective_type in MissionObjectiveType:
             frame = ttk.LabelFrame(container, text=objective_type.value)
             self.frames[objective_type.value] = frame
-        self._entry_row(self.frames[MissionObjectiveType.ELIMINATION.value], "Enemy Fraction", self.elimination_fraction_var)
-        self._entry_row(self.frames[MissionObjectiveType.ASSASSINATION.value], "Bosses Required", self.bosses_defeated_var)
-        self._entry_row(self.frames[MissionObjectiveType.DEFENSE.value], "Allies Remaining Fraction", self.allies_remaining_fraction_var)
-        self._selector_row(self.frames[MissionObjectiveType.DELIVERY.value], "Required Item", self.item_label_var, self._select_item)
-        self._selector_row(self.frames[MissionObjectiveType.DELIVERY.value], "Target Faction", self.allegiance_label_var, self._select_target_allegiance)
-        self._entry_row(self.frames[MissionObjectiveType.DELIVERY.value], "Packages Required", self.required_packages_var)
-        self._selector_row(self.frames[MissionObjectiveType.ESCORT.value], "Escort Unit", self.escort_label_var, self._select_escort_unit)
+        self._entry_row(
+            self.frames[MissionObjectiveType.ELIMINATION.value], "Enemy Fraction", self.elimination_fraction_var
+        )
+        self._entry_row(
+            self.frames[MissionObjectiveType.ASSASSINATION.value], "Bosses Required", self.bosses_defeated_var
+        )
+        self._entry_row(
+            self.frames[MissionObjectiveType.DEFENSE.value],
+            "Allies Remaining Fraction",
+            self.allies_remaining_fraction_var,
+        )
+        self._selector_row(
+            self.frames[MissionObjectiveType.DELIVERY.value], "Required Item", self.item_label_var, self._select_item
+        )
+        self._selector_row(
+            self.frames[MissionObjectiveType.DELIVERY.value],
+            "Target Faction",
+            self.allegiance_label_var,
+            self._select_target_allegiance,
+        )
+        self._entry_row(
+            self.frames[MissionObjectiveType.DELIVERY.value], "Packages Required", self.required_packages_var
+        )
+        self._selector_row(
+            self.frames[MissionObjectiveType.ESCORT.value],
+            "Escort Unit",
+            self.escort_label_var,
+            self._select_escort_unit,
+        )
         self._entry_row(self.frames[MissionObjectiveType.SURVIVAL.value], "Hours Required", self.survival_hours_var)
         self._entry_row(self.frames[MissionObjectiveType.RESCUE.value], "Allies Escaped", self.rescue_allies_var)
         self._entry_row(self.frames[MissionObjectiveType.RESCUE.value], "Escape Distance", self.rescue_distance_var)
-        self._entry_row(self.frames[MissionObjectiveType.SCAVENGE.value], "Resources Required", self.scavenge_resources_var)
+        self._entry_row(
+            self.frames[MissionObjectiveType.SCAVENGE.value], "Resources Required", self.scavenge_resources_var
+        )
         self._entry_row(self.frames[MissionObjectiveType.RECRUIT.value], "Units Required", self.recruit_units_var)
 
         actions = ttk.Frame(container)
@@ -223,7 +267,11 @@ class MissionObjectiveDialog(tk.Toplevel):
         if not allegiance_id:
             return "<None>"
         allegiance = self.app.allegiance_service.get_allegiance_by_id(allegiance_id)
-        return self.app.allegiance_service.get_allegiance_label(allegiance) if allegiance is not None else f"Unknown [{allegiance_id}]"
+        return (
+            self.app.allegiance_service.get_allegiance_label(allegiance)
+            if allegiance is not None
+            else f"Unknown [{allegiance_id}]"
+        )
 
     def _unit_label(self, unit_id):
         if not unit_id:
@@ -232,13 +280,34 @@ class MissionObjectiveDialog(tk.Toplevel):
         return self.app.unit_service.get_unit_label(unit) if unit is not None else f"Unknown [{unit_id}]"
 
     def _select_item(self):
-        ItemSelectDialog(self, self.app.item_service, lambda item_id: (setattr(self, "required_item_id", item_id), self.item_label_var.set(self._item_label(item_id))))
+        ItemSelectDialog(
+            self,
+            self.app.item_service,
+            lambda item_id: (
+                setattr(self, "required_item_id", item_id),
+                self.item_label_var.set(self._item_label(item_id)),
+            ),
+        )
 
     def _select_target_allegiance(self):
-        AllegianceSelectDialog(self, self.app.allegiance_service, lambda allegiance_id: (setattr(self, "target_allegiance_id", allegiance_id), self.allegiance_label_var.set(self._allegiance_label(allegiance_id))))
+        AllegianceSelectDialog(
+            self,
+            self.app.allegiance_service,
+            lambda allegiance_id: (
+                setattr(self, "target_allegiance_id", allegiance_id),
+                self.allegiance_label_var.set(self._allegiance_label(allegiance_id)),
+            ),
+        )
 
     def _select_escort_unit(self):
-        UnitSelectDialog(self, self.app.unit_service, lambda unit_id: (setattr(self, "escort_unit_id", unit_id), self.escort_label_var.set(self._unit_label(unit_id))))
+        UnitSelectDialog(
+            self,
+            self.app.unit_service,
+            lambda unit_id: (
+                setattr(self, "escort_unit_id", unit_id),
+                self.escort_label_var.set(self._unit_label(unit_id)),
+            ),
+        )
 
     def _refresh_type_ui(self, *_args):
         selected = self.objective_type_var.get()
@@ -248,7 +317,10 @@ class MissionObjectiveDialog(tk.Toplevel):
                 frame.pack(fill=tk.X, pady=6)
 
     def _save(self):
-        objective_type = next((entry for entry in MissionObjectiveType if entry.value == self.objective_type_var.get()), MissionObjectiveType.ELIMINATION)
+        objective_type = next(
+            (entry for entry in MissionObjectiveType if entry.value == self.objective_type_var.get()),
+            MissionObjectiveType.ELIMINATION,
+        )
         payload = {"objectiveType": objective_type.name}
         if objective_type == MissionObjectiveType.ELIMINATION:
             payload["requiredEliminationFraction"] = _safe_float(self.elimination_fraction_var.get(), 1.0)
@@ -266,7 +338,13 @@ class MissionObjectiveDialog(tk.Toplevel):
             if not self.required_item_id or not self.target_allegiance_id:
                 messagebox.showerror("Mission Objective", "Select both the delivery item and target faction.")
                 return
-            payload.update({"requiredItemId": self.required_item_id, "targetAllegianceId": self.target_allegiance_id, "requiredPackagesDelivered": _safe_int(self.required_packages_var.get(), 1)})
+            payload.update(
+                {
+                    "requiredItemId": self.required_item_id,
+                    "targetAllegianceId": self.target_allegiance_id,
+                    "requiredPackagesDelivered": _safe_int(self.required_packages_var.get(), 1),
+                }
+            )
         elif objective_type == MissionObjectiveType.ESCORT:
             if not self.escort_unit_id:
                 messagebox.showerror("Mission Objective", "Select the unit to escort.")
@@ -275,7 +353,12 @@ class MissionObjectiveDialog(tk.Toplevel):
         elif objective_type == MissionObjectiveType.SURVIVAL:
             payload["requiredHoursSurvived"] = _safe_float(self.survival_hours_var.get(), 1.0)
         elif objective_type == MissionObjectiveType.RESCUE:
-            payload.update({"requiredAlliesEscaped": _safe_int(self.rescue_allies_var.get(), 1), "requiredEscapeDistance": _safe_float(self.rescue_distance_var.get(), 0.0)})
+            payload.update(
+                {
+                    "requiredAlliesEscaped": _safe_int(self.rescue_allies_var.get(), 1),
+                    "requiredEscapeDistance": _safe_float(self.rescue_distance_var.get(), 0.0),
+                }
+            )
         elif objective_type == MissionObjectiveType.SCAVENGE:
             payload["requiredBasicResources"] = _safe_int(self.scavenge_resources_var.get(), 1)
         elif objective_type == MissionObjectiveType.RECRUIT:
@@ -296,11 +379,15 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
         }
         initial = initial_payload or {}
         self.allegiance_id = str(initial.get("allegianceId", "") or "").strip()
-        self.unit_options_draft = [dict(entry) for entry in (initial.get("unitOptions", []) or []) if isinstance(entry, dict)]
+        self.unit_options_draft = [
+            dict(entry) for entry in (initial.get("unitOptions", []) or []) if isinstance(entry, dict)
+        ]
         self.allegiance_label_var = tk.StringVar(value=self._allegiance_label(self.allegiance_id))
         self.power_point_cap_var = tk.StringVar(value=str(_safe_int(initial.get("powerPointCap", 0), 0)))
         self.cluster_probability_var = tk.StringVar(value=str(float(initial.get("clusterProbability", 0.0) or 0.0)))
-        self.cluster_probability_variance_var = tk.StringVar(value=str(float(initial.get("clusterProbabilityVariance", 0.0) or 0.0)))
+        self.cluster_probability_variance_var = tk.StringVar(
+            value=str(float(initial.get("clusterProbabilityVariance", 0.0) or 0.0))
+        )
         self.level_min_var = tk.StringVar(value=str(_safe_int(initial.get("levelMin", 0), 0)))
         self.level_max_var = tk.StringVar(value=str(_safe_int(initial.get("levelMax", 0), 0)))
         self.summary_var = tk.StringVar(value="")
@@ -321,10 +408,14 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
         unit_actions = ttk.Frame(unit_frame)
         unit_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(unit_actions, text="Add Unit", command=self._add_unit_option).pack(side=tk.LEFT)
-        ttk.Button(unit_actions, text="Edit Selected", command=self._edit_selected_unit_option).pack(side=tk.LEFT, padx=6)
+        ttk.Button(unit_actions, text="Edit Selected", command=self._edit_selected_unit_option).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(unit_actions, text="Remove Selected", command=self._remove_selected_unit_option).pack(side=tk.LEFT)
 
-        ttk.Label(container, textvariable=self.summary_var, wraplength=760, justify=tk.LEFT).pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(container, textvariable=self.summary_var, wraplength=760, justify=tk.LEFT).pack(
+            fill=tk.X, pady=(0, 6)
+        )
         actions = ttk.Frame(container)
         actions.pack(fill=tk.X)
         ttk.Button(actions, text="Save", command=self._save).pack(side=tk.LEFT)
@@ -351,7 +442,11 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
         if not allegiance_id:
             return "<None>"
         allegiance = self.app.allegiance_service.get_allegiance_by_id(allegiance_id)
-        return self.app.allegiance_service.get_allegiance_label(allegiance) if allegiance is not None else f"Unknown [{allegiance_id}]"
+        return (
+            self.app.allegiance_service.get_allegiance_label(allegiance)
+            if allegiance is not None
+            else f"Unknown [{allegiance_id}]"
+        )
 
     def _unit_option_label(self, payload):
         unit_id = str(payload.get("unitId", "") or "").strip()
@@ -372,13 +467,24 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
             self.unit_listbox.insert(tk.END, self._unit_option_label(payload))
 
     def _refresh_summary(self):
-        self.summary_var.set(f"Selected allegiance: {self.allegiance_label_var.get()} | {len(self.unit_options_draft)} unit options")
+        self.summary_var.set(
+            f"Selected allegiance: {self.allegiance_label_var.get()} | {len(self.unit_options_draft)} unit options"
+        )
 
     def _select_allegiance(self):
         exclude_ids = set(self.exclude_allegiance_ids)
         if self.allegiance_id:
             exclude_ids.discard(self.allegiance_id)
-        AllegianceSelectDialog(self, self.app.allegiance_service, lambda allegiance_id: (setattr(self, 'allegiance_id', allegiance_id), self.allegiance_label_var.set(self._allegiance_label(allegiance_id)), self._refresh_summary()), exclude_ids=exclude_ids)
+        AllegianceSelectDialog(
+            self,
+            self.app.allegiance_service,
+            lambda allegiance_id: (
+                setattr(self, "allegiance_id", allegiance_id),
+                self.allegiance_label_var.set(self._allegiance_label(allegiance_id)),
+                self._refresh_summary(),
+            ),
+            exclude_ids=exclude_ids,
+        )
 
     def _selected_unit_index(self):
         selection = self.unit_listbox.curselection()
@@ -405,12 +511,24 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
         if index is None:
             messagebox.showerror("Mission Allegiance", "Select a unit option to edit.")
             return
-        exclude_ids = [entry.get("unitId") for position, entry in enumerate(self.unit_options_draft) if position != index]
-        MissionUnitOptionDialog(self, self.app, dict(self.unit_options_draft[index]), lambda payload: self._replace_unit_option(index, payload), exclude_unit_ids=exclude_ids)
+        exclude_ids = [
+            entry.get("unitId") for position, entry in enumerate(self.unit_options_draft) if position != index
+        ]
+        MissionUnitOptionDialog(
+            self,
+            self.app,
+            dict(self.unit_options_draft[index]),
+            lambda payload: self._replace_unit_option(index, payload),
+            exclude_unit_ids=exclude_ids,
+        )
 
     def _replace_unit_option(self, index, payload):
         unit_id = str(payload.get("unitId", "") or "").strip()
-        other_ids = {str(entry.get("unitId", "") or "").strip() for position, entry in enumerate(self.unit_options_draft) if position != index}
+        other_ids = {
+            str(entry.get("unitId", "") or "").strip()
+            for position, entry in enumerate(self.unit_options_draft)
+            if position != index
+        }
         if unit_id in other_ids:
             messagebox.showerror("Mission Allegiance", "That unit is already listed for this allegiance.")
             return
@@ -445,5 +563,15 @@ class MissionAllegianceConfigDialog(tk.Toplevel):
         if not 0.0 <= cluster_probability <= 1.0 or not 0.0 <= cluster_probability_variance <= 1.0:
             messagebox.showerror("Mission Allegiance", "Cluster values must be between 0.0 and 1.0.")
             return
-        self.on_save({"allegianceId": self.allegiance_id, "powerPointCap": power_point_cap, "unitOptions": list(self.unit_options_draft), "clusterProbability": cluster_probability, "clusterProbabilityVariance": cluster_probability_variance, "levelMin": level_min, "levelMax": level_max})
+        self.on_save(
+            {
+                "allegianceId": self.allegiance_id,
+                "powerPointCap": power_point_cap,
+                "unitOptions": list(self.unit_options_draft),
+                "clusterProbability": cluster_probability,
+                "clusterProbabilityVariance": cluster_probability_variance,
+                "levelMin": level_min,
+                "levelMax": level_max,
+            }
+        )
         self.destroy()

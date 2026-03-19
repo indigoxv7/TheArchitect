@@ -2,7 +2,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.campaign import CampaignProgress
 from src.domain.character import Character
 from src.domain.player_functions import Player
 from src.services.allegiance_service import AllegianceService
@@ -118,7 +117,9 @@ class TestCampaignService(unittest.TestCase):
 
             reloaded_context, reloaded_mission_service, reloaded_campaign_service, _ = self._build_services(temp_dir)
             reloaded_mission_service.load_missionbook()
-            reloaded_campaign_service = CampaignService(str(campaignbook_path), reloaded_context, reloaded_mission_service)
+            reloaded_campaign_service = CampaignService(
+                str(campaignbook_path), reloaded_context, reloaded_mission_service
+            )
             reloaded_campaign_service.load_campaignbook()
             loaded = reloaded_campaign_service.get_campaign_by_id(campaign.campaignId)
             self.assertIsNotNone(loaded)
@@ -155,7 +156,9 @@ class TestCampaignService(unittest.TestCase):
             self.assertEqual(progress.completedMissionIds, [])
 
             player.characters[0].level = 2
-            changed = campaign_service.refresh_player_campaign_progress(player, campaign_id=campaign.campaignId, rebuild=False)
+            changed = campaign_service.refresh_player_campaign_progress(
+                player, campaign_id=campaign.campaignId, rebuild=False
+            )
             self.assertFalse(changed)
             self.assertEqual(progress.unlockedMissionIds, [prologue.missionId])
 
@@ -176,4 +179,3 @@ class TestCampaignService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

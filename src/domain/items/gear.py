@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from src.domain.character_util import HitLocation
 from src.domain.items.core import Item
@@ -70,4 +70,3 @@ class Gear:
         if item is None:
             return
         item.currentArmor = max(0.0, float(new_value))
-

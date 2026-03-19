@@ -3,7 +3,11 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from src.services.character_generation.data import choose_weighted_option, load_weighted_options, resolve_generation_directory
+from src.services.character_generation.data import (
+    choose_weighted_option,
+    load_weighted_options,
+    resolve_generation_directory,
+)
 
 
 FIRST_NAMES_FEMALE_FILE = "first_names_female.csv"

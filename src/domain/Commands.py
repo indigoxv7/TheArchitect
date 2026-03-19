@@ -1,4 +1,4 @@
-﻿from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
 
 from src.domain.character import Character
 from src.domain.character_util import Attribute
@@ -39,5 +39,3 @@ class IncreaseCharacterAttribute(Command):
 
     def execute(self):
         self.character.IncreaseAttribute(self.attribute)
-
-

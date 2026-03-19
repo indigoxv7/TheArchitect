@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -69,11 +69,7 @@ class EncounterService:
 
     def create_scavenging_encounter(self, player) -> EncounterDefinition:
         party_strength = self._party_strength(player)
-        race_candidates = [
-            race
-            for race in self.context.all_races.values()
-            if str(getattr(race, "raceId", "") or "")
-        ]
+        race_candidates = [race for race in self.context.all_races.values() if str(getattr(race, "raceId", "") or "")]
         if not race_candidates:
             raise ValueError("At least one race is required for scavenging encounters.")
 
@@ -104,7 +100,9 @@ class EncounterService:
             average_template = getattr(selected_race, "averageSpecimine", None)
             average_id = None
             for character_id, character in self.context.all_characters.items():
-                if character is average_template or getattr(character, "name", "") == getattr(average_template, "name", ""):
+                if character is average_template or getattr(character, "name", "") == getattr(
+                    average_template, "name", ""
+                ):
                     average_id = character_id
                     break
             if average_id:
@@ -119,7 +117,7 @@ class EncounterService:
                     )
                 )
 
-        encounter_name = f"Scavenging - {getattr(selected_race, 'name', 'Unknown') } Patrol"
+        encounter_name = f"Scavenging - {getattr(selected_race, 'name', 'Unknown')} Patrol"
         return EncounterDefinition(
             encounter_id=f"scavenge_{self._slugify_name(encounter_name)}_{enemy_count}",
             encounter_type=EncounterType.SCAVENGING,
@@ -142,7 +140,9 @@ class EncounterService:
             template = self._rng.choice(self._portal_templates)
             return EncounterDefinition.from_dict(template.to_dict())
 
-        goblin_id = "Goblin0" if "Goblin0" in self.context.all_races else next(iter(self.context.all_races.keys()), "Human1")
+        goblin_id = (
+            "Goblin0" if "Goblin0" in self.context.all_races else next(iter(self.context.all_races.keys()), "Human1")
+        )
         return EncounterDefinition(
             encounter_id="portal_default_0",
             encounter_type=EncounterType.PORTAL,
@@ -163,4 +163,3 @@ class EncounterService:
             player_front_line=3,
             enemy_front_line=4,
         )
-

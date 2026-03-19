@@ -1,4 +1,5 @@
-from enum import auto, Enum
+from enum import Enum
+
 
 class BuildingType(Enum):
     FACTION_HALL = 0
@@ -10,6 +11,7 @@ class BuildingType(Enum):
     FARM = 6
     ALCHEMIST_WORKSHOP = 7
 
+
 class FactionRole(Enum):
     CHANCELLOR = 0
     CONSTRUCTOR = 1
@@ -18,10 +20,12 @@ class FactionRole(Enum):
     ALCHEMIST = 4
     FARMER = 5
 
+
 class MissionPolicy(Enum):
     SAFE = 0
     AGGRESSIVE = 1
     BALANCED = 2
+
 
 class MasculineTitles(Enum):
     Lord = 0
@@ -31,6 +35,7 @@ class MasculineTitles(Enum):
     Viscount = 4
     Baron = 5
     Alderman = 6
+
 
 class FeminineTitles(Enum):
     Lady = 0
@@ -42,12 +47,10 @@ class FeminineTitles(Enum):
     Alderwoman = 6
 
 
-
-
 class Faction:
     def __init__(self, name: str, player):
         self.name = name
-        self.factionFounded = False # players have to found their faction before they can use it.
+        self.factionFounded = False  # players have to found their faction before they can use it.
         self.player = player
         self.title = ""
         self.score = 0
@@ -91,8 +94,6 @@ class Faction:
         if role not in FactionRole:
             raise ValueError(f"{role.name} is not a valid role.")
         member.role = role
-
-
 
 
 class Building:

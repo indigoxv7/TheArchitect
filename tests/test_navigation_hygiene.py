@@ -31,7 +31,11 @@ FORBIDDEN_IMPORT_SNIPPETS = [
 
 class TestNavigationHygiene(unittest.TestCase):
     def test_repo_uses_only_canonical_import_paths(self):
-        checked_files = list((REPO_ROOT / "src").rglob("*.py")) + list((REPO_ROOT / "tests").rglob("*.py")) + [REPO_ROOT / "main.py"]
+        checked_files = (
+            list((REPO_ROOT / "src").rglob("*.py"))
+            + list((REPO_ROOT / "tests").rglob("*.py"))
+            + [REPO_ROOT / "main.py"]
+        )
         violations: list[str] = []
 
         for path in checked_files:

@@ -16,8 +16,16 @@ class BattleTargetingMixin:
 
     def _frontline_targets(self, battle: BattleState, team: BattleTeam) -> list:
         if team == BattleTeam.ALLY:
-            return [entity for entity in self._active_enemies(battle) if int(getattr(entity, "line", 0)) == battle.enemy_front_line]
-        return [entity for entity in self._active_allies(battle) if int(getattr(entity, "line", 0)) == battle.player_front_line]
+            return [
+                entity
+                for entity in self._active_enemies(battle)
+                if int(getattr(entity, "line", 0)) == battle.enemy_front_line
+            ]
+        return [
+            entity
+            for entity in self._active_allies(battle)
+            if int(getattr(entity, "line", 0)) == battle.player_front_line
+        ]
 
     def _select_target(self, battle: BattleState, attacker, candidates: list, orders: CommanderOrders | None = None):
         if not candidates or attacker is None:
@@ -34,16 +42,48 @@ class BattleTargetingMixin:
             elif getattr(candidate, "role", CombatRole.FRONTLINE) == CombatRole.RANGED:
                 role_rank = 1
             health_ratio = self._entity_health(candidate) / max(1.0, self._entity_max_health(candidate))
-            return (role_rank, health_ratio, self._line_distance(attacker, candidate), self._lane_distance(attacker, candidate), self._entity_name(candidate))
+            return (
+                role_rank,
+                health_ratio,
+                self._line_distance(attacker, candidate),
+                self._lane_distance(attacker, candidate),
+                self._entity_name(candidate),
+            )
 
         if priority == TargetPriority.WEAKEST:
-            return min(alive, key=lambda candidate: (self._entity_health(candidate) / max(1.0, self._entity_max_health(candidate)), self._line_distance(attacker, candidate), self._lane_distance(attacker, candidate)))
+            return min(
+                alive,
+                key=lambda candidate: (
+                    self._entity_health(candidate) / max(1.0, self._entity_max_health(candidate)),
+                    self._line_distance(attacker, candidate),
+                    self._lane_distance(attacker, candidate),
+                ),
+            )
         if priority == TargetPriority.STRONGEST:
-            return max(alive, key=lambda candidate: (self._entity_health(candidate), -self._line_distance(attacker, candidate), -self._lane_distance(attacker, candidate)))
+            return max(
+                alive,
+                key=lambda candidate: (
+                    self._entity_health(candidate),
+                    -self._line_distance(attacker, candidate),
+                    -self._lane_distance(attacker, candidate),
+                ),
+            )
         if priority == TargetPriority.SUPPORT:
-            return sorted(alive, key=lambda candidate: (getattr(candidate, "role", CombatRole.FRONTLINE) != CombatRole.SUPPORT, common_key(candidate)))[0]
+            return sorted(
+                alive,
+                key=lambda candidate: (
+                    getattr(candidate, "role", CombatRole.FRONTLINE) != CombatRole.SUPPORT,
+                    common_key(candidate),
+                ),
+            )[0]
         if priority == TargetPriority.RANGED:
-            return sorted(alive, key=lambda candidate: (getattr(candidate, "role", CombatRole.FRONTLINE) != CombatRole.RANGED, common_key(candidate)))[0]
+            return sorted(
+                alive,
+                key=lambda candidate: (
+                    getattr(candidate, "role", CombatRole.FRONTLINE) != CombatRole.RANGED,
+                    common_key(candidate),
+                ),
+            )[0]
         close = [candidate for candidate in alive if self._line_distance(attacker, candidate) <= 1]
         return sorted(close or alive, key=common_key)[0]
 
@@ -59,7 +99,9 @@ class BattleTargetingMixin:
         return 0.0
 
     def _ranged_penalties(self, battle: BattleState, attacker, target) -> tuple[float, float, float]:
-        congestion_penalty = battle_factor("ranged_congestion_penalty", 0.05) if self._entity_lane_width(attacker) > 1 else 0.0
+        congestion_penalty = (
+            battle_factor("ranged_congestion_penalty", 0.05) if self._entity_lane_width(attacker) > 1 else 0.0
+        )
         line_distance = self._line_distance(attacker, target)
         range_penalty = max(0.0, battle_factor("ranged_range_penalty_per_line", 0.05) * max(0, line_distance - 1))
         firing_penalty = 0.0

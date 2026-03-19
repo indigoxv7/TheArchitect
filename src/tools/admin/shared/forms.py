@@ -1,4 +1,4 @@
-﻿from src.domain.character_util import Attribute
+from src.domain.character_util import Attribute
 
 
 def _parse_label_id(label: str) -> str:
@@ -23,4 +23,3 @@ def _safe_float(value, default=0.0):
 
 
 BONUS_ATTRIBUTE_OPTIONS = ["NONE"] + [attribute.name for attribute in Attribute]
-

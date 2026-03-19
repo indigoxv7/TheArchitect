@@ -1,4 +1,4 @@
-﻿import random
+import random
 import unittest
 
 from src.domain.character import Character
@@ -221,4 +221,3 @@ class TestDamageCalculator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

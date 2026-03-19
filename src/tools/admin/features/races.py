@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.character_util import Attributes
@@ -86,7 +86,9 @@ class RaceEditorFrame(ttk.Frame):
         avg_row = ttk.Frame(self)
         avg_row.pack(fill=tk.X, pady=2)
         ttk.Label(avg_row, text="Average Specimine", width=20).pack(side=tk.LEFT)
-        ttk.Entry(avg_row, textvariable=self.vars["averageSpecimine"], state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Entry(avg_row, textvariable=self.vars["averageSpecimine"], state="readonly").pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
         ttk.Button(avg_row, text="Select", command=self._select_average_specimine).pack(side=tk.LEFT, padx=4)
         ttk.Button(avg_row, text="Clear", command=self._clear_average_specimine).pack(side=tk.LEFT)
 
@@ -130,7 +132,9 @@ class RaceEditorFrame(ttk.Frame):
         natural_weapon_actions = ttk.Frame(natural_weapon_frame)
         natural_weapon_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(natural_weapon_actions, text="Add Weapon", command=self._add_natural_weapon).pack(side=tk.LEFT)
-        ttk.Button(natural_weapon_actions, text="Remove Selected", command=self._remove_selected_natural_weapon).pack(side=tk.LEFT, padx=6)
+        ttk.Button(natural_weapon_actions, text="Remove Selected", command=self._remove_selected_natural_weapon).pack(
+            side=tk.LEFT, padx=6
+        )
 
         spell_frame = ttk.LabelFrame(self, text="Spell List By Level")
         spell_frame.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -154,7 +158,9 @@ class RaceEditorFrame(ttk.Frame):
         spell_actions = ttk.Frame(spell_frame)
         spell_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(spell_actions, text="Add Spell", command=self._add_spell_to_level).pack(side=tk.LEFT)
-        ttk.Button(spell_actions, text="Remove Selected", command=self._remove_selected_spell_from_level).pack(side=tk.LEFT, padx=6)
+        ttk.Button(spell_actions, text="Remove Selected", command=self._remove_selected_spell_from_level).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(spell_actions, text="Clear Level", command=self._clear_current_spell_level).pack(side=tk.LEFT)
 
         famed_frame = ttk.LabelFrame(self, text="Famed Enemy List")
@@ -165,7 +171,9 @@ class RaceEditorFrame(ttk.Frame):
         famed_actions = ttk.Frame(famed_frame)
         famed_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(famed_actions, text="Add Enemy", command=self._add_famed_enemy).pack(side=tk.LEFT)
-        ttk.Button(famed_actions, text="Remove Selected", command=self._remove_selected_famed_enemy).pack(side=tk.LEFT, padx=6)
+        ttk.Button(famed_actions, text="Remove Selected", command=self._remove_selected_famed_enemy).pack(
+            side=tk.LEFT, padx=6
+        )
 
         ttk.Button(self, text="Save Race", command=self._save).pack(fill=tk.X, pady=8)
 
@@ -247,7 +255,11 @@ class RaceEditorFrame(ttk.Frame):
 
         average_id = self.app.race_service.resolve_character_id(getattr(race, "averageSpecimine", None))
         self.average_specimine_character_id = str(average_id or "")
-        self.vars["averageSpecimine"].set(self._character_display_label(self.average_specimine_character_id) if self.average_specimine_character_id else "<None>")
+        self.vars["averageSpecimine"].set(
+            self._character_display_label(self.average_specimine_character_id)
+            if self.average_specimine_character_id
+            else "<None>"
+        )
 
         min_attrs = getattr(race, "minAverageAttributes", Attributes())
         max_attrs = getattr(race, "maxAverageAttributes", Attributes())
@@ -462,4 +474,3 @@ class RaceEditorFrame(ttk.Frame):
             self.refresh_race_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Race Editor", f"Failed to save race: {exc}")
-

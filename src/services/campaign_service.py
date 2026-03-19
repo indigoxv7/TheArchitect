@@ -179,7 +179,9 @@ class CampaignService:
             return coerced
         return CampaignProgress(campaignId=campaign_id)
 
-    def get_player_campaign_progress(self, player, campaign_id: str, create_if_missing: bool = True) -> CampaignProgress | None:
+    def get_player_campaign_progress(
+        self, player, campaign_id: str, create_if_missing: bool = True
+    ) -> CampaignProgress | None:
         campaign = self.get_campaign_by_id(campaign_id)
         if campaign is None:
             return None

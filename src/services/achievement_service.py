@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -163,7 +163,9 @@ class AchievementService:
         self.context.achievementbook_overview = self.build_achievementbook_overview()
 
     def list_achievements(self) -> list[Achievement]:
-        return [self.context.global_achievementbook[name] for name in sorted(self.context.global_achievementbook.keys())]
+        return [
+            self.context.global_achievementbook[name] for name in sorted(self.context.global_achievementbook.keys())
+        ]
 
     def get_achievement(self, name: str) -> Achievement | None:
         return self.context.global_achievementbook.get(str(name or "").strip())
@@ -221,4 +223,3 @@ class AchievementService:
             lines.append(f"... and {len(achievements) - max_lines} more")
 
         return "\n".join(lines)
-

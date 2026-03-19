@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 import math
@@ -228,10 +228,13 @@ class DamageCalculator:
             hit_chance = self.calculate_hit_chance(attacker_magic_power, defender_magic_resistance)
         if did_hit is None:
             did_hit = self._rng.random() <= hit_chance
-        power_multiplier = (attacker_magic_power / max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))) ** config.alpha
+        power_multiplier = (
+            attacker_magic_power / max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))
+        ) ** config.alpha
         resistance_multiplier = max(
             config.magicResistanceMinMultiplier,
-            1.0 - (defender_magic_resistance / (defender_magic_resistance + max(0.0001, config.magicResistanceSoftness))),
+            1.0
+            - (defender_magic_resistance / (defender_magic_resistance + max(0.0001, config.magicResistanceSoftness))),
         )
         hp_final = 0.0
         if did_hit:
@@ -278,7 +281,7 @@ class DamageCalculator:
         baseline_power = max(0.0001, character_stat_factor("primary_stat_baseline", 5.0))
         ratio = attacker_physical_power / baseline_power
         ratio = max(0.0001, ratio)
-        return ratio ** config.alpha
+        return ratio**config.alpha
 
     def _compute_penetration(self, weapon: Weapon, attacker_physical_power: float) -> float:
         config = self._get_config()
@@ -318,4 +321,3 @@ class DamageCalculator:
         if value > 1.0:
             return 1.0
         return value
-

@@ -113,7 +113,11 @@ class BattleService(
         return battle
 
     def build_battle_snapshot(self, battle: BattleState) -> dict[str, Any]:
-        odds = self.estimate_victory_odds(battle) if battle.phase != BattlePhase.RESOLVED else (1.0 if battle.outcome == BattleOutcome.VICTORY else 0.0)
+        odds = (
+            self.estimate_victory_odds(battle)
+            if battle.phase != BattlePhase.RESOLVED
+            else (1.0 if battle.outcome == BattleOutcome.VICTORY else 0.0)
+        )
         recent_summary = battle.recent_summaries[-1] if battle.recent_summaries else None
         return {
             "encounter_name": battle.encounter.name,

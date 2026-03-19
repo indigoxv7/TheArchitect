@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Callable
@@ -163,7 +163,9 @@ class Race:
             "gearOptions": self.gearOptions.to_dict(resolve_item_id=resolve_item_id),
             "naturalWeaponItemIds": [
                 item_id
-                for item_id in [resolve_item_id(weapon) if callable(resolve_item_id) else None for weapon in self.naturalWeapons]
+                for item_id in [
+                    resolve_item_id(weapon) if callable(resolve_item_id) else None for weapon in self.naturalWeapons
+                ]
                 if item_id
             ],
         }
@@ -257,4 +259,3 @@ class Race:
             naturalWeapons=natural_weapons,
             raceId=str(data.get("raceId", "") or ""),
         )
-

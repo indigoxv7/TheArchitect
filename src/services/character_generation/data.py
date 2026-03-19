@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import csv
 import importlib.util
@@ -190,4 +190,3 @@ def resolve_generation_directory(generation_data_directory: str | None) -> Path:
     if generation_data_directory:
         return Path(generation_data_directory).resolve()
     return default_generation_directory()
-

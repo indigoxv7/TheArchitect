@@ -17,7 +17,9 @@ class AchievementEditorDialog(tk.Toplevel):
         self.title("Edit Achievement List")
         self.geometry("980x640")
         self.on_save = on_save
-        self.entries = [_normalize_achievement_entry(entry) for entry in (initial_list or []) if isinstance(entry, dict)]
+        self.entries = [
+            _normalize_achievement_entry(entry) for entry in (initial_list or []) if isinstance(entry, dict)
+        ]
         self.selected_index = None
         self.current_bonuses = []
 
@@ -140,6 +142,7 @@ class AchievementEditorDialog(tk.Toplevel):
         def _on_save(updated):
             self.current_bonuses = [_normalize_bonus_payload(entry) for entry in updated if isinstance(entry, dict)]
             self._refresh_bonus_summary()
+
         BonusListEditorDialog(self, self.current_bonuses, _on_save)
 
     def _apply_current(self):
@@ -284,6 +287,7 @@ class AchievementBookFrame(ttk.Frame):
         def _on_save(updated):
             self.current_bonuses = [_normalize_bonus_payload(entry) for entry in updated if isinstance(entry, dict)]
             self._refresh_bonus_summary()
+
         BonusListEditorDialog(self, self.current_bonuses, _on_save)
 
     def _build_payload(self):

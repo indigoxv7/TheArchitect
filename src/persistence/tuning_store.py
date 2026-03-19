@@ -24,4 +24,3 @@ class TuningStore:
         self._ensure_parent_directory()
         with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(payload, file, indent=4, ensure_ascii=False)
-

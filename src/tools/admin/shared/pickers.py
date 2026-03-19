@@ -156,7 +156,11 @@ class UnitSelectDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=unit.unitId, label=self.unit_service.get_unit_label(unit), search_text=self.unit_service.get_unit_label(unit))
+            _PickerOption(
+                payload=unit.unitId,
+                label=self.unit_service.get_unit_label(unit),
+                search_text=self.unit_service.get_unit_label(unit),
+            )
             for unit in self.unit_service.list_units()
             if unit.unitId not in self.exclude_ids
         ]
@@ -194,7 +198,11 @@ class MissionSelectDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=mission.missionId, label=self.mission_service.get_mission_label(mission), search_text=self.mission_service.get_mission_label(mission))
+            _PickerOption(
+                payload=mission.missionId,
+                label=self.mission_service.get_mission_label(mission),
+                search_text=self.mission_service.get_mission_label(mission),
+            )
             for mission in self.mission_service.list_missions()
             if mission.missionId not in self.exclude_ids
         ]
@@ -211,7 +219,11 @@ class EffectSelectDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=effect.effectId, label=self.environment_service.get_effect_label(effect), search_text=self.environment_service.get_effect_label(effect))
+            _PickerOption(
+                payload=effect.effectId,
+                label=self.environment_service.get_effect_label(effect),
+                search_text=self.environment_service.get_effect_label(effect),
+            )
             for effect in self.environment_service.list_effects()
             if effect.effectId not in self.exclude_ids
         ]
@@ -228,7 +240,11 @@ class TerrainSelectDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=terrain.terrainId, label=self.environment_service.get_terrain_label(terrain), search_text=self.environment_service.get_terrain_label(terrain))
+            _PickerOption(
+                payload=terrain.terrainId,
+                label=self.environment_service.get_terrain_label(terrain),
+                search_text=self.environment_service.get_terrain_label(terrain),
+            )
             for terrain in self.environment_service.list_terrains()
             if terrain.terrainId not in self.exclude_ids
         ]
@@ -245,7 +261,11 @@ class ClimateSelectDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=climate.climateId, label=self.environment_service.get_climate_label(climate), search_text=self.environment_service.get_climate_label(climate))
+            _PickerOption(
+                payload=climate.climateId,
+                label=self.environment_service.get_climate_label(climate),
+                search_text=self.environment_service.get_climate_label(climate),
+            )
             for climate in self.environment_service.list_climates()
             if climate.climateId not in self.exclude_ids
         ]
@@ -286,7 +306,11 @@ class RacePickerDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=race.raceId, label=self.race_service.get_race_label(race), search_text=self.race_service.get_race_label(race))
+            _PickerOption(
+                payload=race.raceId,
+                label=self.race_service.get_race_label(race),
+                search_text=self.race_service.get_race_label(race),
+            )
             for race in self.race_service.list_races()
         ]
 
@@ -308,6 +332,10 @@ class ItemPickerDialog(_SearchPickerDialog):
 
     def _build_options(self) -> list[_PickerOption]:
         return [
-            _PickerOption(payload=item.itemId, label=self.item_service.get_item_label(item), search_text=self.item_service.get_item_label(item))
+            _PickerOption(
+                payload=item.itemId,
+                label=self.item_service.get_item_label(item),
+                search_text=self.item_service.get_item_label(item),
+            )
             for item in self.item_service.list_items()
         ]

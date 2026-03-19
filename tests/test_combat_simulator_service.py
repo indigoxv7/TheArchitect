@@ -105,7 +105,9 @@ class TestCombatSimulatorService(unittest.TestCase):
             )
             self.assertNotEqual(left_id, right_id)
 
-            session = simulator.start_session(character_to_state(left_character), character_to_state(right_character), debug=True, seed=99)
+            session = simulator.start_session(
+                character_to_state(left_character), character_to_state(right_character), debug=True, seed=99
+            )
             self.assertEqual(session.left_character.name, "Goblin1")
             self.assertEqual(session.right_character.name, "Goblin2")
 
@@ -154,7 +156,9 @@ class TestCombatSimulatorService(unittest.TestCase):
             )
             self.assertNotEqual(left_id, right_id)
 
-            result = simulator.run_auto(character_to_state(left_character), character_to_state(right_character), repeats=20)
+            result = simulator.run_auto(
+                character_to_state(left_character), character_to_state(right_character), repeats=20
+            )
             self.assertEqual(result.sampleCount, 20)
             self.assertGreaterEqual(result.leftWinRate, 0.0)
             self.assertGreaterEqual(result.rightWinRate, 0.0)

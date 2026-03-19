@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -297,4 +297,3 @@ class EnemyStackState:
             spell_names=[str(item) for item in data.get("spell_names", []) or []],
             status_tokens=[str(item) for item in data.get("status_tokens", []) or []],
         )
-

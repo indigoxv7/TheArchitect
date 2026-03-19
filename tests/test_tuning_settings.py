@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 import tempfile
 import unittest
@@ -106,4 +106,3 @@ class TestTuningSettings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

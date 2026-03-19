@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import ttk
 
 from src.domain.gear_options import GearOptions
@@ -133,4 +133,3 @@ class GearOptionsEditorDialog(tk.Toplevel):
     def _save(self):
         self.on_save(normalize_gear_options_payload(self.draft))
         self.destroy()
-

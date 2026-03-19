@@ -1,4 +1,4 @@
-﻿import re
+import re
 
 from src.domain.character_util import DEFAULT_DURABILITY, EquipSlot, ItemType
 from src.domain.items import Armor, Consumable, Item, Weapon
@@ -282,12 +282,9 @@ class ItemService:
 
         lines = []
         for item in items[:max_lines]:
-            lines.append(
-                f"- {item.name} [{item.itemId}] (T{item.tier}, {item.itemClass}, {item.slot.name})"
-            )
+            lines.append(f"- {item.name} [{item.itemId}] (T{item.tier}, {item.itemClass}, {item.slot.name})")
 
         if len(items) > max_lines:
             lines.append(f"... and {len(items) - max_lines} more")
 
         return "\n".join(lines)
-

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import random
 from datetime import date
@@ -168,4 +168,3 @@ def generate_character_info(
         emotionalTrigger=_generate_trait("emotionalTrigger", generation_directory, rng),
         copingHabit=_generate_trait("copingHabit", generation_directory, rng),
     )
-

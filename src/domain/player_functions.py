@@ -1,4 +1,4 @@
-﻿import importlib
+import importlib
 import json
 import os
 import tempfile
@@ -199,21 +199,19 @@ class Player:
 
     def GetMissionPartyCharacterIds(self) -> list[str]:
         valid_ids = {
-            self._character_identity(character)
-            for character in self.characters
-            if self._character_identity(character)
+            self._character_identity(character) for character in self.characters if self._character_identity(character)
         }
         selected = [entry for entry in self.missionPartyCharacterIds if entry in valid_ids]
         if selected:
             return selected
-        return [self._character_identity(character) for character in self.characters if self._character_identity(character)]
+        return [
+            self._character_identity(character) for character in self.characters if self._character_identity(character)
+        ]
 
     def SetMissionPartyCharacterIds(self, character_ids) -> list[str]:
         requested = [str(entry or "").strip() for entry in (character_ids or []) if str(entry or "").strip()]
         valid_ids = {
-            self._character_identity(character)
-            for character in self.characters
-            if self._character_identity(character)
+            self._character_identity(character) for character in self.characters if self._character_identity(character)
         }
         self.missionPartyCharacterIds = [entry for entry in requested if entry in valid_ids]
         return self.GetMissionPartyCharacterIds()
@@ -232,7 +230,9 @@ class Player:
         cString = ""
         selected_ids = set(self.GetMissionPartyCharacterIds())
         for character in self.characters:
-            line = "**" + character.name + "** | LvL " + str(character.level) + " | (" + character.GetWoundedString() + ")"
+            line = (
+                "**" + character.name + "** | LvL " + str(character.level) + " | (" + character.GetWoundedString() + ")"
+            )
             if self._character_identity(character) in selected_ids:
                 line += " | Selected for Mission"
             cString += line + "\n"
@@ -256,7 +256,9 @@ class Player:
 
     def GetCharacterParty(self, characterIndex: int):
         if len(self.characters) > characterIndex:
-            return "Selected for Mission" if self.IsCharacterInMissionParty(self.characters[characterIndex]) else "Reserve"
+            return (
+                "Selected for Mission" if self.IsCharacterInMissionParty(self.characters[characterIndex]) else "Reserve"
+            )
         return ""
 
     def GetCharacter(self, index: int):
@@ -382,6 +384,3 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
-
-
-

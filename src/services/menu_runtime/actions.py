@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
@@ -12,8 +12,6 @@ from src.services.menu_runtime.fields import (
 from src.ui.menu import Menu
 
 if TYPE_CHECKING:
-    import discord
-
     from src.services.menu_runtime import MenuInterface, MenuRuntimeService, OriginalMessage
 
 
@@ -48,7 +46,9 @@ class MenuSpecialActionRouter:
             "achievementTempCancelAction": self._cancel_achievement_editor,
         }
 
-    async def handle(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult | None:
+    async def handle(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult | None:
         handler = self._handlers.get(menu.uniqueName)
         if handler is not None:
             return await handler(interface, menu, original_message)
@@ -56,7 +56,11 @@ class MenuSpecialActionRouter:
         if menu.uniqueName in ITEM_ENUM_ACTIONS:
             return await self._handle_item_enum_action(interface, menu, original_message)
 
-        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG or menu.uniqueName in COMPONENT_FIELD_EDIT_CONFIG:
+        if (
+            menu.uniqueName in SPELL_FIELD_EDIT_CONFIG
+            or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG
+            or menu.uniqueName in COMPONENT_FIELD_EDIT_CONFIG
+        ):
             return await self._handle_field_edit_action(interface, menu, original_message)
 
         return None
@@ -86,17 +90,25 @@ class MenuSpecialActionRouter:
         )
         return self._parent_or_self(menu), False, True
 
-    async def _start_scavenging_battle(self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _start_scavenging_battle(
+        self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         return await self._start_battle(interface, menu, EncounterType.SCAVENGING)
 
-    async def _start_portal_battle(self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _start_portal_battle(
+        self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         return await self._start_battle(interface, menu, EncounterType.PORTAL)
 
-    async def _start_spell_create(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _start_spell_create(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._start_spell_draft(original_message.menuContext)
         return self._menu_by_name("spellCreateNameMenu", menu), True, False
 
-    async def _save_spell_create(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_spell_create(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to save spells.")
             return self._parent_or_self(menu), False, True
@@ -116,13 +128,17 @@ class MenuSpecialActionRouter:
         self.runtime._refresh_spellbook_overview()
         return self._menu_by_name("spellbookMenu", menu), True, True
 
-    async def _cancel_spell_create(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_spell_create(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_spell_draft(original_message.menuContext)
         self.runtime._refresh_spellbook_overview()
         await interface.send_ephemeral("Spell creation cancelled.")
         return self._menu_by_name("spellbookMenu", menu), True, True
 
-    async def _open_spell_edit_modal(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_spell_edit_modal(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to edit drafts.")
             return self._parent_or_self(menu), False, True
@@ -133,11 +149,15 @@ class MenuSpecialActionRouter:
         self.runtime._refresh_spellbook_overview()
         return self._parent_or_self(menu), False, True
 
-    async def _start_item_create(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _start_item_create(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._start_item_draft(original_message.menuContext)
         return self._menu_by_name("itemCreateNameMenu", menu), True, False
 
-    async def _save_item_create(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_item_create(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to save items.")
             return self._parent_or_self(menu), False, True
@@ -161,13 +181,17 @@ class MenuSpecialActionRouter:
         self.runtime._refresh_itembook_overview()
         return self._menu_by_name("itembookMenu", menu), True, True
 
-    async def _cancel_item_create(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_item_create(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_item_draft(original_message.menuContext)
         self.runtime._refresh_itembook_overview()
         await interface.send_ephemeral("Item creation cancelled.")
         return self._menu_by_name("itembookMenu", menu), True, True
 
-    async def _open_item_edit_modal(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_item_edit_modal(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to edit items.")
             return self._parent_or_self(menu), False, True
@@ -178,67 +202,93 @@ class MenuSpecialActionRouter:
         self.runtime._refresh_itembook_overview()
         return self._parent_or_self(menu), False, True
 
-    async def _open_attributes_editor(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_attributes_editor(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.menuContext.attributesDraftActive:
             self.runtime._start_attributes_draft(original_message.menuContext)
         return menu, True, False
 
-    async def _open_gear_editor(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_gear_editor(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.menuContext.gearDraftActive:
             self.runtime._start_gear_draft(original_message.menuContext)
         return menu, True, False
 
-    async def _open_bonus_editor(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_bonus_editor(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.menuContext.bonusDraftActive:
             self.runtime._start_bonus_draft(original_message.menuContext)
         return menu, True, False
 
-    async def _open_achievement_editor(self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _open_achievement_editor(
+        self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.menuContext.achievementDraftActive:
             self.runtime._start_achievement_draft(original_message.menuContext)
         return menu, True, False
 
-    async def _save_attributes_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_attributes_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_attributes_draft(original_message.menuContext)
         await interface.send_ephemeral("Attributes saved for this session only (not persisted).")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _cancel_attributes_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_attributes_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_attributes_draft(original_message.menuContext)
         await interface.send_ephemeral("Attributes editor cancelled.")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _save_gear_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_gear_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_gear_draft(original_message.menuContext)
         await interface.send_ephemeral("Gear saved for this session only (not persisted).")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _cancel_gear_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_gear_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_gear_draft(original_message.menuContext)
         await interface.send_ephemeral("Gear editor cancelled.")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _save_bonus_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_bonus_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_bonus_draft(original_message.menuContext)
         await interface.send_ephemeral("Bonus saved for this session only (not persisted).")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _cancel_bonus_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_bonus_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_bonus_draft(original_message.menuContext)
         await interface.send_ephemeral("Bonus editor cancelled.")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _save_achievement_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _save_achievement_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_achievement_draft(original_message.menuContext)
         await interface.send_ephemeral("Achievement saved for this session only (not persisted).")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _cancel_achievement_editor(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _cancel_achievement_editor(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         self.runtime._clear_achievement_draft(original_message.menuContext)
         await interface.send_ephemeral("Achievement editor cancelled.")
         return self._menu_by_name("mainMenu", menu), True, True
 
-    async def _handle_item_enum_action(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _handle_item_enum_action(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to edit items.")
             return self._parent_or_self(menu), False, True
@@ -247,7 +297,9 @@ class MenuSpecialActionRouter:
         original_message.menuContext.itemDraft[field_key] = value
         return self._parent_or_self(menu), True, False
 
-    async def _handle_field_edit_action(self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage") -> SpecialActionResult:
+    async def _handle_field_edit_action(
+        self, interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
         if not original_message.is_developer_admin:
             await interface.send_ephemeral("You are not authorized to edit drafts.")
             return self._parent_or_self(menu), False, True
@@ -257,4 +309,3 @@ class MenuSpecialActionRouter:
         else:
             await interface.send_ephemeral("Field edit modal is available in Discord UI only.")
         return self._parent_or_self(menu), False, True
-

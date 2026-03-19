@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -8,7 +8,6 @@ from src.domain.combat.encounter import EncounterDefinition
 from src.domain.combat.enums import (
     BattleOutcome,
     BattlePhase,
-    BattleTeam,
     BattleTriggerType,
     CommanderStance,
     TargetPriority,
@@ -135,9 +134,7 @@ class BattleExchangeSummary:
             exchange_number=max(0, int(data.get("exchange_number", 0) or 0)),
             highlights=[str(item) for item in data.get("highlights", []) or []],
             triggers=[
-                BattleTrigger.from_dict(item)
-                for item in data.get("triggers", []) or []
-                if isinstance(item, dict)
+                BattleTrigger.from_dict(item) for item in data.get("triggers", []) or [] if isinstance(item, dict)
             ],
             player_front_line=int(data.get("player_front_line", 0) or 0),
             enemy_front_line=int(data.get("enemy_front_line", 0) or 0),
@@ -228,28 +225,30 @@ class BattleState:
             result_summary=str(data.get("result_summary", "") or ""),
             width=max(1, int(data.get("width", encounter.width) or encounter.width)),
             total_lines=max(4, int(data.get("total_lines", encounter.total_lines) or encounter.total_lines)),
-            player_front_line=int(data.get("player_front_line", encounter.player_front_line) or encounter.player_front_line),
-            enemy_front_line=int(data.get("enemy_front_line", encounter.enemy_front_line) or encounter.enemy_front_line),
-            default_player_front_line=int(data.get("default_player_front_line", encounter.player_front_line) or encounter.player_front_line),
-            default_enemy_front_line=int(data.get("default_enemy_front_line", encounter.enemy_front_line) or encounter.enemy_front_line),
+            player_front_line=int(
+                data.get("player_front_line", encounter.player_front_line) or encounter.player_front_line
+            ),
+            enemy_front_line=int(
+                data.get("enemy_front_line", encounter.enemy_front_line) or encounter.enemy_front_line
+            ),
+            default_player_front_line=int(
+                data.get("default_player_front_line", encounter.player_front_line) or encounter.player_front_line
+            ),
+            default_enemy_front_line=int(
+                data.get("default_enemy_front_line", encounter.enemy_front_line) or encounter.enemy_front_line
+            ),
             player_recenter_pressure=float(data.get("player_recenter_pressure", 0.0) or 0.0),
             enemy_recenter_pressure=float(data.get("enemy_recenter_pressure", 0.0) or 0.0),
             exchange_count=max(0, int(data.get("exchange_count", 0) or 0)),
             battle_time_seconds=max(0.0, float(data.get("battle_time_seconds", 0.0) or 0.0)),
             ally_units=[
-                CombatUnitState.from_dict(item)
-                for item in data.get("ally_units", []) or []
-                if isinstance(item, dict)
+                CombatUnitState.from_dict(item) for item in data.get("ally_units", []) or [] if isinstance(item, dict)
             ],
             enemy_units=[
-                CombatUnitState.from_dict(item)
-                for item in data.get("enemy_units", []) or []
-                if isinstance(item, dict)
+                CombatUnitState.from_dict(item) for item in data.get("enemy_units", []) or [] if isinstance(item, dict)
             ],
             enemy_stacks=[
-                EnemyStackState.from_dict(item)
-                for item in data.get("enemy_stacks", []) or []
-                if isinstance(item, dict)
+                EnemyStackState.from_dict(item) for item in data.get("enemy_stacks", []) or [] if isinstance(item, dict)
             ],
             orders=CommanderOrders.from_dict(data.get("orders")),
             recent_summaries=[
@@ -278,4 +277,3 @@ class BattleState:
                 MissionObjectiveStatus.IN_PROGRESS,
             ),
         )
-

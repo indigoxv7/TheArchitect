@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -131,4 +131,3 @@ class EncounterDefinition:
             player_front_line=int(data.get("player_front_line", default_player_front) or default_player_front),
             enemy_front_line=int(data.get("enemy_front_line", default_enemy_front) or default_enemy_front),
         )
-

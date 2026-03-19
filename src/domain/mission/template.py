@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -74,9 +74,7 @@ class MissionAllegianceConfig:
     def __post_init__(self):
         self.allegianceId = clean_text(self.allegianceId)
         self.powerPointCap = clamp_non_negative_int(self.powerPointCap, 0)
-        self.unitOptions = [
-            entry for entry in (self.unitOptions or []) if isinstance(entry, MissionUnitOption)
-        ]
+        self.unitOptions = [entry for entry in (self.unitOptions or []) if isinstance(entry, MissionUnitOption)]
         self.clusterProbability = clamp_fraction(self.clusterProbability, 0.0)
         self.clusterProbabilityVariance = clamp_fraction(self.clusterProbabilityVariance, 0.0)
         self.levelMin = clamp_non_negative_int(self.levelMin, 0)
@@ -104,10 +102,7 @@ class MissionAllegianceConfig:
         if not allegiance_id:
             raise ValueError("Mission allegiance config must include an allegianceId.")
 
-        unit_options = [
-            MissionUnitOption.from_dict(raw_entry)
-            for raw_entry in data.get("unitOptions", []) or []
-        ]
+        unit_options = [MissionUnitOption.from_dict(raw_entry) for raw_entry in data.get("unitOptions", []) or []]
         return cls(
             allegianceId=allegiance_id,
             powerPointCap=data.get("powerPointCap", 0),
@@ -148,9 +143,7 @@ class MissionTemplate:
         mission_complete: bool = False,
     ) -> MissionObjectiveStatus:
         stats = (
-            statistics
-            if isinstance(statistics, MissionStatistics)
-            else MissionStatistics.from_dict(statistics or {})
+            statistics if isinstance(statistics, MissionStatistics) else MissionStatistics.from_dict(statistics or {})
         )
         return self.objective.evaluate(stats, mission_complete=mission_complete)
 
@@ -174,8 +167,7 @@ class MissionTemplate:
 
         objective = MissionObjective.from_dict(data.get("objective", {}))
         allegiance_configs = [
-            MissionAllegianceConfig.from_dict(raw_entry)
-            for raw_entry in data.get("allegianceConfigs", []) or []
+            MissionAllegianceConfig.from_dict(raw_entry) for raw_entry in data.get("allegianceConfigs", []) or []
         ]
         return cls(
             name=name,
@@ -184,4 +176,3 @@ class MissionTemplate:
             portalMission=bool(data.get("portalMission", True)),
             missionId=str(data.get("missionId", "") or ""),
         )
-

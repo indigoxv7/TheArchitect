@@ -148,13 +148,21 @@ class Biome:
         self.name = str(name or "").strip()
         self.description = str(description or "")
         self.effectIds = Terrain._normalize_ids(effectIds)
-        self.terrainCompatibilityMode = self._coerce_enum(CompatibilitySelectionMode, terrainCompatibilityMode, CompatibilitySelectionMode.ANY)
+        self.terrainCompatibilityMode = self._coerce_enum(
+            CompatibilitySelectionMode, terrainCompatibilityMode, CompatibilitySelectionMode.ANY
+        )
         self.compatibleTerrainIds = Terrain._normalize_ids(compatibleTerrainIds)
-        self.terrainIncompatibilityMode = self._coerce_enum(IncompatibilityMode, terrainIncompatibilityMode, IncompatibilityMode.EXPLICIT)
+        self.terrainIncompatibilityMode = self._coerce_enum(
+            IncompatibilityMode, terrainIncompatibilityMode, IncompatibilityMode.EXPLICIT
+        )
         self.incompatibleTerrainIds = Terrain._normalize_ids(incompatibleTerrainIds)
-        self.climateCompatibilityMode = self._coerce_enum(CompatibilitySelectionMode, climateCompatibilityMode, CompatibilitySelectionMode.ANY)
+        self.climateCompatibilityMode = self._coerce_enum(
+            CompatibilitySelectionMode, climateCompatibilityMode, CompatibilitySelectionMode.ANY
+        )
         self.compatibleClimateIds = Terrain._normalize_ids(compatibleClimateIds)
-        self.climateIncompatibilityMode = self._coerce_enum(IncompatibilityMode, climateIncompatibilityMode, IncompatibilityMode.EXPLICIT)
+        self.climateIncompatibilityMode = self._coerce_enum(
+            IncompatibilityMode, climateIncompatibilityMode, IncompatibilityMode.EXPLICIT
+        )
         self.incompatibleClimateIds = Terrain._normalize_ids(incompatibleClimateIds)
         self.biomeId = str(biomeId or "").strip()
 

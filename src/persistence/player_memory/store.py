@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -107,7 +107,9 @@ class PlayerMemoryStore:
         record.event_id = int(event_id)
         return record
 
-    def list_events_for_character(self, player_id: int, character_instance_id: str, limit: int = 50) -> list[EventRecord]:
+    def list_events_for_character(
+        self, player_id: int, character_instance_id: str, limit: int = 50
+    ) -> list[EventRecord]:
         limit = self._clamp_limit(limit) or 50
         with self.connect() as connection:
             rows = connection.execute(
@@ -149,17 +151,21 @@ class PlayerMemoryStore:
             for tag in memory.tags:
                 connection.execute(
                     "INSERT OR IGNORE INTO memory_tags (player_id, memory_id, character_instance_id, tag) VALUES (?, ?, ?, ?)",
-                    (int(memory.player_id), int(memory_id), str(memory.character_instance_id), str(tag).strip().lower()),
+                    (
+                        int(memory.player_id),
+                        int(memory_id),
+                        str(memory.character_instance_id),
+                        str(tag).strip().lower(),
+                    ),
                 )
         memory.memory_id = int(memory_id)
         return memory
 
-    def list_memories_for_character(self, player_id: int, character_instance_id: str, limit: int | None = None) -> list[CharacterMemory]:
+    def list_memories_for_character(
+        self, player_id: int, character_instance_id: str, limit: int | None = None
+    ) -> list[CharacterMemory]:
         limit = self._clamp_limit(limit)
-        sql = (
-            "SELECT * FROM memories WHERE player_id = ? AND character_instance_id = ? "
-            "ORDER BY memory_id DESC"
-        )
+        sql = "SELECT * FROM memories WHERE player_id = ? AND character_instance_id = ? ORDER BY memory_id DESC"
         params: list = [int(player_id), str(character_instance_id)]
         if limit is not None:
             sql += " LIMIT ?"
@@ -168,7 +174,9 @@ class PlayerMemoryStore:
             rows = connection.execute(sql, tuple(params)).fetchall()
             return [self._row_to_memory(connection, row) for row in rows]
 
-    def list_memories_by_tags(self, player_id: int, character_instance_id: str, tags: Iterable[str], limit: int = 50) -> list[CharacterMemory]:
+    def list_memories_by_tags(
+        self, player_id: int, character_instance_id: str, tags: Iterable[str], limit: int = 50
+    ) -> list[CharacterMemory]:
         normalized_tags = [str(tag).strip().lower() for tag in tags if str(tag).strip()]
         if not normalized_tags:
             return []
@@ -239,7 +247,9 @@ class PlayerMemoryStore:
         fact.fact_id = int(fact_id)
         return fact
 
-    def list_facts_for_character(self, player_id: int, character_instance_id: str, limit: int | None = None) -> list[SemanticFact]:
+    def list_facts_for_character(
+        self, player_id: int, character_instance_id: str, limit: int | None = None
+    ) -> list[SemanticFact]:
         limit = self._clamp_limit(limit)
         sql = "SELECT * FROM facts WHERE player_id = ? AND character_instance_id = ? ORDER BY fact_id DESC"
         params: list = [int(player_id), str(character_instance_id)]
@@ -250,7 +260,9 @@ class PlayerMemoryStore:
             rows = connection.execute(sql, tuple(params)).fetchall()
             return [self._row_to_fact(connection, row) for row in rows]
 
-    def list_facts_by_tags(self, player_id: int, character_instance_id: str, tags: Iterable[str], limit: int = 50) -> list[SemanticFact]:
+    def list_facts_by_tags(
+        self, player_id: int, character_instance_id: str, tags: Iterable[str], limit: int = 50
+    ) -> list[SemanticFact]:
         normalized_tags = [str(tag).strip().lower() for tag in tags if str(tag).strip()]
         if not normalized_tags:
             return []
@@ -269,7 +281,9 @@ class PlayerMemoryStore:
             ).fetchall()
             return [self._row_to_fact(connection, row) for row in rows]
 
-    def get_relationship(self, player_id: int, character_instance_id: str, target_character_instance_id: str) -> Relationship | None:
+    def get_relationship(
+        self, player_id: int, character_instance_id: str, target_character_instance_id: str
+    ) -> Relationship | None:
         with self.connect() as connection:
             row = connection.execute(
                 """
@@ -345,7 +359,9 @@ class PlayerMemoryStore:
         log.turn_id = int(turn_id)
         return log
 
-    def list_turn_logs_for_character(self, player_id: int, character_instance_id: str, limit: int = 20) -> list[LLMTurnLog]:
+    def list_turn_logs_for_character(
+        self, player_id: int, character_instance_id: str, limit: int = 20
+    ) -> list[LLMTurnLog]:
         with self.connect() as connection:
             rows = connection.execute(
                 """
@@ -372,4 +388,3 @@ class PlayerMemoryStore:
 
     def _row_to_turn_log(self, row: sqlite3.Row) -> LLMTurnLog:
         return row_to_turn_log(row, self._from_json)
-

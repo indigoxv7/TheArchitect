@@ -80,7 +80,9 @@ def speed_factor_from_attributes(physical_power: float, magic_power: float) -> f
     physical_weight = character_stat_factor("speed_physical_power_weight", 2.0)
     magic_weight = character_stat_factor("speed_magic_power_weight", 1.0)
     divisor = max(0.0001, character_stat_factor("speed_normalization_divisor", 15.0))
-    normalized = ((physical_weight * _safe_float(physical_power, 5.0)) + (magic_weight * _safe_float(magic_power, 5.0))) / divisor
+    normalized = (
+        (physical_weight * _safe_float(physical_power, 5.0)) + (magic_weight * _safe_float(magic_power, 5.0))
+    ) / divisor
     return max(minimum_speed_factor(), normalized)
 
 
@@ -163,7 +165,10 @@ def can_take_offensive_action(exertion_level: Any) -> bool:
 
 
 def effective_speed_factor(base_speed: float, exertion_level: Any) -> float:
-    return max(minimum_speed_factor(), _safe_float(base_speed, BASELINE_SPEED_FACTOR) * speed_multiplier_for_exertion(exertion_level))
+    return max(
+        minimum_speed_factor(),
+        _safe_float(base_speed, BASELINE_SPEED_FACTOR) * speed_multiplier_for_exertion(exertion_level),
+    )
 
 
 def action_interval_seconds(base_speed: float, exertion_level: Any) -> float:
@@ -187,7 +192,9 @@ def sync_stamina(state_like, current_time: float) -> float:
     current_time = max(0.0, _safe_float(current_time, 0.0))
     last_time = max(0.0, _safe_float(getattr(state_like, "stamina_last_update_time", current_time), current_time))
     elapsed = max(0.0, current_time - last_time)
-    stamina_current = _safe_float(getattr(state_like, "stamina_current", baseline_stamina_limit()), baseline_stamina_limit())
+    stamina_current = _safe_float(
+        getattr(state_like, "stamina_current", baseline_stamina_limit()), baseline_stamina_limit()
+    )
     regen_rate = max(0.0, _safe_float(getattr(state_like, "stamina_regen_per_second", 0.0), 0.0))
     stamina_current += elapsed * regen_rate
     setattr(state_like, "stamina_current", stamina_current)

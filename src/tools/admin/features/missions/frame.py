@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from .dialogs import MissionAllegianceConfigDialog, _objective_description
+from .dialogs import MissionAllegianceConfigDialog, MissionObjectiveDialog, _objective_description
 
 
 class MissionEditorFrame(ttk.Frame):
@@ -49,7 +49,9 @@ class MissionEditorFrame(ttk.Frame):
         objective_row.pack(fill=tk.X, pady=4)
         ttk.Label(objective_row, text="Objective", width=18).pack(side=tk.LEFT)
         self.objective_label_var = tk.StringVar(value="<No Objective>")
-        ttk.Entry(objective_row, textvariable=self.objective_label_var, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Entry(objective_row, textvariable=self.objective_label_var, state="readonly").pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
         ttk.Button(objective_row, text="Edit Objective", command=self._edit_objective).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(objective_row, text="Clear", command=self._clear_objective).pack(side=tk.LEFT, padx=(6, 0))
 
@@ -60,7 +62,9 @@ class MissionEditorFrame(ttk.Frame):
         actions = ttk.Frame(allegiance_frame)
         actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(actions, text="Add Allegiance", command=self._add_allegiance_config).pack(side=tk.LEFT)
-        ttk.Button(actions, text="Edit Selected", command=self._edit_selected_allegiance_config).pack(side=tk.LEFT, padx=6)
+        ttk.Button(actions, text="Edit Selected", command=self._edit_selected_allegiance_config).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(actions, text="Remove Selected", command=self._remove_selected_allegiance_config).pack(side=tk.LEFT)
 
         self.summary = tk.Text(self, height=14, wrap=tk.WORD)
@@ -80,10 +84,16 @@ class MissionEditorFrame(ttk.Frame):
 
     def _filtered_missions(self):
         query = self.search_var.get().strip().lower()
-        return [mission for mission in self.app.mission_service.list_missions() if not query or query in self.app.mission_service.get_mission_label(mission).lower()]
+        return [
+            mission
+            for mission in self.app.mission_service.list_missions()
+            if not query or query in self.app.mission_service.get_mission_label(mission).lower()
+        ]
 
     def refresh_mission_list(self, reset_form):
-        labels = ["<New Mission>"] + [self.app.mission_service.get_mission_label(mission) for mission in self._filtered_missions()]
+        labels = ["<New Mission>"] + [
+            self.app.mission_service.get_mission_label(mission) for mission in self._filtered_missions()
+        ]
         self.pick["values"] = labels
         if reset_form:
             self.pick_var.set("<New Mission>")
@@ -124,7 +134,11 @@ class MissionEditorFrame(ttk.Frame):
     def _allegiance_config_label(self, payload):
         allegiance_id = str(payload.get("allegianceId", "") or "").strip()
         allegiance = self.app.allegiance_service.get_allegiance_by_id(allegiance_id)
-        allegiance_label = self.app.allegiance_service.get_allegiance_label(allegiance) if allegiance is not None else f"Unknown [{allegiance_id}]"
+        allegiance_label = (
+            self.app.allegiance_service.get_allegiance_label(allegiance)
+            if allegiance is not None
+            else f"Unknown [{allegiance_id}]"
+        )
         unit_count = len(payload.get("unitOptions", []) or [])
         return f"{allegiance_label} | PP {int(payload.get('powerPointCap', 0) or 0)} | Lv {int(payload.get('levelMin', 0) or 0)}-{int(payload.get('levelMax', 0) or 0)} | Cluster {float(payload.get('clusterProbability', 0.0) or 0.0):.2f} +/- {float(payload.get('clusterProbabilityVariance', 0.0) or 0.0):.2f} | {unit_count} units"
 
@@ -147,7 +161,14 @@ class MissionEditorFrame(ttk.Frame):
             self.allegiance_listbox.insert(tk.END, self._allegiance_config_label(payload))
 
     def _refresh_summary(self):
-        lines = [f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}", f"Mission ID: {self.current_mission_id or '<Unsaved>'}", f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}", f"Objective: {_objective_description(self.objective_draft)}", "", "Mission Allegiances:"]
+        lines = [
+            f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}",
+            f"Mission ID: {self.current_mission_id or '<Unsaved>'}",
+            f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}",
+            f"Objective: {_objective_description(self.objective_draft)}",
+            "",
+            "Mission Allegiances:",
+        ]
         if not self.allegiance_configs_draft:
             lines.append("<None>")
         else:
@@ -167,11 +188,15 @@ class MissionEditorFrame(ttk.Frame):
 
     def _add_allegiance_config(self):
         exclude_ids = [entry.get("allegianceId") for entry in self.allegiance_configs_draft]
-        MissionAllegianceConfigDialog(self, self.app, None, self._append_allegiance_config, exclude_allegiance_ids=exclude_ids)
+        MissionAllegianceConfigDialog(
+            self, self.app, None, self._append_allegiance_config, exclude_allegiance_ids=exclude_ids
+        )
 
     def _append_allegiance_config(self, payload):
         allegiance_id = str(payload.get("allegianceId", "") or "").strip()
-        if allegiance_id in {str(entry.get("allegianceId", "") or "").strip() for entry in self.allegiance_configs_draft}:
+        if allegiance_id in {
+            str(entry.get("allegianceId", "") or "").strip() for entry in self.allegiance_configs_draft
+        }:
             messagebox.showerror("Mission Editor", "That allegiance is already included in this mission.")
             return
         self.allegiance_configs_draft.append(payload)
@@ -183,12 +208,26 @@ class MissionEditorFrame(ttk.Frame):
         if index is None:
             messagebox.showerror("Mission Editor", "Select a mission allegiance to edit.")
             return
-        exclude_ids = [entry.get("allegianceId") for position, entry in enumerate(self.allegiance_configs_draft) if position != index]
-        MissionAllegianceConfigDialog(self, self.app, dict(self.allegiance_configs_draft[index]), lambda payload: self._replace_allegiance_config(index, payload), exclude_allegiance_ids=exclude_ids)
+        exclude_ids = [
+            entry.get("allegianceId")
+            for position, entry in enumerate(self.allegiance_configs_draft)
+            if position != index
+        ]
+        MissionAllegianceConfigDialog(
+            self,
+            self.app,
+            dict(self.allegiance_configs_draft[index]),
+            lambda payload: self._replace_allegiance_config(index, payload),
+            exclude_allegiance_ids=exclude_ids,
+        )
 
     def _replace_allegiance_config(self, index, payload):
         allegiance_id = str(payload.get("allegianceId", "") or "").strip()
-        other_ids = {str(entry.get("allegianceId", "") or "").strip() for position, entry in enumerate(self.allegiance_configs_draft) if position != index}
+        other_ids = {
+            str(entry.get("allegianceId", "") or "").strip()
+            for position, entry in enumerate(self.allegiance_configs_draft)
+            if position != index
+        }
         if allegiance_id in other_ids:
             messagebox.showerror("Mission Editor", "That allegiance is already included in this mission.")
             return
@@ -205,7 +244,12 @@ class MissionEditorFrame(ttk.Frame):
         self._refresh_summary()
 
     def _save(self):
-        payload = {"name": str(self.name_var.get() or "").strip(), "portalMission": bool(self.portal_mission_var.get()), "objective": dict(self.objective_draft), "allegianceConfigs": list(self.allegiance_configs_draft)}
+        payload = {
+            "name": str(self.name_var.get() or "").strip(),
+            "portalMission": bool(self.portal_mission_var.get()),
+            "objective": dict(self.objective_draft),
+            "allegianceConfigs": list(self.allegiance_configs_draft),
+        }
         if not payload["name"]:
             messagebox.showerror("Mission Editor", "Mission name is required.")
             return
@@ -213,7 +257,11 @@ class MissionEditorFrame(ttk.Frame):
             messagebox.showerror("Mission Editor", "Mission objective is required.")
             return
         try:
-            mission = self.app.mission_service.edit_mission_from_patch(self.current_mission_id, payload) if self.current_mission_id else self.app.mission_service.create_mission_from_dict(payload)
+            mission = (
+                self.app.mission_service.edit_mission_from_patch(self.current_mission_id, payload)
+                if self.current_mission_id
+                else self.app.mission_service.create_mission_from_dict(payload)
+            )
             messagebox.showinfo("Mission Editor", "Mission saved.")
             self.refresh_mission_list(reset_form=False)
             self.pick_var.set(self.app.mission_service.get_mission_label(mission))

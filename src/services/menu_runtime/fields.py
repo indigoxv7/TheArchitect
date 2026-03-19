@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 
@@ -170,12 +170,32 @@ ITEM_FIELD_EDIT_CONFIG = {
 }
 
 COMPONENT_FIELD_EDIT_CONFIG = {
-    "attributesSetPhysicalPowerAction": ("attributesDraft", "physical_power", "Physical Power", _parse_non_negative_int),
-    "attributesSetPhysicalStaminaAction": ("attributesDraft", "physical_stamina", "Physical Stamina", _parse_non_negative_int),
-    "attributesSetPhysicalResistanceAction": ("attributesDraft", "physical_resistance", "Physical Resistance", _parse_non_negative_int),
+    "attributesSetPhysicalPowerAction": (
+        "attributesDraft",
+        "physical_power",
+        "Physical Power",
+        _parse_non_negative_int,
+    ),
+    "attributesSetPhysicalStaminaAction": (
+        "attributesDraft",
+        "physical_stamina",
+        "Physical Stamina",
+        _parse_non_negative_int,
+    ),
+    "attributesSetPhysicalResistanceAction": (
+        "attributesDraft",
+        "physical_resistance",
+        "Physical Resistance",
+        _parse_non_negative_int,
+    ),
     "attributesSetMagicPowerAction": ("attributesDraft", "magic_power", "Magic Power", _parse_non_negative_int),
     "attributesSetMagicStaminaAction": ("attributesDraft", "magic_stamina", "Magic Stamina", _parse_non_negative_int),
-    "attributesSetMagicResistanceAction": ("attributesDraft", "magic_resistance", "Magic Resistance", _parse_non_negative_int),
+    "attributesSetMagicResistanceAction": (
+        "attributesDraft",
+        "magic_resistance",
+        "Magic Resistance",
+        _parse_non_negative_int,
+    ),
     "gearSetHeadAction": ("gearDraft", "head", "Head Item Name", _parse_optional_text),
     "gearSetNeckAction": ("gearDraft", "neck", "Neck Item Name", _parse_optional_text),
     "gearSetBodyAction": ("gearDraft", "body", "Body Item Name", _parse_optional_text),
@@ -233,4 +253,3 @@ ITEM_ENUM_ACTIONS = {
     "itemSetPowerType_MAGIC_ATTACK_Action": ("power_type", PowerType.MAGIC_ATTACK.name),
     "itemSetPowerType_CONSUMABLE_POWER_Action": ("power_type", PowerType.CONSUMABLE_POWER.name),
 }
-

@@ -35,7 +35,9 @@ class SpellEditorFrame(ttk.Frame):
             values=["All"] + [a.value for a in AffinityTypes],
         )
         self.affinity_filter.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ttk.Button(filter_row, text="Apply Filter", command=lambda: self.refresh_spell_list(reset_form=False)).pack(side=tk.LEFT, padx=6)
+        ttk.Button(filter_row, text="Apply Filter", command=lambda: self.refresh_spell_list(reset_form=False)).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(filter_row, text="Clear", command=self._clear_filters).pack(side=tk.LEFT)
 
         pick_row = ttk.Frame(self)
@@ -83,18 +85,26 @@ class SpellEditorFrame(ttk.Frame):
         row = ttk.Frame(self)
         row.pack(fill=tk.X, pady=2)
         ttk.Label(row, text="Affinity", width=18).pack(side=tk.LEFT)
-        ttk.Combobox(row, state="readonly", values=[a.value for a in AffinityTypes], textvariable=self.vars["affinity"]).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Combobox(
+            row, state="readonly", values=[a.value for a in AffinityTypes], textvariable=self.vars["affinity"]
+        ).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         for label, key in [("Verbal", "verbal"), ("Somatic", "somatic")]:
             row = ttk.Frame(self)
             row.pack(fill=tk.X, pady=2)
             ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
-            ttk.Combobox(row, state="readonly", values=["True", "False"], textvariable=self.vars[key]).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ttk.Combobox(row, state="readonly", values=["True", "False"], textvariable=self.vars[key]).pack(
+                side=tk.LEFT, fill=tk.X, expand=True
+            )
 
         button_row = ttk.Frame(self)
         button_row.pack(fill=tk.X, pady=8)
-        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
-        ttk.Button(button_row, text="Save Spell", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4)
+        )
+        ttk.Button(button_row, text="Save Spell", command=self._save).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0)
+        )
 
     def _clear_filters(self):
         self.search_var.set("")

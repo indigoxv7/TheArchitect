@@ -1,11 +1,11 @@
-﻿import unittest
+import unittest
 
 import asyncio
 import json
 import tempfile
 from pathlib import Path
 
-from src.config import EMOJI_PLACEHOLDERS, nanoEmoji
+from src.config import nanoEmoji
 import main as game
 from src.domain.player_functions import Player
 from src.domain.items import Weapon
@@ -85,7 +85,8 @@ class TestMenuRuntime(unittest.TestCase):
         non_admin_message = OriginalMessage(sample_player, is_developer_admin=False)
         game.menu_service.update_menu_values(non_admin_message, game.context.root_menu)
         non_admin_visible = [
-            m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(game.context.root_menu, non_admin_message)
+            m.uniqueName
+            for m, _ in game.menu_service.get_visible_child_menus(game.context.root_menu, non_admin_message)
         ]
 
         admin_message = OriginalMessage(sample_player, is_developer_admin=True)
@@ -133,5 +134,3 @@ class TestMenuRuntime(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

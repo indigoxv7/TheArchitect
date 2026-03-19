@@ -1,4 +1,4 @@
-﻿import copy
+import copy
 from enum import Enum
 
 from src.domain.character_util import (
@@ -13,9 +13,9 @@ from src.domain.character_util import (
     FriendlyFireTolerance,
     TotalBonus,
 )
-from src.domain.items import Gear, Item
+from src.domain.items import Gear
 from src.domain.general_skills import GeneralSkills
-from src.domain.spells import Spell, SpellComponent
+from src.domain.spells import Spell
 from src.domain.combat_timing import (
     BASELINE_STAMINA_LIMIT,
     speed_factor_from_attributes,
@@ -25,6 +25,7 @@ from src.domain.combat_timing import (
 from src.config.tuning import character_stat_factor
 from src.config import NANO_EMOJI
 
+
 class HealthState(Enum):
     HEALTHY = 0
     INJURED = 1
@@ -32,6 +33,7 @@ class HealthState(Enum):
     DYING = 3
     UNCONSCIOUS = 4
     DEAD = 5
+
 
 # A limited time bonus that the character has active.
 class Buff:
@@ -176,20 +178,30 @@ class Character:
         return ratio ** character_stat_factor("derived_stat_alpha", cls.DERIVED_STAT_ALPHA)
 
     def GetMaxHealth(self) -> float:
-        physical_resistance = float(getattr(self.finalAttributes, "physicalResistance", getattr(self.attributes, "physicalResistance", 5.0)))
-        return character_stat_factor("base_health_at_baseline", self.BASE_HEALTH_AT_BASELINE) * self._scaled_primary_stat_multiplier(physical_resistance)
+        physical_resistance = float(
+            getattr(self.finalAttributes, "physicalResistance", getattr(self.attributes, "physicalResistance", 5.0))
+        )
+        return character_stat_factor(
+            "base_health_at_baseline", self.BASE_HEALTH_AT_BASELINE
+        ) * self._scaled_primary_stat_multiplier(physical_resistance)
 
     def GetSpeed(self) -> float:
-        physical_power = float(getattr(self.finalAttributes, "physicalPower", getattr(self.attributes, "physicalPower", 5.0)))
+        physical_power = float(
+            getattr(self.finalAttributes, "physicalPower", getattr(self.attributes, "physicalPower", 5.0))
+        )
         magic_power = float(getattr(self.finalAttributes, "magicPower", getattr(self.attributes, "magicPower", 5.0)))
         return speed_factor_from_attributes(physical_power=physical_power, magic_power=magic_power)
 
     def GetStaminaLimit(self) -> float:
-        physical_stamina = float(getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0)))
+        physical_stamina = float(
+            getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0))
+        )
         return stamina_limit_from_physical_stamina(physical_stamina)
 
     def GetStaminaRegenPerSecond(self) -> float:
-        physical_stamina = float(getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0)))
+        physical_stamina = float(
+            getattr(self.finalAttributes, "physicalStamina", getattr(self.attributes, "physicalStamina", 5.0))
+        )
         return stamina_regen_per_second_from_physical_stamina(physical_stamina)
 
     def GetHealthRatio(self) -> float:
@@ -246,7 +258,7 @@ class Character:
 
     # gives us our final stat block which is the base stats plus all other bonuses.
     def CalculateFinalAttributes(self):
-        self.finalAttributes = copy.deepcopy(self.attributes) # reset our values to our baseline
+        self.finalAttributes = copy.deepcopy(self.attributes)  # reset our values to our baseline
         self.finalAffinities = copy.deepcopy(self.affinities)
 
         # first we add our inherent buffs (Achievements, strength training, etc.)
@@ -259,7 +271,6 @@ class Character:
         # do affinities too
         self.finalAffinities.MultiplyAffinities(self.totalBonus.percentAffinities)
 
-
     # Updates the character's bonus object that is the combination of all the character's current bonuses (Equipment, achievements, buffs, etc.)
     def CalculateBonus(self):
         # Recompute from scratch each time to avoid stacking duplicate values across repeated calls.
@@ -269,21 +280,19 @@ class Character:
         if not hasattr(self, "health") or self.health is None:
             self.health = self.GetMaxHealth()
 
-
-
     # We want to make sure flat bonus achievements are inserted before multiplier bonus achievements.
     def AddAchievement(self, achievement: Achievement):
 
-        if self.activeAchievementTitle == "" and achievement.title != "": # set up the title if they have none.
+        if self.activeAchievementTitle == "" and achievement.title != "":  # set up the title if they have none.
             self.activeAchievementTitle = achievement.title
 
         bonuses = [entry for entry in getattr(achievement, "bonuses", []) if entry is not None]
         has_percentage = any(entry.bonusType == BonusType.PERCENTAGE for entry in bonuses)
 
-        if has_percentage: # percentages go at the end of the list for calculation
+        if has_percentage:  # percentages go at the end of the list for calculation
             self.achievements.append(achievement)
         else:
-            self.achievements.insert(0, achievement) # flat bonuses go at the start of the list.
+            self.achievements.insert(0, achievement)  # flat bonuses go at the start of the list.
 
     def GetWoundedString(self):
         if self.healthState == HealthState.HEALTHY:
@@ -306,7 +315,7 @@ class Character:
 
         text += f" - {rounded_base:.1f}"
         if percent > 0:
-            text += f"(+{percent*100:g}%)"
+            text += f"(+{percent * 100:g}%)"
         if rounded_bonus > 0:
             if rounded_bonus.is_integer():
                 text += f"[+{int(rounded_bonus)}]"
@@ -325,7 +334,7 @@ class Character:
             Attribute.PHYSICAL_RESISTANCE: 0,
             Attribute.MAGIC_POWER: 0,
             Attribute.MAGIC_STAMINA: 0,
-            Attribute.MAGIC_RESISTANCE: 0
+            Attribute.MAGIC_RESISTANCE: 0,
         }
 
         bonusMultiplierDict = copy.deepcopy(bonusAttributeDict)
@@ -336,26 +345,26 @@ class Character:
             Attribute.PHYSICAL_RESISTANCE: self.attributes.physicalResistance,
             Attribute.MAGIC_POWER: self.attributes.magicPower,
             Attribute.MAGIC_STAMINA: self.attributes.magicStamina,
-            Attribute.MAGIC_RESISTANCE: self.attributes.magicResistance
+            Attribute.MAGIC_RESISTANCE: self.attributes.magicResistance,
         }
 
         # Now we'll loop through bonuses and apply each bonus to its appropriate place in the dictionaries
         for bonus in bonuses:
             if bonus.bonusType == BonusType.FLAT:
                 if bonus.attributeBonus is not None:
-                    if not bonus.permanent: # do the bonuses that are not inherent (items, magic buffs, food, etc.)
+                    if not bonus.permanent:  # do the bonuses that are not inherent (items, magic buffs, food, etc.)
                         if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
                             bonusAttributeDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
                         else:
                             for attribute in bonusAttributeDict:
                                 bonusAttributeDict[attribute] += bonus.attributeBonus.bonus
-                    else: # do the bonuses that are considered inherent (Achievements, strength training, etc.)
+                    else:  # do the bonuses that are considered inherent (Achievements, strength training, etc.)
                         if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
                             baseStatDict[bonus.attributeBonus.attribute] += bonus.attributeBonus.bonus
                         else:
                             for attribute in baseStatDict:
                                 baseStatDict[attribute] += bonus.attributeBonus.bonus
-            else: # if the bonus type is multiplicative
+            else:  # if the bonus type is multiplicative
                 if bonus.attributeBonus is not None:
                     percent_as_multiplier = float(bonus.attributeBonus.bonus) / 100.0
                     if bonus.attributeBonus.attribute is not Attribute.ALL_ATTRIBUTES:
@@ -370,17 +379,17 @@ class Character:
 
         attributeIncrease = ""
         if self.totalBonus.allStatBonusUIAmount > 0:
-            attributeIncrease += f"Increased by {self.totalBonus.allStatBonusUIAmount*100:g}%"
+            attributeIncrease += f"Increased by {self.totalBonus.allStatBonusUIAmount * 100:g}%"
 
-
-
-        result = (f"Attributes - {attributeIncrease}\n"
-                  f"{self.GetAttributeString('Physical Power', baseStatDict[Attribute.PHYSICAL_POWER], bonusMultiplierDict[Attribute.PHYSICAL_POWER], bonusAttributeDict[Attribute.PHYSICAL_POWER], self.finalAttributes.physicalPower)}\n"
-                  f"{self.GetAttributeString('Physical Stamina', baseStatDict[Attribute.PHYSICAL_STAMINA], bonusMultiplierDict[Attribute.PHYSICAL_STAMINA], bonusAttributeDict[Attribute.PHYSICAL_STAMINA], self.finalAttributes.physicalStamina)}\n"
-                  f"{self.GetAttributeString('Physical Resistance', baseStatDict[Attribute.PHYSICAL_RESISTANCE], bonusMultiplierDict[Attribute.PHYSICAL_RESISTANCE], bonusAttributeDict[Attribute.PHYSICAL_RESISTANCE], self.finalAttributes.physicalResistance)}\n"
-                  f"{self.GetAttributeString('Magic Power', baseStatDict[Attribute.MAGIC_POWER], bonusMultiplierDict[Attribute.MAGIC_POWER], bonusAttributeDict[Attribute.MAGIC_POWER], self.finalAttributes.magicPower)}\n"
-                  f"{self.GetAttributeString('Magic Stamina', baseStatDict[Attribute.MAGIC_STAMINA], bonusMultiplierDict[Attribute.MAGIC_STAMINA], bonusAttributeDict[Attribute.MAGIC_STAMINA], self.finalAttributes.magicStamina)}\n"
-                  f"{self.GetAttributeString('Magic Resistance ', baseStatDict[Attribute.MAGIC_RESISTANCE], bonusMultiplierDict[Attribute.MAGIC_RESISTANCE], bonusAttributeDict[Attribute.MAGIC_RESISTANCE], self.finalAttributes.magicResistance)}\n")
+        result = (
+            f"Attributes - {attributeIncrease}\n"
+            f"{self.GetAttributeString('Physical Power', baseStatDict[Attribute.PHYSICAL_POWER], bonusMultiplierDict[Attribute.PHYSICAL_POWER], bonusAttributeDict[Attribute.PHYSICAL_POWER], self.finalAttributes.physicalPower)}\n"
+            f"{self.GetAttributeString('Physical Stamina', baseStatDict[Attribute.PHYSICAL_STAMINA], bonusMultiplierDict[Attribute.PHYSICAL_STAMINA], bonusAttributeDict[Attribute.PHYSICAL_STAMINA], self.finalAttributes.physicalStamina)}\n"
+            f"{self.GetAttributeString('Physical Resistance', baseStatDict[Attribute.PHYSICAL_RESISTANCE], bonusMultiplierDict[Attribute.PHYSICAL_RESISTANCE], bonusAttributeDict[Attribute.PHYSICAL_RESISTANCE], self.finalAttributes.physicalResistance)}\n"
+            f"{self.GetAttributeString('Magic Power', baseStatDict[Attribute.MAGIC_POWER], bonusMultiplierDict[Attribute.MAGIC_POWER], bonusAttributeDict[Attribute.MAGIC_POWER], self.finalAttributes.magicPower)}\n"
+            f"{self.GetAttributeString('Magic Stamina', baseStatDict[Attribute.MAGIC_STAMINA], bonusMultiplierDict[Attribute.MAGIC_STAMINA], bonusAttributeDict[Attribute.MAGIC_STAMINA], self.finalAttributes.magicStamina)}\n"
+            f"{self.GetAttributeString('Magic Resistance ', baseStatDict[Attribute.MAGIC_RESISTANCE], bonusMultiplierDict[Attribute.MAGIC_RESISTANCE], bonusAttributeDict[Attribute.MAGIC_RESISTANCE], self.finalAttributes.magicResistance)}\n"
+        )
 
         return result
 
@@ -410,7 +419,7 @@ class Character:
 
     def GetCharacterOverviewText(self, nanoAmount: float):
         affinitySection = "Combat Classification - "
-        if (self.level > 0):
+        if self.level > 0:
             affinitySection += f"Level {self.level}\n"
             affinitySection += f"Chi - {self.finalAffinities.chi}\nMana - {self.finalAffinities.mana}\nPsi - {self.finalAffinities.psi}\nAether - {self.finalAffinities.aether}\n"
         else:
@@ -438,10 +447,6 @@ Pooled Nano {NANO_EMOJI} - {nanoString}
 
         return result
 
-
-    def IncreaseAttribute(self, a: Attribute, amount: int=1):
-        self.attributes.IncreaseAttribute(a,amount)
+    def IncreaseAttribute(self, a: Attribute, amount: int = 1):
+        self.attributes.IncreaseAttribute(a, amount)
         self.CalculateFinalAttributes()
-
-
-

@@ -1,4 +1,4 @@
-﻿import copy
+import copy
 import logging
 import os
 import re
@@ -282,16 +282,79 @@ class PlayerService:
         self.context.all_items.clear()
         self.context.error_item = None
 
-        phys_resist_bonus = [
-            Bonus(BonusType.FLAT, AttributeBonus(Attribute.PHYSICAL_RESISTANCE, 1), None, 0, "")
-        ]
+        phys_resist_bonus = [Bonus(BonusType.FLAT, AttributeBonus(Attribute.PHYSICAL_RESISTANCE, 1), None, 0, "")]
 
         default_items = [
-            Weapon("Dagger", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_THROWABLE, [DamageType.PIERCING], 9, 12, 0.9, 0.10, 4),
-            Weapon("Spear", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.PIERCING], 11, 15, 1.1, 0.05, 6),
-            Weapon("Sword", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.SLASHING], 12, 16, 1.0, 0.0, 5),
-            Weapon("Warhammer", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.MELEE_WEAPON, [DamageType.BLUDGEONING], 13, 18, 1.35, 0.0, 8),
-            Weapon("Bow", EquipSlot.PRIMARY_WEAPON, 0, DEFAULT_DURABILITY, None, ItemType.RANGED_WEAPON, [DamageType.PIERCING], 10, 14, 0.8, 0.10, 4),
+            Weapon(
+                "Dagger",
+                EquipSlot.PRIMARY_WEAPON,
+                0,
+                DEFAULT_DURABILITY,
+                None,
+                ItemType.MELEE_THROWABLE,
+                [DamageType.PIERCING],
+                9,
+                12,
+                0.9,
+                0.10,
+                4,
+            ),
+            Weapon(
+                "Spear",
+                EquipSlot.PRIMARY_WEAPON,
+                0,
+                DEFAULT_DURABILITY,
+                None,
+                ItemType.MELEE_WEAPON,
+                [DamageType.PIERCING],
+                11,
+                15,
+                1.1,
+                0.05,
+                6,
+            ),
+            Weapon(
+                "Sword",
+                EquipSlot.PRIMARY_WEAPON,
+                0,
+                DEFAULT_DURABILITY,
+                None,
+                ItemType.MELEE_WEAPON,
+                [DamageType.SLASHING],
+                12,
+                16,
+                1.0,
+                0.0,
+                5,
+            ),
+            Weapon(
+                "Warhammer",
+                EquipSlot.PRIMARY_WEAPON,
+                0,
+                DEFAULT_DURABILITY,
+                None,
+                ItemType.MELEE_WEAPON,
+                [DamageType.BLUDGEONING],
+                13,
+                18,
+                1.35,
+                0.0,
+                8,
+            ),
+            Weapon(
+                "Bow",
+                EquipSlot.PRIMARY_WEAPON,
+                0,
+                DEFAULT_DURABILITY,
+                None,
+                ItemType.RANGED_WEAPON,
+                [DamageType.PIERCING],
+                10,
+                14,
+                0.8,
+                0.10,
+                4,
+            ),
             Armor("Shield", EquipSlot.OFFHAND, 0, 40, phys_resist_bonus, ItemType.ARMOR, maxArmor=40, currentArmor=40),
             Armor("Helmet", EquipSlot.HEAD, 0, 30, phys_resist_bonus, ItemType.ARMOR, maxArmor=30, currentArmor=30),
             Item("Necklace", EquipSlot.NECK, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.DEFAULT),
@@ -300,14 +363,18 @@ class PlayerService:
             Item("Ring", EquipSlot.RING, 0, DEFAULT_DURABILITY, phys_resist_bonus, ItemType.DEFAULT),
             Armor("Pants", EquipSlot.LEGS, 0, 35, phys_resist_bonus, ItemType.ARMOR, maxArmor=35, currentArmor=35),
             Armor("Boots", EquipSlot.FEET, 0, 25, phys_resist_bonus, ItemType.ARMOR, maxArmor=25, currentArmor=25),
-            Consumable("Bandage", 0, None, ConsumableKind.POTION, effectPowerType=PowerType.CONSUMABLE_POWER, effectPower=10),
+            Consumable(
+                "Bandage", 0, None, ConsumableKind.POTION, effectPowerType=PowerType.CONSUMABLE_POWER, effectPower=10
+            ),
             Item("Paperclip", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT),
         ]
 
         for new_item in default_items:
             self.context.all_items[new_item.name] = new_item
 
-        self.context.error_item = Item("[ERROR MISSING ITEM]", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT)
+        self.context.error_item = Item(
+            "[ERROR MISSING ITEM]", EquipSlot.NOT_EQUIPABLE, 0, DEFAULT_DURABILITY, None, ItemType.DEFAULT
+        )
         self.context.all_items[self.context.error_item.name] = self.context.error_item
 
     def find_item(self, name: str) -> Item:
@@ -338,7 +405,9 @@ class PlayerService:
         new_player.AttachSavePath(player_save_path, enableAutoSave=False)
         self.context.existing_players[discord_id] = True
         self.save_existing_players_roster(self.existing_players_roster_path)
-        self.sync_player_name(new_player, nickname or await self.get_name_from_id(self.context.guild, discord_id), persist=False)
+        self.sync_player_name(
+            new_player, nickname or await self.get_name_from_id(self.context.guild, discord_id), persist=False
+        )
         new_player.isNewPlayer = True
         new_player.SetAutoSaveEnabled(True)
         new_player.Save()
@@ -419,7 +488,9 @@ class PlayerService:
 
         migrated = self._normalize_loaded_player(player)
         player.AttachSavePath(player_save_path, enableAutoSave=True)
-        name_changed = self.sync_player_name(player, self._cached_name_from_id(self.context.guild, discord_id), persist=False)
+        name_changed = self.sync_player_name(
+            player, self._cached_name_from_id(self.context.guild, discord_id), persist=False
+        )
         if migrated or name_changed:
             player.Save()
         self.context.existing_players[discord_id] = True
@@ -445,4 +516,3 @@ class PlayerService:
             if isinstance(character, MainCharacter):
                 result.append(character)
         return result
-

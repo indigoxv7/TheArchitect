@@ -76,7 +76,9 @@ class VariableTuningFrame(ttk.Frame):
         self.section_fields[category] = fields
         self.section_vars[category] = {}
         if not fields:
-            ttk.Label(frame, text="No faction-level tuning variables are defined yet.", justify=tk.LEFT).pack(fill=tk.X, pady=8)
+            ttk.Label(frame, text="No faction-level tuning variables are defined yet.", justify=tk.LEFT).pack(
+                fill=tk.X, pady=8
+            )
             return
 
         for field in fields:
@@ -147,7 +149,8 @@ class VariableTuningFrame(ttk.Frame):
             for field in self.section_fields.get(category, []):
                 self.section_vars[category][field["key"]].set(str(section.get(field["key"], field.get("default", ""))))
             self.section_messages[category].set("Reset to defaults.")
-            self.status_var.set(f"Reset {self.registry.get_category_schema(category).get('title', category)} to defaults.")
+            self.status_var.set(
+                f"Reset {self.registry.get_category_schema(category).get('title', category)} to defaults."
+            )
         except Exception as exc:
             messagebox.showerror("Variable Tuning", f"Failed to reset section: {exc}")
-

@@ -1,4 +1,4 @@
-﻿import json
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,7 +29,9 @@ class TestCharacterService(unittest.TestCase):
             "tier": 1,
             "durability": 90,
             "itemType": "MELEE_WEAPON" if slot == "PRIMARY_WEAPON" else "ARMOR",
-            "itemPower": [{"powerType": "PHYSICAL_ATTACK", "power": 6, "spellName": ""}] if slot == "PRIMARY_WEAPON" else [],
+            "itemPower": [{"powerType": "PHYSICAL_ATTACK", "power": 6, "spellName": ""}]
+            if slot == "PRIMARY_WEAPON"
+            else [],
             "damageType": ["SLASHING"] if slot == "PRIMARY_WEAPON" else [],
             "statBonuses": [],
         }
@@ -213,6 +215,7 @@ class TestCharacterService(unittest.TestCase):
             self.assertEqual(len(loaded.achievements), 1)
             self.assertEqual(len(getattr(loaded.achievements[0], "bonuses", [])), 2)
             self.assertGreaterEqual(len(loaded.ListAllBonuses()), 2)
+
     def test_missing_race_field_defaults_to_human1(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, _item_service, character_service, characters_dir = self._build_services(temp_dir)
@@ -234,6 +237,7 @@ class TestCharacterService(unittest.TestCase):
             self.assertIsNotNone(loaded)
             self.assertEqual(loaded.name, "Legacy No Race")
             self.assertEqual(getattr(loaded, "race", None), "Human1")
+
     def test_missing_gear_item_ids_fallback_without_crash(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, item_service, character_service, _characters_dir = self._build_services(temp_dir)
@@ -312,6 +316,3 @@ class TestCharacterService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-

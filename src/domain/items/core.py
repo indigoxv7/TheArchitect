@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -269,11 +269,14 @@ class Item:
         item_type = common["itemType"]
         name = common["name"]
 
-        if item_class == "weapon" or (not item_class and item_type in WEAPON_ITEM_TYPES and not cls._looks_like_legacy_shield(data, item_type, name)):
+        if item_class == "weapon" or (
+            not item_class
+            and item_type in WEAPON_ITEM_TYPES
+            and not cls._looks_like_legacy_shield(data, item_type, name)
+        ):
             return Weapon._from_dict_internal(data, common)
         if item_class == "armor" or item_type == ItemType.ARMOR or cls._looks_like_legacy_shield(data, item_type, name):
             return Armor._from_dict_internal(data, common)
         if item_class == "consumable" or item_type == ItemType.CONSUMABLE:
             return Consumable._from_dict_internal(data, common)
         return cls(**common)
-

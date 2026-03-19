@@ -7,7 +7,9 @@ from src.services.game_context import GameContext
 
 
 class UnitService:
-    def __init__(self, unitbook_path: str, context: GameContext, race_service, character_service, spell_service, item_service):
+    def __init__(
+        self, unitbook_path: str, context: GameContext, race_service, character_service, spell_service, item_service
+    ):
         self.context = context
         self.race_service = race_service
         self.character_service = character_service
@@ -248,4 +250,3 @@ class UnitService:
             lines.append(f"... and {len(units) - max_lines} more")
 
         return "\n".join(lines)
-

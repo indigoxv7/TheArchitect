@@ -19,9 +19,7 @@ def ensure_schema(connection: sqlite3.Connection, schema_version: int = SCHEMA_V
 
     version = int(row["value"])
     if version != schema_version:
-        raise RuntimeError(
-            f"Unsupported player memory schema version {version}; expected {schema_version}."
-        )
+        raise RuntimeError(f"Unsupported player memory schema version {version}; expected {schema_version}.")
 
 
 def create_schema(connection: sqlite3.Connection):

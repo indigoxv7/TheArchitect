@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -45,7 +45,9 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "raceTier": str(character.raceTier or "Tier I"),
         "race": str(getattr(character, "race", "Human1") or "Human1"),
         "health": _coerce_float(character.health, 0.0),
-        "healthState": character.healthState.name if isinstance(character.healthState, HealthState) else str(character.healthState),
+        "healthState": character.healthState.name
+        if isinstance(character.healthState, HealthState)
+        else str(character.healthState),
         "activeAchievementTitle": str(getattr(character, "activeAchievementTitle", "") or ""),
         "attributes": _attributes_to_dict(character.attributes),
         "affinities": _affinities_to_dict(character.affinities),
@@ -55,7 +57,9 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "spells": _spells_to_list(getattr(character, "spells", [])),
         "generalSkills": _skills_to_list(getattr(character, "generalSkills", [])),
         "stats": _stats_to_dict(getattr(character, "stats", None)) if isinstance(character, MainCharacter) else None,
-        "hobbies": _hobbies_to_list(getattr(character, "hobbies", None)) if isinstance(character, MainCharacter) else [],
+        "hobbies": _hobbies_to_list(getattr(character, "hobbies", None))
+        if isinstance(character, MainCharacter)
+        else [],
         "description": str(getattr(character, "description", "") or ""),
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
@@ -141,4 +145,3 @@ def character_from_state(
     character.footerImageURL = str(data.get("footerImageURL", "") or "")
     character.CalculateBonus()
     return character
-

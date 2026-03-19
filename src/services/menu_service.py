@@ -1,11 +1,16 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from string import Template
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from src.domain.player_functions import Player
 from src.persistence.menu_store import MenuStore
 from src.services.game_context import GameContext
 from src.ui.menu import Menu, MenuContext, MenuState
+
+if TYPE_CHECKING:
+    from src.services.menu_runtime.interfaces import OriginalMessage
+else:
+    OriginalMessage = object
 
 
 @dataclass
@@ -78,7 +83,6 @@ class MenuService:
         ]
         return "\n".join(lines)
 
-
     @staticmethod
     def _item_draft_summary(draft: dict) -> str:
         if not draft:
@@ -97,7 +101,6 @@ class MenuService:
             f"Stat Bonuses JSON: {draft.get('stat_bonuses_json', '[]')}",
         ]
         return "\n".join(lines)
-
 
     @staticmethod
     def _attributes_draft_summary(draft: dict) -> str:
@@ -331,7 +334,9 @@ class MenuService:
 
     def build_rendered_menu(self, menu: Menu, original_message: "OriginalMessage", display_name: str) -> RenderedMenu:
         original_message.player.GetCurrentEnergy(persist=True)
-        replaced_title = self.replace_placeholders(menu.myOptionText, original_message.player, original_message.menuContext)
+        replaced_title = self.replace_placeholders(
+            menu.myOptionText, original_message.player, original_message.menuContext
+        )
         replaced_body = self.replace_placeholders(menu.bodyText, original_message.player, original_message.menuContext)
         buttons = [
             RenderedButton(targetMenuName=child.uniqueName, label=label, emoji=child.myEmoji or "")
@@ -353,6 +358,3 @@ class MenuService:
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
-
-
-

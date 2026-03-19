@@ -1,4 +1,4 @@
-﻿import random
+import random
 import tempfile
 import unittest
 from pathlib import Path
@@ -116,12 +116,21 @@ class TestMainCharacter(unittest.TestCase):
 
         self.assertEqual(base_weights[HobbyInterestLevel.INDIFFERENT], 40.0)
         self.assertLess(single_hobby_weights[HobbyInterestLevel.INDIFFERENT], 10.0)
-        self.assertGreater(single_hobby_weights[HobbyInterestLevel.INTERESTED], base_weights[HobbyInterestLevel.INTERESTED])
+        self.assertGreater(
+            single_hobby_weights[HobbyInterestLevel.INTERESTED], base_weights[HobbyInterestLevel.INTERESTED]
+        )
 
     def test_generate_character_from_race_respects_attribute_bounds(self):
         average = Character(
             name="Average Goblin",
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=4, magicStamina=4, magicResistance=4),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=4,
+                magicStamina=4,
+                magicResistance=4,
+            ),
             level=2,
             raceTier="Tier I",
             race="Goblin1",
@@ -130,8 +139,22 @@ class TestMainCharacter(unittest.TestCase):
             name="Goblin",
             raceId="Goblin1",
             averageSpecimine=average,
-            minAverageAttributes=Attributes(physicalPower=3, physicalStamina=3, physicalResistance=3, magicPower=2, magicStamina=2, magicResistance=2),
-            maxAverageAttributes=Attributes(physicalPower=7, physicalStamina=7, physicalResistance=7, magicPower=6, magicStamina=6, magicResistance=6),
+            minAverageAttributes=Attributes(
+                physicalPower=3,
+                physicalStamina=3,
+                physicalResistance=3,
+                magicPower=2,
+                magicStamina=2,
+                magicResistance=2,
+            ),
+            maxAverageAttributes=Attributes(
+                physicalPower=7,
+                physicalStamina=7,
+                physicalResistance=7,
+                magicPower=6,
+                magicStamina=6,
+                magicResistance=6,
+            ),
         )
 
         generated = generate_character_from_race(name="Goblin Scout", race=race, rng=random.Random(9))
@@ -150,15 +173,36 @@ class TestMainCharacter(unittest.TestCase):
     def test_generate_main_character_from_scratch_average_build_is_no_op(self):
         average = Character(
             name="Average Human",
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
             race="Human1",
         )
         race = Race(
             name="Human",
             raceId="Human1",
             averageSpecimine=average,
-            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
-            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+            minAverageAttributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
+            maxAverageAttributes=Attributes(
+                physicalPower=10,
+                physicalStamina=10,
+                physicalResistance=10,
+                magicPower=10,
+                magicStamina=10,
+                magicResistance=10,
+            ),
         )
         info = CharacterInfo(build="average", distinguishingMarks="Freckles")
 
@@ -179,15 +223,36 @@ class TestMainCharacter(unittest.TestCase):
     def test_generate_main_character_from_scratch_generates_name_after_sex_roll(self):
         average = Character(
             name="Average Human",
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
             race="Human1",
         )
         race = Race(
             name="Human",
             raceId="Human1",
             averageSpecimine=average,
-            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
-            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+            minAverageAttributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
+            maxAverageAttributes=Attributes(
+                physicalPower=10,
+                physicalStamina=10,
+                physicalResistance=10,
+                magicPower=10,
+                magicStamina=10,
+                magicResistance=10,
+            ),
         )
         info = CharacterInfo(sex="Female", build="average", distinguishingMarks="Birthmark")
 
@@ -210,15 +275,36 @@ class TestMainCharacter(unittest.TestCase):
     def test_generate_main_character_from_scratch_replaces_placeholder_name(self):
         average = Character(
             name="Average Human",
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
             race="Human1",
         )
         race = Race(
             name="Human",
             raceId="Human1",
             averageSpecimine=average,
-            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
-            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+            minAverageAttributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
+            maxAverageAttributes=Attributes(
+                physicalPower=10,
+                physicalStamina=10,
+                physicalResistance=10,
+                magicPower=10,
+                magicStamina=10,
+                magicResistance=10,
+            ),
         )
         info = CharacterInfo(sex="Male", build="average", distinguishingMarks="Scar")
 
@@ -237,15 +323,36 @@ class TestMainCharacter(unittest.TestCase):
     def test_generate_main_character_from_scratch_applies_build_modifier(self):
         average = Character(
             name="Average Human",
-            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            attributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
             race="Human1",
         )
         race = Race(
             name="Human",
             raceId="Human1",
             averageSpecimine=average,
-            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
-            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+            minAverageAttributes=Attributes(
+                physicalPower=5,
+                physicalStamina=5,
+                physicalResistance=5,
+                magicPower=5,
+                magicStamina=5,
+                magicResistance=5,
+            ),
+            maxAverageAttributes=Attributes(
+                physicalPower=10,
+                physicalStamina=10,
+                physicalResistance=10,
+                magicPower=10,
+                magicStamina=10,
+                magicResistance=10,
+            ),
         )
         info = CharacterInfo(build="Fit", distinguishingMarks="Scar")
 
@@ -352,6 +459,3 @@ class TestMainCharacter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import copy
 import random
@@ -84,7 +84,14 @@ class PowerRatingService:
     RECOMMENDED_HEURISTIC_WEIGHT = 0.20
     NEUTRAL_AFFINITY = 0.5
 
-    def __init__(self, spell_service=None, item_service=None, race_service=None, sample_count: int = DEFAULT_SAMPLE_COUNT, seed: int = 1337):
+    def __init__(
+        self,
+        spell_service=None,
+        item_service=None,
+        race_service=None,
+        sample_count: int = DEFAULT_SAMPLE_COUNT,
+        seed: int = 1337,
+    ):
         self.spell_service = spell_service
         self.item_service = item_service
         self.race_service = race_service
@@ -114,7 +121,9 @@ class PowerRatingService:
     @classmethod
     def affinity_power_multiplier(cls, value) -> float:
         fraction = cls.normalize_affinity_fraction(value)
-        return misc_factor("affinity_power_min_multiplier", 0.8) + (fraction * misc_factor("affinity_power_bonus_range", 0.4))
+        return misc_factor("affinity_power_min_multiplier", 0.8) + (
+            fraction * misc_factor("affinity_power_bonus_range", 0.4)
+        )
 
     def affinity_multiplier_for_spell(self, character: Character | None, spell: Spell | None) -> float:
         if character is None or spell is None:
@@ -124,8 +133,12 @@ class PowerRatingService:
         affinities = getattr(character, "finalAffinities", None) or getattr(character, "affinities", None)
         if affinities is None:
             return 1.0
-        affinity_name = getattr(getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))).upper()
-        return self.affinity_power_multiplier(getattr(affinities, affinity_name.lower(), misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY)))
+        affinity_name = getattr(
+            getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))
+        ).upper()
+        return self.affinity_power_multiplier(
+            getattr(affinities, affinity_name.lower(), misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY))
+        )
 
     @staticmethod
     def _sum_attributes(attributes: Attributes | None) -> float:
@@ -145,12 +158,24 @@ class PowerRatingService:
             return character_stat_factor("primary_stat_baseline", 5.0)
         attributes = getattr(character, "attributes", None)
         mapping = {
-            Attribute.PHYSICAL_POWER: float(getattr(attributes, "physicalPower", character_stat_factor("primary_stat_baseline", 5.0))),
-            Attribute.PHYSICAL_STAMINA: float(getattr(attributes, "physicalStamina", character_stat_factor("primary_stat_baseline", 5.0))),
-            Attribute.PHYSICAL_RESISTANCE: float(getattr(attributes, "physicalResistance", character_stat_factor("primary_stat_baseline", 5.0))),
-            Attribute.MAGIC_POWER: float(getattr(attributes, "magicPower", character_stat_factor("primary_stat_baseline", 5.0))),
-            Attribute.MAGIC_STAMINA: float(getattr(attributes, "magicStamina", character_stat_factor("primary_stat_baseline", 5.0))),
-            Attribute.MAGIC_RESISTANCE: float(getattr(attributes, "magicResistance", character_stat_factor("primary_stat_baseline", 5.0))),
+            Attribute.PHYSICAL_POWER: float(
+                getattr(attributes, "physicalPower", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
+            Attribute.PHYSICAL_STAMINA: float(
+                getattr(attributes, "physicalStamina", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
+            Attribute.PHYSICAL_RESISTANCE: float(
+                getattr(attributes, "physicalResistance", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
+            Attribute.MAGIC_POWER: float(
+                getattr(attributes, "magicPower", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
+            Attribute.MAGIC_STAMINA: float(
+                getattr(attributes, "magicStamina", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
+            Attribute.MAGIC_RESISTANCE: float(
+                getattr(attributes, "magicResistance", character_stat_factor("primary_stat_baseline", 5.0))
+            ),
         }
         return mapping.get(attribute, character_stat_factor("primary_stat_baseline", 5.0))
 
@@ -169,25 +194,41 @@ class PowerRatingService:
             if attribute is None or amount == 0.0:
                 continue
             if bonus.bonusType == BonusType.FLAT:
-                total += amount * misc_factor("all_attributes_flat_bonus_weight", 6.0) if attribute == Attribute.ALL_ATTRIBUTES else amount
+                total += (
+                    amount * misc_factor("all_attributes_flat_bonus_weight", 6.0)
+                    if attribute == Attribute.ALL_ATTRIBUTES
+                    else amount
+                )
             else:
                 if attribute == Attribute.ALL_ATTRIBUTES:
-                    total += self._sum_attributes(getattr(character, "attributes", None) or Attributes()) * (amount / 100.0)
+                    total += self._sum_attributes(getattr(character, "attributes", None) or Attributes()) * (
+                        amount / 100.0
+                    )
                 else:
                     total += self._attribute_baseline(character, attribute) * (amount / 100.0)
         return total
 
     def heuristic_spell_power_level(self, spell: Spell) -> float:
         base_power = self.parse_numeric_value(getattr(spell, "power", 0.0), 0.0)
-        level_bonus = max(0.0, float(getattr(spell, "level", 0) or 0)) * misc_factor("spell_heuristic_level_bonus_per_level", 0.5)
-        range_bonus = min(misc_factor("spell_heuristic_range_cap", 25.0), self.parse_numeric_value(getattr(spell, "range", 0.0), 0.0)) * misc_factor("spell_heuristic_range_bonus_per_unit", 0.03)
-        duration_bonus = min(misc_factor("spell_heuristic_duration_cap", 12.0), self.parse_numeric_value(getattr(spell, "duration", 0.0), 0.0)) * misc_factor("spell_heuristic_duration_bonus_per_unit", 0.05)
+        level_bonus = max(0.0, float(getattr(spell, "level", 0) or 0)) * misc_factor(
+            "spell_heuristic_level_bonus_per_level", 0.5
+        )
+        range_bonus = min(
+            misc_factor("spell_heuristic_range_cap", 25.0), self.parse_numeric_value(getattr(spell, "range", 0.0), 0.0)
+        ) * misc_factor("spell_heuristic_range_bonus_per_unit", 0.03)
+        duration_bonus = min(
+            misc_factor("spell_heuristic_duration_cap", 12.0),
+            self.parse_numeric_value(getattr(spell, "duration", 0.0), 0.0),
+        ) * misc_factor("spell_heuristic_duration_bonus_per_unit", 0.05)
         casting_penalty = min(
             misc_factor("spell_heuristic_casting_penalty_cap", 0.5),
-            self.parse_numeric_value(getattr(spell, "casting_time", 0.0), 0.0) * misc_factor("spell_heuristic_casting_penalty_per_unit", 0.03),
+            self.parse_numeric_value(getattr(spell, "casting_time", 0.0), 0.0)
+            * misc_factor("spell_heuristic_casting_penalty_per_unit", 0.03),
         )
         components = getattr(spell, "components", {}) if isinstance(getattr(spell, "components", {}), dict) else {}
-        component_bonus = misc_factor("spell_heuristic_component_bonus_per_component", 0.1) * sum(1 for key in ("verbal", "somatic", "material") if components.get(key))
+        component_bonus = misc_factor("spell_heuristic_component_bonus_per_component", 0.1) * sum(
+            1 for key in ("verbal", "somatic", "material") if components.get(key)
+        )
         return max(0.0, base_power + level_bonus + range_bonus + duration_bonus + component_bonus - casting_penalty)
 
     def spell_power_level(self, spell: Spell, affinity_value=None) -> float:
@@ -196,6 +237,7 @@ class PowerRatingService:
             base = self.heuristic_spell_power_level(spell)
         multiplier = 1.0 if affinity_value is None else self.affinity_power_multiplier(affinity_value)
         return max(0.0, base * multiplier)
+
     def heuristic_item_power_level(self, item: Item) -> float:
         stat_power = self.bonus_power_points(getattr(item, "statBonuses", []))
         if isinstance(item, Weapon):
@@ -216,7 +258,9 @@ class PowerRatingService:
         affinities = getattr(character, "finalAffinities", None) or getattr(character, "affinities", None)
         if affinities is None:
             return misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY)
-        affinity_name = getattr(getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))).lower()
+        affinity_name = getattr(
+            getattr(spell, "affinity", None), "name", str(getattr(spell, "affinity", "MANA"))
+        ).lower()
         return getattr(affinities, affinity_name, misc_factor("neutral_affinity", self.NEUTRAL_AFFINITY))
 
     def _character_non_item_bonus_power(self, character: Character) -> float:
@@ -255,25 +299,56 @@ class PowerRatingService:
     def simulate_spell_power_level(self, spell: Spell, sample_count: int | None = None) -> SimulationSummary:
         heuristic = self.heuristic_spell_power_level(spell)
         count = self._resolve_sample_count(sample_count)
-        candidate = self._run_series(count, lambda idx: self._build_spell_scenario(spell=spell, mirrored=False, stat_bonus=0.0, seed_offset=idx))
-        reference = self._run_series(count, lambda idx: self._build_spell_scenario(spell=spell, mirrored=True, stat_bonus=1.0, seed_offset=idx))
+        candidate = self._run_series(
+            count, lambda idx: self._build_spell_scenario(spell=spell, mirrored=False, stat_bonus=0.0, seed_offset=idx)
+        )
+        reference = self._run_series(
+            count, lambda idx: self._build_spell_scenario(spell=spell, mirrored=True, stat_bonus=1.0, seed_offset=idx)
+        )
         return self._finalize_simulation_summary(candidate, reference, heuristic)
 
     def simulate_item_power_level(self, item: Item, sample_count: int | None = None) -> SimulationSummary:
         heuristic = self.heuristic_item_power_level(item)
         count = self._resolve_sample_count(sample_count)
         if isinstance(item, Weapon):
-            candidate = self._run_series(count, lambda idx: self._build_weapon_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx))
-            reference = self._run_series(count, lambda idx: self._build_weapon_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx))
+            candidate = self._run_series(
+                count,
+                lambda idx: self._build_weapon_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx),
+            )
+            reference = self._run_series(
+                count,
+                lambda idx: self._build_weapon_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx),
+            )
         elif isinstance(item, Armor):
-            candidate = self._run_series(count, lambda idx: self._build_armor_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx))
-            reference = self._run_series(count, lambda idx: self._build_armor_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx))
+            candidate = self._run_series(
+                count,
+                lambda idx: self._build_armor_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx),
+            )
+            reference = self._run_series(
+                count, lambda idx: self._build_armor_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx)
+            )
         elif isinstance(item, Consumable):
-            candidate = self._run_series(count, lambda idx: self._build_consumable_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx))
-            reference = self._run_series(count, lambda idx: self._build_consumable_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx))
+            candidate = self._run_series(
+                count,
+                lambda idx: self._build_consumable_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx),
+            )
+            reference = self._run_series(
+                count,
+                lambda idx: self._build_consumable_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx),
+            )
         else:
-            candidate = self._run_series(count, lambda idx: self._build_generic_item_scenario(item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx))
-            reference = self._run_series(count, lambda idx: self._build_generic_item_scenario(item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx))
+            candidate = self._run_series(
+                count,
+                lambda idx: self._build_generic_item_scenario(
+                    item=item, mirrored=False, stat_bonus=0.0, seed_offset=idx
+                ),
+            )
+            reference = self._run_series(
+                count,
+                lambda idx: self._build_generic_item_scenario(
+                    item=item, mirrored=True, stat_bonus=1.0, seed_offset=idx
+                ),
+            )
         return self._finalize_simulation_summary(candidate, reference, heuristic)
 
     def recalculate_spellbook_power_levels(self, sample_count: int | None = None):
@@ -380,33 +455,65 @@ class PowerRatingService:
         attr_name = slot_map.get(item.slot)
         if attr_name:
             setattr(gear, attr_name, item)
+
     def _build_weapon_scenario(self, item: Weapon, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Weapon A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=item)
-        right = self._build_character(name=f"Weapon B {seed_offset}", stat_bonus=0.0, primary_weapon=item if mirrored else None)
-        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
+        right = self._build_character(
+            name=f"Weapon B {seed_offset}", stat_bonus=0.0, primary_weapon=item if mirrored else None
+        )
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(
+            right, runtime=self._build_runtime_state(right)
+        )
 
     def _build_spell_scenario(self, spell: Spell, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Spell A {seed_offset}", stat_bonus=stat_bonus, spell=spell)
         right = self._build_character(name=f"Spell B {seed_offset}", stat_bonus=0.0, spell=spell if mirrored else None)
-        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(
+            right, runtime=self._build_runtime_state(right)
+        )
 
     def _build_armor_scenario(self, item: Armor, mirrored: bool, stat_bonus: float, seed_offset: int):
-        left = self._build_character(name=f"Armor A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=self._training_weapon(), armor=item)
-        right = self._build_character(name=f"Armor B {seed_offset}", stat_bonus=0.0, primary_weapon=self._training_weapon(), armor=item if mirrored else None)
-        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
+        left = self._build_character(
+            name=f"Armor A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=self._training_weapon(), armor=item
+        )
+        right = self._build_character(
+            name=f"Armor B {seed_offset}",
+            stat_bonus=0.0,
+            primary_weapon=self._training_weapon(),
+            armor=item if mirrored else None,
+        )
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(
+            right, runtime=self._build_runtime_state(right)
+        )
 
     def _build_consumable_scenario(self, item: Consumable, mirrored: bool, stat_bonus: float, seed_offset: int):
-        left = self._build_character(name=f"Consumable A {seed_offset}", stat_bonus=stat_bonus, primary_weapon=self._training_weapon(), consumable=item)
-        right = self._build_character(name=f"Consumable B {seed_offset}", stat_bonus=0.0, primary_weapon=self._training_weapon(), consumable=item if mirrored else None)
+        left = self._build_character(
+            name=f"Consumable A {seed_offset}",
+            stat_bonus=stat_bonus,
+            primary_weapon=self._training_weapon(),
+            consumable=item,
+        )
+        right = self._build_character(
+            name=f"Consumable B {seed_offset}",
+            stat_bonus=0.0,
+            primary_weapon=self._training_weapon(),
+            consumable=item if mirrored else None,
+        )
         return (
             _Combatant(left, consumable=self._clone_item(item), runtime=self._build_runtime_state(left)),
-            _Combatant(right, consumable=self._clone_item(item) if mirrored else None, runtime=self._build_runtime_state(right)),
+            _Combatant(
+                right, consumable=self._clone_item(item) if mirrored else None, runtime=self._build_runtime_state(right)
+            ),
         )
 
     def _build_generic_item_scenario(self, item: Item, mirrored: bool, stat_bonus: float, seed_offset: int):
         left = self._build_character(name=f"Item A {seed_offset}", stat_bonus=stat_bonus, generic_item=item)
-        right = self._build_character(name=f"Item B {seed_offset}", stat_bonus=0.0, generic_item=item if mirrored else None)
-        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(right, runtime=self._build_runtime_state(right))
+        right = self._build_character(
+            name=f"Item B {seed_offset}", stat_bonus=0.0, generic_item=item if mirrored else None
+        )
+        return _Combatant(left, runtime=self._build_runtime_state(left)), _Combatant(
+            right, runtime=self._build_runtime_state(right)
+        )
 
     def _run_series(self, sample_count: int, builder) -> dict[str, float]:
         wins = losses = draws = 0
@@ -439,7 +546,9 @@ class PowerRatingService:
             total_health_a += health_a
             total_health_b += health_b
             total_margin += margin
-            total_performance += outcome_score + (misc_factor("performance_margin_weight", self.PERFORMANCE_MARGIN_WEIGHT) * margin)
+            total_performance += outcome_score + (
+                misc_factor("performance_margin_weight", self.PERFORMANCE_MARGIN_WEIGHT) * margin
+            )
         average_performance = total_performance / float(sample_count)
         return {
             "wins": wins,
@@ -454,17 +563,19 @@ class PowerRatingService:
             "sampleCount": sample_count,
         }
 
-    def _finalize_simulation_summary(self, candidate: dict[str, float], reference: dict[str, float], heuristic: float) -> SimulationSummary:
+    def _finalize_simulation_summary(
+        self, candidate: dict[str, float], reference: dict[str, float], heuristic: float
+    ) -> SimulationSummary:
         reference_advantage = max(0.0, float(reference.get("advantage", 0.0) or 0.0))
         candidate_advantage = max(0.0, float(candidate.get("advantage", 0.0) or 0.0))
         simulated_equivalent = 0.0
         if reference_advantage > 0.00001:
-            simulated_equivalent = max(0.0, candidate_advantage / (reference_advantage / misc_factor("simulated_power_reference_bonus", 6.0)))
+            simulated_equivalent = max(
+                0.0, candidate_advantage / (reference_advantage / misc_factor("simulated_power_reference_bonus", 6.0))
+            )
             recommended = (
                 misc_factor("recommended_simulation_weight", self.RECOMMENDED_SIMULATION_WEIGHT) * simulated_equivalent
-            ) + (
-                misc_factor("recommended_heuristic_weight", self.RECOMMENDED_HEURISTIC_WEIGHT) * heuristic
-            )
+            ) + (misc_factor("recommended_heuristic_weight", self.RECOMMENDED_HEURISTIC_WEIGHT) * heuristic)
         else:
             recommended = heuristic
         recommended = max(0.0, round(recommended, 2))
@@ -504,6 +615,8 @@ class PowerRatingService:
                 break
 
             side = select_next_duel_side(alive_sides, next_action_times, tie_break_order)
+            if side is None:
+                break
             turn_start_time = float(next_action_times.get(side, 0.0))
             if turn_start_time > max_duel_battle_time(self.MAX_DUEL_ROUNDS):
                 break
@@ -512,13 +625,17 @@ class PowerRatingService:
             sync_stamina(defender.runtime, turn_start_time)
             rounds = max(rounds, round_number_for_time(turn_start_time))
             self._take_turn(attacker, defender, rng, rounds, turn_start_time)
-            next_action_times[side] = schedule_next_action(attacker.runtime, self._character_speed(attacker.character), turn_start_time)
+            next_action_times[side] = schedule_next_action(
+                attacker.runtime, self._character_speed(attacker.character), turn_start_time
+            )
             tie_break_order = [entry for entry in tie_break_order if entry != side] + [side]
             if defender.character.health <= 0:
                 break
         return rounds
 
-    def _take_turn(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float):
+    def _take_turn(
+        self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float
+    ):
         if not can_take_offensive_action(attacker.runtime.exertion_level):
             return
         if self._try_use_consumable(attacker, defender, rng, round_index, turn_start_time):
@@ -527,13 +644,17 @@ class PowerRatingService:
         weapon = self._active_weapon(character)
         spell = self._best_spell(character)
         adjusted_spell_power = self._adjusted_spell_power(character, spell)
-        weapon_ceiling = float(getattr(weapon, "damageMax", getattr(weapon, "damageMin", 0.0)) or 0.0) if weapon is not None else 0.0
+        weapon_ceiling = (
+            float(getattr(weapon, "damageMax", getattr(weapon, "damageMin", 0.0)) or 0.0) if weapon is not None else 0.0
+        )
         if spell is not None and adjusted_spell_power >= max(weapon_ceiling, 0.1):
             self._resolve_spell_attack(attacker, defender, spell, rng, turn_start_time)
             return
         self._resolve_weapon_attack(attacker, defender, weapon or self._default_unarmed_weapon(), rng, turn_start_time)
 
-    def _try_use_consumable(self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float) -> bool:
+    def _try_use_consumable(
+        self, attacker: _Combatant, defender: _Combatant, rng: random.Random, round_index: int, turn_start_time: float
+    ) -> bool:
         item = attacker.consumable
         if item is None or attacker.consumable_used:
             return False
@@ -550,12 +671,16 @@ class PowerRatingService:
             return True
         if health_ratio <= battle_factor("combat_sim_supportive_consumable_health_ratio_threshold", 0.6):
             healing = self._consumable_healing(attacker.character, item)
-            attacker.character.health = min(self._character_max_health(attacker.character), float(attacker.character.health) + healing)
+            attacker.character.health = min(
+                self._character_max_health(attacker.character), float(attacker.character.health) + healing
+            )
             attacker.consumable_used = True
             return True
         return False
 
-    def _resolve_weapon_attack(self, attacker: _Combatant, defender: _Combatant, weapon: Weapon, rng: random.Random, turn_start_time: float):
+    def _resolve_weapon_attack(
+        self, attacker: _Combatant, defender: _Combatant, weapon: Weapon, rng: random.Random, turn_start_time: float
+    ):
         calculator = DamageCalculator(rng=rng)
         hit, _chance = calculator.roll_hit(
             attacker_stat=float(getattr(attacker.character.finalAttributes, "physicalPower", 5.0)),
@@ -566,7 +691,17 @@ class PowerRatingService:
             ),
             bonus=accuracy_bonus_for_exertion(attacker.runtime.exertion_level),
         )
-        spend_stamina(attacker.runtime, max(0.0, float(getattr(weapon, "staminaCost", default_offensive_action_stamina_cost()) or default_offensive_action_stamina_cost())), turn_start_time)
+        spend_stamina(
+            attacker.runtime,
+            max(
+                0.0,
+                float(
+                    getattr(weapon, "staminaCost", default_offensive_action_stamina_cost())
+                    or default_offensive_action_stamina_cost()
+                ),
+            ),
+            turn_start_time,
+        )
         if not hit:
             return
         location = self._roll_hit_location(rng)
@@ -586,9 +721,13 @@ class PowerRatingService:
         if damage > 0.0:
             spend_stamina(defender.runtime, stamina_damage_from_hit(damage), turn_start_time)
 
-    def _resolve_spell_attack(self, attacker: _Combatant, defender: _Combatant, spell: Spell, rng: random.Random, turn_start_time: float):
+    def _resolve_spell_attack(
+        self, attacker: _Combatant, defender: _Combatant, spell: Spell, rng: random.Random, turn_start_time: float
+    ):
         calculator = DamageCalculator(rng=rng)
-        spell_power = self._adjusted_spell_power(attacker.character, spell) * damage_multiplier_for_exertion(attacker.runtime.exertion_level)
+        spell_power = self._adjusted_spell_power(attacker.character, spell) * damage_multiplier_for_exertion(
+            attacker.runtime.exertion_level
+        )
         breakdown = calculator.calculate_magic_hit(
             attacker=attacker.character,
             defender=defender.character,
@@ -630,7 +769,9 @@ class PowerRatingService:
     def _adjusted_spell_power(self, character: Character, spell: Spell | None) -> float:
         if spell is None:
             return 0.0
-        base_power = max(self.parse_numeric_value(getattr(spell, "power", 0.0), 0.0), self.heuristic_spell_power_level(spell))
+        base_power = max(
+            self.parse_numeric_value(getattr(spell, "power", 0.0), 0.0), self.heuristic_spell_power_level(spell)
+        )
         return max(0.0, base_power * self.affinity_multiplier_for_spell(character, spell))
 
     @staticmethod
@@ -641,7 +782,9 @@ class PowerRatingService:
     def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
         return scaled_weapon_for_damage_multiplier(weapon, damage_multiplier)
 
-    def _consumable_damage(self, attacker: _Combatant, item: Consumable, rng: random.Random, defender: _Combatant, turn_start_time: float) -> float:
+    def _consumable_damage(
+        self, attacker: _Combatant, item: Consumable, rng: random.Random, defender: _Combatant, turn_start_time: float
+    ) -> float:
         if item.spellName and self.spell_service is not None:
             referenced_spell = self.spell_service.get_spell(item.spellName)
             if referenced_spell is not None:
@@ -649,7 +792,8 @@ class PowerRatingService:
                 breakdown = calculator.calculate_magic_hit(
                     attacker=attacker.character,
                     defender=defender.character,
-                    spell_power=self._adjusted_spell_power(attacker.character, referenced_spell) * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
+                    spell_power=self._adjusted_spell_power(attacker.character, referenced_spell)
+                    * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
                     hit_chance=calculator.calculate_hit_chance(
                         float(getattr(attacker.character.finalAttributes, "magicPower", 5.0)),
                         max(
@@ -665,7 +809,8 @@ class PowerRatingService:
         breakdown = calculator.calculate_magic_hit(
             attacker=attacker.character,
             defender=defender.character,
-            spell_power=max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0)) * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
+            spell_power=max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0))
+            * damage_multiplier_for_exertion(attacker.runtime.exertion_level),
             hit_chance=calculator.calculate_hit_chance(
                 float(getattr(attacker.character.finalAttributes, "magicPower", 5.0)),
                 max(
@@ -710,27 +855,53 @@ class PowerRatingService:
         sample_count = max(1, misc_factor_int("armor_heuristic_sample_count", 30))
         for index in range(sample_count):
             baseline_defender = self._build_character(name="Armor Baseline", primary_weapon=self._training_weapon())
-            armored_defender = self._build_character(name="Armor Defender", primary_weapon=self._training_weapon(), armor=armor)
+            armored_defender = self._build_character(
+                name="Armor Defender", primary_weapon=self._training_weapon(), armor=armor
+            )
             attacker = self._build_character(name="Armor Attacker", primary_weapon=training_weapon)
             calculator_a = DamageCalculator(rng=random.Random(self.seed + index + 301))
             calculator_b = DamageCalculator(rng=random.Random(self.seed + index + 301))
             location = self._location_for_armor(armor)
-            baseline = calculator_a.calculate_physical_hit_to_location(attacker=attacker, defender=baseline_defender, weapon=training_weapon, location=location, applyArmorDamageToGear=True)
-            armored = calculator_b.calculate_physical_hit_to_location(attacker=attacker, defender=armored_defender, weapon=training_weapon, location=location, applyArmorDamageToGear=True)
+            baseline = calculator_a.calculate_physical_hit_to_location(
+                attacker=attacker,
+                defender=baseline_defender,
+                weapon=training_weapon,
+                location=location,
+                applyArmorDamageToGear=True,
+            )
+            armored = calculator_b.calculate_physical_hit_to_location(
+                attacker=attacker,
+                defender=armored_defender,
+                weapon=training_weapon,
+                location=location,
+                applyArmorDamageToGear=True,
+            )
             prevented += max(0.0, baseline.hpFinal - armored.hpFinal) + (
                 baseline.armorDamage - armored.armorDamage
             ) * misc_factor("armor_heuristic_damage_prevent_weight", 0.15)
         base = prevented / float(sample_count)
         if armor.slot == EquipSlot.OFFHAND:
-            base += max(0.0, float(getattr(armor, "maxArmor", 0.0) or 0.0)) * misc_factor("armor_heuristic_offhand_max_armor_weight", 0.15)
+            base += max(0.0, float(getattr(armor, "maxArmor", 0.0) or 0.0)) * misc_factor(
+                "armor_heuristic_offhand_max_armor_weight", 0.15
+            )
         return base
 
     def _heuristic_consumable_impact(self, item: Consumable) -> float:
         if item.isOffensive or item.consumableKind == ConsumableKind.BOMB:
-            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("offensive_consumable_impact_multiplier", 0.9))
+            return max(
+                0.0,
+                float(getattr(item, "effectPower", 0.0) or 0.0)
+                * misc_factor("offensive_consumable_impact_multiplier", 0.9),
+            )
         if item.consumableKind == ConsumableKind.FOOD:
-            return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("food_consumable_impact_multiplier", 0.5))
-        return max(0.0, float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("default_consumable_impact_multiplier", 0.7))
+            return max(
+                0.0,
+                float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("food_consumable_impact_multiplier", 0.5),
+            )
+        return max(
+            0.0,
+            float(getattr(item, "effectPower", 0.0) or 0.0) * misc_factor("default_consumable_impact_multiplier", 0.7),
+        )
 
     @staticmethod
     def _location_for_armor(armor: Armor) -> HitLocation:
@@ -778,4 +949,3 @@ class PowerRatingService:
             staminaCost=default_offensive_action_stamina_cost(),
             powerLevel=0.0,
         )
-

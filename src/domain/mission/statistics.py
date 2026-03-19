@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -158,4 +158,3 @@ class MissionStatistics:
             unitAliveStates=data.get("unitAliveStates", {}),
             unitDistancesMoved=data.get("unitDistancesMoved", {}),
         )
-

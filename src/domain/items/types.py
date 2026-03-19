@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -54,7 +54,9 @@ class Weapon(Item):
         self.penetrationBase = max(0.0, float(penetrationBase))
         self.staminaCost = max(0.0, float(staminaCost))
         representative_power = int(round(max(self.damageMin, self.damageMax, 0.0)))
-        self.itemPower = [ItemPower(PowerType.PHYSICAL_ATTACK, representative_power)] if representative_power > 0 else []
+        self.itemPower = (
+            [ItemPower(PowerType.PHYSICAL_ATTACK, representative_power)] if representative_power > 0 else []
+        )
         self.refresh_tags()
 
     @staticmethod
@@ -110,11 +112,21 @@ class Weapon(Item):
             statBonuses=common["statBonuses"],
             itemType=common["itemType"],
             damageType=cls._damage_type_from_list(weapon_stats.get("damageTypes", data.get("damageType", []))),
-            damageMin=cls._coerce_float(weapon_stats.get("damageMin", data.get("damageMin", fallback_damage)), fallback_damage),
-            damageMax=cls._coerce_float(weapon_stats.get("damageMax", data.get("damageMax", fallback_damage)), fallback_damage),
-            armorMultiplier=cls._coerce_float(weapon_stats.get("armorMultiplier", data.get("armorMultiplier", 1.0)), 1.0),
-            ignoreArmorFraction=cls._coerce_float(weapon_stats.get("ignoreArmorFraction", data.get("ignoreArmorFraction", 0.0)), 0.0),
-            penetrationBase=cls._coerce_float(weapon_stats.get("penetrationBase", data.get("penetrationBase", 0.0)), 0.0),
+            damageMin=cls._coerce_float(
+                weapon_stats.get("damageMin", data.get("damageMin", fallback_damage)), fallback_damage
+            ),
+            damageMax=cls._coerce_float(
+                weapon_stats.get("damageMax", data.get("damageMax", fallback_damage)), fallback_damage
+            ),
+            armorMultiplier=cls._coerce_float(
+                weapon_stats.get("armorMultiplier", data.get("armorMultiplier", 1.0)), 1.0
+            ),
+            ignoreArmorFraction=cls._coerce_float(
+                weapon_stats.get("ignoreArmorFraction", data.get("ignoreArmorFraction", 0.0)), 0.0
+            ),
+            penetrationBase=cls._coerce_float(
+                weapon_stats.get("penetrationBase", data.get("penetrationBase", 0.0)), 0.0
+            ),
             staminaCost=cls._coerce_float(weapon_stats.get("staminaCost", data.get("staminaCost", 10.0)), 10.0),
             itemId=common["itemId"],
             powerLevel=common["powerLevel"],
@@ -191,8 +203,12 @@ class Armor(Item):
     @classmethod
     def _from_dict_internal(cls, data: dict[str, Any], common: dict[str, Any]) -> "Armor":
         armor_stats = data.get("armorStats") if isinstance(data.get("armorStats"), dict) else {}
-        current_armor = cls._coerce_float(armor_stats.get("currentArmor", data.get("currentArmor", common["durability"])), common["durability"])
-        max_armor = cls._coerce_float(armor_stats.get("maxArmor", data.get("maxArmor", common["durability"])), common["durability"])
+        current_armor = cls._coerce_float(
+            armor_stats.get("currentArmor", data.get("currentArmor", common["durability"])), common["durability"]
+        )
+        max_armor = cls._coerce_float(
+            armor_stats.get("maxArmor", data.get("maxArmor", common["durability"])), common["durability"]
+        )
         return cls(
             name=common["name"],
             slot=common["slot"],
@@ -274,11 +290,12 @@ class Consumable(Item):
             tier=common["tier"],
             statBonuses=common["statBonuses"],
             consumableKind=consumable_stats.get("consumableKind", data.get("consumableKind", ConsumableKind.NONE.name)),
-            effectPowerType=consumable_stats.get("effectPowerType", getattr(first_power, "powerType", PowerType.CONSUMABLE_POWER)),
+            effectPowerType=consumable_stats.get(
+                "effectPowerType", getattr(first_power, "powerType", PowerType.CONSUMABLE_POWER)
+            ),
             effectPower=consumable_stats.get("effectPower", getattr(first_power, "power", 0)),
             spellName=consumable_stats.get("spellName", getattr(first_power, "spellName", "")),
             damageType=consumable_stats.get("damageTypes", data.get("damageType", [])),
             itemId=common["itemId"],
             powerLevel=common["powerLevel"],
         )
-

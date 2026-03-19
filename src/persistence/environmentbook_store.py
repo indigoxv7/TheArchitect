@@ -25,7 +25,7 @@ class EnvironmentbookStore:
                 }
             )
 
-        with open(self.environmentbook_path, 'r', encoding='utf-8-sig') as file:
+        with open(self.environmentbook_path, "r", encoding="utf-8-sig") as file:
             payload = json.load(file)
 
         if isinstance(payload, dict):
@@ -41,5 +41,5 @@ class EnvironmentbookStore:
 
     def save(self, payload: dict[str, Any]):
         self._ensure_parent_directory()
-        with open(self.environmentbook_path, 'w', encoding='utf-8') as file:
+        with open(self.environmentbook_path, "w", encoding="utf-8") as file:
             json.dump(payload, file, indent=4, ensure_ascii=False)

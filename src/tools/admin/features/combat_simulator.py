@@ -57,7 +57,9 @@ class SpellListEditorDialog(tk.Toplevel):
             if spell is None:
                 messagebox.showerror("Spell List", f"Spell '{spell_name}' was not found.")
                 return
-            if any(str(entry.get("name", "") or "").strip().lower() == spell_name.strip().lower() for entry in self.entries):
+            if any(
+                str(entry.get("name", "") or "").strip().lower() == spell_name.strip().lower() for entry in self.entries
+            ):
                 messagebox.showinfo("Spell List", f"Spell '{spell_name}' is already listed.")
                 return
             self.entries.append(spell.to_dict())
@@ -112,15 +114,27 @@ class CombatSimulatorFrame(ttk.Frame):
             pick_row.pack(fill=tk.X, padx=6, pady=(6, 4))
             ttk.Label(pick_row, text="Selected", width=12).pack(side=tk.LEFT)
             ttk.Entry(pick_row, textvariable=selected_var, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
-            ttk.Button(pick_row, text="Choose", command=lambda key=side_key: self._choose_character(key)).pack(side=tk.LEFT, padx=4)
-            ttk.Button(pick_row, text="Reload", command=lambda key=side_key: self._reload_selected_character(key)).pack(side=tk.LEFT)
+            ttk.Button(pick_row, text="Choose", command=lambda key=side_key: self._choose_character(key)).pack(
+                side=tk.LEFT, padx=4
+            )
+            ttk.Button(pick_row, text="Reload", command=lambda key=side_key: self._reload_selected_character(key)).pack(
+                side=tk.LEFT
+            )
 
             action_row = ttk.Frame(panel)
             action_row.pack(fill=tk.X, padx=6, pady=4)
-            ttk.Button(action_row, text="Edit Stats", command=lambda key=side_key: self._edit_attributes(key)).pack(side=tk.LEFT, padx=2)
-            ttk.Button(action_row, text="Edit Gear", command=lambda key=side_key: self._edit_gear(key)).pack(side=tk.LEFT, padx=2)
-            ttk.Button(action_row, text="Edit Spells", command=lambda key=side_key: self._edit_spells(key)).pack(side=tk.LEFT, padx=2)
-            ttk.Button(action_row, text="Edit Buffs", command=lambda key=side_key: self._edit_buffs(key)).pack(side=tk.LEFT, padx=2)
+            ttk.Button(action_row, text="Edit Stats", command=lambda key=side_key: self._edit_attributes(key)).pack(
+                side=tk.LEFT, padx=2
+            )
+            ttk.Button(action_row, text="Edit Gear", command=lambda key=side_key: self._edit_gear(key)).pack(
+                side=tk.LEFT, padx=2
+            )
+            ttk.Button(action_row, text="Edit Spells", command=lambda key=side_key: self._edit_spells(key)).pack(
+                side=tk.LEFT, padx=2
+            )
+            ttk.Button(action_row, text="Edit Buffs", command=lambda key=side_key: self._edit_buffs(key)).pack(
+                side=tk.LEFT, padx=2
+            )
 
             summary = tk.Text(panel, height=16, wrap=tk.WORD)
             summary.pack(fill=tk.BOTH, expand=True, padx=6, pady=(4, 6))
@@ -180,12 +194,16 @@ class CombatSimulatorFrame(ttk.Frame):
             return
         attrs = state.get("attributes", {})
         gear = state.get("gear", {})
-        spell_names = [str(entry.get("name", "") or "").strip() for entry in state.get("spells", []) if isinstance(entry, dict)]
+        spell_names = [
+            str(entry.get("name", "") or "").strip() for entry in state.get("spells", []) if isinstance(entry, dict)
+        ]
         inventory_ids = list(gear.get("inventory_item_ids", []) or [])
         inventory_labels = []
         for item_id in inventory_ids:
             item = self.app.item_service.get_item(item_id)
-            inventory_labels.append(self.app.item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]")
+            inventory_labels.append(
+                self.app.item_service.get_item_label(item) if item is not None else f"Unknown [{item_id}]"
+            )
         summary_lines = [
             f"Name: {state.get('name', '')}",
             f"Race: {state.get('race', 'Human1')}",
@@ -197,7 +215,7 @@ class CombatSimulatorFrame(ttk.Frame):
             json.dumps(attrs, indent=2, ensure_ascii=False),
             "",
             "Gear:",
-            json.dumps({k: v for k, v in gear.items() if k != 'inventory_item_ids'}, indent=2, ensure_ascii=False),
+            json.dumps({k: v for k, v in gear.items() if k != "inventory_item_ids"}, indent=2, ensure_ascii=False),
             f"Inventory: {', '.join(inventory_labels) if inventory_labels else '<Empty>'}",
             f"Spells: {', '.join([name for name in spell_names if name]) if spell_names else '<None>'}",
             f"Buffs: {len(state.get('buffs', []) or [])}",
@@ -258,6 +276,7 @@ class CombatSimulatorFrame(ttk.Frame):
             self._refresh_side_summary(side_key)
 
         from src.tools.admin.shared.gear_dialogs import AttributesEditorDialog
+
         AttributesEditorDialog(self, payload, _on_save)
 
     def _edit_gear(self, side_key: str):
@@ -272,6 +291,7 @@ class CombatSimulatorFrame(ttk.Frame):
             self._refresh_side_summary(side_key)
 
         from src.tools.admin.shared.gear_dialogs import GearEditorDialog
+
         GearEditorDialog(self, dict(state.get("gear", {})), self.app.item_service, _on_save)
 
     def _edit_buffs(self, side_key: str):
@@ -286,6 +306,7 @@ class CombatSimulatorFrame(ttk.Frame):
             self._refresh_side_summary(side_key)
 
         from src.tools.admin.shared.bonus_dialogs import BonusEditorDialog
+
         BonusEditorDialog(self, list(state.get("buffs", []) or []), _on_save)
 
     def _edit_spells(self, side_key: str):
@@ -327,7 +348,9 @@ class CombatSimulatorFrame(ttk.Frame):
             return
         new_lines = self.app.combat_simulator_service.step_session(self.current_session)
         self._append_log_lines(new_lines)
-        self.result_var.set(self.current_session.result_text or f"Round {self.current_session.round_number} in progress.")
+        self.result_var.set(
+            self.current_session.result_text or f"Round {self.current_session.round_number} in progress."
+        )
 
     def _reset_session(self):
         if not self._ensure_ready():

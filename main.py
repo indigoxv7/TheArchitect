@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 
 from dotenv import load_dotenv
@@ -24,7 +24,7 @@ from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.mission_service import MissionService
-from src.services.menu_runtime import ConsoleMenuInterface, MenuRuntimeService
+from src.services.menu_runtime import ConsoleMenuInterface as ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.player_service import PlayerService
@@ -78,7 +78,9 @@ player_service = PlayerService(
 )
 spell_service = SpellService(spellbook_path=SPELLBOOK_PATH, context=context)
 item_service = ItemService(itembook_path=ITEMBOOK_PATH, context=context)
-character_service = CharacterService(characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service)
+character_service = CharacterService(
+    characters_directory=CHARACTER_DIRECTORY, context=context, item_service=item_service
+)
 achievement_service = AchievementService(achievementbook_path=ACHIEVEMENTBOOK_PATH, context=context)
 allegiance_service = AllegianceService(allegiancebook_path=ALLEGIANCEBOOK_PATH, context=context)
 race_service = RaceService(
@@ -96,7 +98,9 @@ unit_service = UnitService(
     spell_service=spell_service,
     item_service=item_service,
 )
-power_rating_service = PowerRatingService(spell_service=spell_service, item_service=item_service, race_service=race_service)
+power_rating_service = PowerRatingService(
+    spell_service=spell_service, item_service=item_service, race_service=race_service
+)
 combat_simulator_service = CombatSimulatorService(
     character_service=character_service,
     item_service=item_service,
@@ -109,7 +113,9 @@ mission_service = MissionService(
     allegiance_service=allegiance_service,
     unit_service=unit_service,
 )
-campaign_service = CampaignService(campaignbook_path=CAMPAIGNBOOK_PATH, context=context, mission_service=mission_service)
+campaign_service = CampaignService(
+    campaignbook_path=CAMPAIGNBOOK_PATH, context=context, mission_service=mission_service
+)
 environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 menu_service = MenuService(
     menu_directory=MENU_DIRECTORY,
@@ -248,7 +254,3 @@ if __name__ == "__main__":
         combat_simulator_service=combat_simulator_service,
     )
     bot.run(TOKEN)
-
-
-
-

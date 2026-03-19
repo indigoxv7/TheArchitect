@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from src.domain.character_util import ItemType
 
@@ -24,4 +24,3 @@ def _unique_strings(values: list[str]) -> list[str]:
         if text and text not in result:
             result.append(text)
     return result
-

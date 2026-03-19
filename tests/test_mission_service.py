@@ -73,13 +73,17 @@ class TestMissionService(unittest.TestCase):
 
     def test_create_edit_reload_missionbook(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            context, item_service, race_service, unit_service, allegiance_service, mission_service, missionbook_path = self._build_services(temp_dir)
+            context, item_service, race_service, unit_service, allegiance_service, mission_service, missionbook_path = (
+                self._build_services(temp_dir)
+            )
 
             race_service.create_race_from_dict({"name": "Goblin"})
             race_service.create_race_from_dict({"name": "Orc"})
             goblin_race = race_service.get_race("Goblin")
             orc_race = race_service.get_race("Orc")
-            goblin_unit = unit_service.create_unit_from_dict({"baseRaceId": goblin_race.raceId, "name": "Goblin Shaman"})
+            goblin_unit = unit_service.create_unit_from_dict(
+                {"baseRaceId": goblin_race.raceId, "name": "Goblin Shaman"}
+            )
             orc_unit = unit_service.create_unit_from_dict({"baseRaceId": orc_race.raceId, "name": "Orc Brute"})
             delivery_item = self._create_delivery_item(item_service)
 
@@ -183,7 +187,9 @@ class TestMissionService(unittest.TestCase):
             reloaded_item_service.load_itembook()
             reloaded_spell_service = SpellService(str(Path(temp_dir) / "spellbook.json"), reloaded_context)
             reloaded_spell_service.load_spellbook()
-            reloaded_character_service = CharacterService(str(Path(temp_dir) / "Characters"), context=reloaded_context, item_service=reloaded_item_service)
+            reloaded_character_service = CharacterService(
+                str(Path(temp_dir) / "Characters"), context=reloaded_context, item_service=reloaded_item_service
+            )
             reloaded_character_service.load_characters()
             reloaded_race_service = RaceService(
                 racebook_path=str(Path(temp_dir) / "racebook.json"),
@@ -202,9 +208,13 @@ class TestMissionService(unittest.TestCase):
                 item_service=reloaded_item_service,
             )
             reloaded_unit_service.load_unitbook()
-            reloaded_allegiance_service = AllegianceService(str(Path(temp_dir) / "allegiancebook.json"), reloaded_context)
+            reloaded_allegiance_service = AllegianceService(
+                str(Path(temp_dir) / "allegiancebook.json"), reloaded_context
+            )
             reloaded_allegiance_service.load_allegiancebook()
-            reloaded_mission_service = MissionService(str(missionbook_path), reloaded_context, reloaded_allegiance_service, reloaded_unit_service)
+            reloaded_mission_service = MissionService(
+                str(missionbook_path), reloaded_context, reloaded_allegiance_service, reloaded_unit_service
+            )
             reloaded_mission_service.load_missionbook()
 
             loaded = reloaded_mission_service.get_mission_by_id(mission.missionId)
@@ -216,7 +226,15 @@ class TestMissionService(unittest.TestCase):
 
     def test_invalid_references_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, item_service, race_service, unit_service, allegiance_service, mission_service, _missionbook_path = self._build_services(temp_dir)
+            (
+                _context,
+                item_service,
+                race_service,
+                unit_service,
+                allegiance_service,
+                mission_service,
+                _missionbook_path,
+            ) = self._build_services(temp_dir)
 
             race_service.create_race_from_dict({"name": "Goblin"})
             goblin_race = race_service.get_race("Goblin")
@@ -253,9 +271,21 @@ class TestMissionService(unittest.TestCase):
 
     def test_duplicate_names_get_unique_ids(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _item_service, _race_service, _unit_service, _allegiance_service, mission_service, _missionbook_path = self._build_services(temp_dir)
-            a = mission_service.create_mission_from_dict({"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 1.0}})
-            b = mission_service.create_mission_from_dict({"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 2.0}})
+            (
+                _context,
+                _item_service,
+                _race_service,
+                _unit_service,
+                _allegiance_service,
+                mission_service,
+                _missionbook_path,
+            ) = self._build_services(temp_dir)
+            a = mission_service.create_mission_from_dict(
+                {"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 1.0}}
+            )
+            b = mission_service.create_mission_from_dict(
+                {"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 2.0}}
+            )
             self.assertNotEqual(a.missionId, b.missionId)
 
     def test_legacy_module_map_points_to_mission_package(self):

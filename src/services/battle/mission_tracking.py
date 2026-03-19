@@ -4,7 +4,7 @@ from src.config.tuning import battle_factor
 from src.domain.character import HealthState
 from src.domain.main_character import MainCharacter
 from src.domain.mission import MissionObjectiveStatus
-from src.domain.combat.enums import BattleOutcome, BattlePhase, BattleTeam
+from src.domain.combat.enums import BattleOutcome, BattlePhase
 from src.domain.combat.state import BattleState
 
 
@@ -20,25 +20,31 @@ class BattleMissionTrackingMixin:
         return total
 
     def _count_non_player_allies_remaining(self, battle: BattleState) -> int:
-        return sum(1 for entity in battle.ally_units if entity.alive and not bool(getattr(entity, "is_player_owned", False)))
+        return sum(
+            1 for entity in battle.ally_units if entity.alive and not bool(getattr(entity, "is_player_owned", False))
+        )
 
     def _initialize_mission_statistics(self, battle: BattleState):
-        battle.mission_statistics.totalStartingEnemies = sum(
-            1 for entity in battle.enemy_units if entity.alive
-        ) + sum(max(0, int(getattr(stack, "max_count", 0) or 0)) for stack in battle.enemy_stacks)
+        battle.mission_statistics.totalStartingEnemies = sum(1 for entity in battle.enemy_units if entity.alive) + sum(
+            max(0, int(getattr(stack, "max_count", 0) or 0)) for stack in battle.enemy_stacks
+        )
         battle.mission_statistics.totalStartingAllies = sum(
             1 for entity in battle.ally_units if not bool(getattr(entity, "is_player_owned", False))
         )
         battle.mission_statistics.enemiesRemaining = self._count_remaining_enemies(battle)
         battle.mission_statistics.alliesRemaining = self._count_non_player_allies_remaining(battle)
-        battle.mission_statistics.timeInsideMissionHours = float(battle.exchange_count) * battle_factor("hours_per_exchange", self.HOURS_PER_EXCHANGE)
+        battle.mission_statistics.timeInsideMissionHours = float(battle.exchange_count) * battle_factor(
+            "hours_per_exchange", self.HOURS_PER_EXCHANGE
+        )
         self._capture_starting_positions(battle)
 
     def _refresh_dynamic_mission_statistics(self, battle: BattleState):
         stats = battle.mission_statistics
         stats.enemiesRemaining = self._count_remaining_enemies(battle)
         stats.alliesRemaining = self._count_non_player_allies_remaining(battle)
-        stats.timeInsideMissionHours = float(battle.exchange_count) * battle_factor("hours_per_exchange", self.HOURS_PER_EXCHANGE)
+        stats.timeInsideMissionHours = float(battle.exchange_count) * battle_factor(
+            "hours_per_exchange", self.HOURS_PER_EXCHANGE
+        )
         for entity in battle.ally_units:
             if bool(getattr(entity, "is_player_owned", False)):
                 continue
@@ -91,19 +97,23 @@ class BattleMissionTrackingMixin:
         stats = battle.mission_statistics
         stats.packagesDelivered += delivered_count
         composite_key = f"{str(item_id or '').strip()}|{str(allegiance_id or '').strip()}"
-        stats.deliveredPackageCounts[composite_key] = stats.deliveredPackageCounts.get(composite_key, 0) + delivered_count
+        stats.deliveredPackageCounts[composite_key] = (
+            stats.deliveredPackageCounts.get(composite_key, 0) + delivered_count
+        )
         self._refresh_mission_state(battle, mission_complete=False)
         self.save_battle(battle)
 
     def set_important_object_counts(self, battle: BattleState, starting_count: int, remaining_count: int | None = None):
         stats = battle.mission_statistics
         stats.startingImportantObjects = max(0, int(starting_count or 0))
-        stats.importantObjectsRemaining = max(0, int(remaining_count if remaining_count is not None else starting_count or 0))
+        stats.importantObjectsRemaining = max(
+            0, int(remaining_count if remaining_count is not None else starting_count or 0)
+        )
         self._refresh_mission_state(battle, mission_complete=False)
         self.save_battle(battle)
 
     def record_ally_escape_progress(self, battle: BattleState, unit_id: str, distance: float, alive: bool = True):
-        key = str(unit_id or '').strip()
+        key = str(unit_id or "").strip()
         if not key:
             return
         battle.mission_statistics.unitDistancesMoved[key] = max(

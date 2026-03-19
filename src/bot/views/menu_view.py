@@ -1,4 +1,4 @@
-﻿import discord
+import discord
 
 
 def normalize_button_emoji(raw_emoji):
@@ -41,7 +41,7 @@ class MenuButton(discord.ui.Button):
 
 class BackButton(discord.ui.Button):
     def __init__(self, menu, original_message, on_select):
-        super().__init__(label="Back", emoji="\U0001F519", style=discord.ButtonStyle.secondary)
+        super().__init__(label="Back", emoji="\U0001f519", style=discord.ButtonStyle.secondary)
         self.menu = menu
         self.original_message = original_message
         self.on_select = on_select

@@ -45,16 +45,19 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(created.powerLevel, 12.5)
 
             created_id = created.itemId
-            service.edit_item_from_patch(created_id, {
-                "name": "Test Sword",
-                "tier": 3,
-                "damageType": ["PIERCING"],
-                "damageMin": 21,
-                "damageMax": 29,
-                "armorMultiplier": 1.5,
-                "ignoreArmorFraction": 0.25,
-                "penetrationBase": 14,
-            })
+            service.edit_item_from_patch(
+                created_id,
+                {
+                    "name": "Test Sword",
+                    "tier": 3,
+                    "damageType": ["PIERCING"],
+                    "damageMin": 21,
+                    "damageMax": 29,
+                    "armorMultiplier": 1.5,
+                    "ignoreArmorFraction": 0.25,
+                    "penetrationBase": 14,
+                },
+            )
 
             self.assertIsNone(service.get_item("Test Blade"))
             edited = service.get_item(created_id)
@@ -209,46 +212,55 @@ class TestItemService(unittest.TestCase):
             self.assertIsInstance(loaded, Consumable)
             self.assertEqual(loaded.damageType[0].name, "FIRE")
 
-
     def test_edit_subclass_specific_fields_for_armor_and_consumable(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             service, _context, path = self._make_service(temp_dir)
             service.load_itembook()
 
-            service.create_item_from_dict({
-                "name": "Tower Shield",
-                "itemClass": "Armor",
-                "slot": "OFFHAND",
-                "itemType": "ARMOR",
-                "maxArmor": 18,
-                "currentArmor": 18,
-                "statBonuses": [],
-            })
-            service.create_item_from_dict({
-                "name": "Ice Bomb",
-                "itemClass": "Consumable",
-                "consumableKind": "BOMB",
-                "effectPowerType": "CONSUMABLE_POWER",
-                "effectPower": 16,
-                "damageType": ["COLD"],
-                "spellName": "",
-                "statBonuses": [],
-            })
+            service.create_item_from_dict(
+                {
+                    "name": "Tower Shield",
+                    "itemClass": "Armor",
+                    "slot": "OFFHAND",
+                    "itemType": "ARMOR",
+                    "maxArmor": 18,
+                    "currentArmor": 18,
+                    "statBonuses": [],
+                }
+            )
+            service.create_item_from_dict(
+                {
+                    "name": "Ice Bomb",
+                    "itemClass": "Consumable",
+                    "consumableKind": "BOMB",
+                    "effectPowerType": "CONSUMABLE_POWER",
+                    "effectPower": 16,
+                    "damageType": ["COLD"],
+                    "spellName": "",
+                    "statBonuses": [],
+                }
+            )
 
             shield = service.get_item("Tower Shield")
             bomb = service.get_item("Ice Bomb")
             self.assertIsInstance(shield, Armor)
             self.assertIsInstance(bomb, Consumable)
 
-            service.edit_item_from_patch(shield.itemId, {
-                "maxArmor": 27,
-                "currentArmor": 21,
-            })
-            service.edit_item_from_patch(bomb.itemId, {
-                "effectPower": 24,
-                "damageType": ["FIRE"],
-                "consumableKind": "POTION",
-            })
+            service.edit_item_from_patch(
+                shield.itemId,
+                {
+                    "maxArmor": 27,
+                    "currentArmor": 21,
+                },
+            )
+            service.edit_item_from_patch(
+                bomb.itemId,
+                {
+                    "effectPower": 24,
+                    "damageType": ["FIRE"],
+                    "consumableKind": "POTION",
+                },
+            )
 
             updated_shield = service.get_item(shield.itemId)
             updated_bomb = service.get_item(bomb.itemId)

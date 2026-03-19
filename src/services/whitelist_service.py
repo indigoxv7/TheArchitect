@@ -1,4 +1,4 @@
-﻿from src.persistence.whitelist_store import WhitelistStore
+from src.persistence.whitelist_store import WhitelistStore
 from src.services.game_context import GameContext
 
 

@@ -12,7 +12,9 @@ class RelationshipChoiceDialog(tk.Toplevel):
         self.resizable(False, False)
         self.on_save = on_save
         self.relationship_var = tk.StringVar(
-            value=initial_relationship if initial_relationship in AllegianceRelationship.__members__ else AllegianceRelationship.NEUTRAL.name
+            value=initial_relationship
+            if initial_relationship in AllegianceRelationship.__members__
+            else AllegianceRelationship.NEUTRAL.name
         )
 
         container = ttk.Frame(self, padding=10)
@@ -86,8 +88,12 @@ class AllegianceEditorFrame(ttk.Frame):
         relationship_actions = ttk.Frame(relationship_frame)
         relationship_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(relationship_actions, text="Add Override", command=self._add_relationship).pack(side=tk.LEFT)
-        ttk.Button(relationship_actions, text="Edit Selected", command=self._edit_selected_relationship).pack(side=tk.LEFT, padx=6)
-        ttk.Button(relationship_actions, text="Remove Selected", command=self._remove_selected_relationship).pack(side=tk.LEFT)
+        ttk.Button(relationship_actions, text="Edit Selected", command=self._edit_selected_relationship).pack(
+            side=tk.LEFT, padx=6
+        )
+        ttk.Button(relationship_actions, text="Remove Selected", command=self._remove_selected_relationship).pack(
+            side=tk.LEFT
+        )
 
         self.summary = tk.Text(self, height=8, wrap=tk.WORD)
         self.summary.pack(fill=tk.BOTH, expand=False, pady=6)
@@ -158,7 +164,9 @@ class AllegianceEditorFrame(ttk.Frame):
 
     def _relationship_label(self, other_id: str, relationship_name: str) -> str:
         other = self.app.allegiance_service.get_allegiance_by_id(other_id)
-        other_label = self.app.allegiance_service.get_allegiance_label(other) if other is not None else f"Unknown [{other_id}]"
+        other_label = (
+            self.app.allegiance_service.get_allegiance_label(other) if other is not None else f"Unknown [{other_id}]"
+        )
         relationship = AllegianceRelationship[relationship_name]
         return f"{other_label} -> {relationship.value}"
 
@@ -169,7 +177,10 @@ class AllegianceEditorFrame(ttk.Frame):
 
     def _refresh_summary(self):
         policy_name = self.vars["defaultPolicy"].get().strip() or AllegianceDefaultPolicy.HOSTILE_BY_DEFAULT.name
-        relationship_lines = [self._relationship_label(other_id, relationship_name) for other_id, relationship_name in sorted(self.relationships_draft.items())]
+        relationship_lines = [
+            self._relationship_label(other_id, relationship_name)
+            for other_id, relationship_name in sorted(self.relationships_draft.items())
+        ]
         text = [
             f"Name: {self.vars['name'].get().strip() or '<Unnamed Allegiance>'}",
             f"Default Policy: {AllegianceDefaultPolicy[policy_name].value}",
@@ -186,7 +197,11 @@ class AllegianceEditorFrame(ttk.Frame):
             exclude_ids.append(self.current_allegiance_id)
 
         def _on_select(other_id: str):
-            RelationshipChoiceDialog(self, AllegianceRelationship.NEUTRAL.name, lambda relationship_name: self._save_relationship_choice(other_id, relationship_name))
+            RelationshipChoiceDialog(
+                self,
+                AllegianceRelationship.NEUTRAL.name,
+                lambda relationship_name: self._save_relationship_choice(other_id, relationship_name),
+            )
 
         AllegianceSelectDialog(self, self.app.allegiance_service, _on_select, exclude_ids=exclude_ids)
 
@@ -213,7 +228,11 @@ class AllegianceEditorFrame(ttk.Frame):
             messagebox.showerror("Allegiance Editor", "Select a relationship override to edit.")
             return
         current_relationship = self.relationships_draft.get(other_id, AllegianceRelationship.NEUTRAL.name)
-        RelationshipChoiceDialog(self, current_relationship, lambda relationship_name: self._save_relationship_choice(other_id, relationship_name))
+        RelationshipChoiceDialog(
+            self,
+            current_relationship,
+            lambda relationship_name: self._save_relationship_choice(other_id, relationship_name),
+        )
 
     def _remove_selected_relationship(self):
         other_id = self._selected_other_id()
@@ -226,7 +245,9 @@ class AllegianceEditorFrame(ttk.Frame):
     def _build_payload(self) -> dict:
         return {
             "name": str(self.vars["name"].get() or "").strip(),
-            "defaultPolicy": str(self.vars["defaultPolicy"].get() or AllegianceDefaultPolicy.HOSTILE_BY_DEFAULT.name).strip(),
+            "defaultPolicy": str(
+                self.vars["defaultPolicy"].get() or AllegianceDefaultPolicy.HOSTILE_BY_DEFAULT.name
+            ).strip(),
             "relationships": dict(self.relationships_draft),
         }
 

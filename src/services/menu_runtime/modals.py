@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING
 
 import discord
 
-from src.services.menu_runtime.fields import COMPONENT_FIELD_EDIT_CONFIG, ITEM_FIELD_EDIT_CONFIG, SPELL_FIELD_EDIT_CONFIG
+from src.services.menu_runtime.fields import (
+    COMPONENT_FIELD_EDIT_CONFIG,
+    ITEM_FIELD_EDIT_CONFIG,
+    SPELL_FIELD_EDIT_CONFIG,
+)
 from src.ui.menu import Menu
 
 if TYPE_CHECKING:
@@ -159,7 +163,9 @@ class ItemSelectModal(discord.ui.Modal, title="Edit Existing Item"):
         )
 
 
-def build_field_edit_modal(runtime: "MenuRuntimeService", menu: Menu, original_message: "OriginalMessage") -> discord.ui.Modal:
+def build_field_edit_modal(
+    runtime: "MenuRuntimeService", menu: Menu, original_message: "OriginalMessage"
+) -> discord.ui.Modal:
     if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG:
         draft_attr = "spellDraft"
         field_key, field_label, parser = SPELL_FIELD_EDIT_CONFIG[menu.uniqueName]

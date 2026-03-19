@@ -4,7 +4,7 @@ import math
 
 from src.config.tuning import character_stat_factor
 from src.domain.main_character import MainCharacter
-from src.domain.combat.enums import BattleTeam, CombatRole
+from src.domain.combat.enums import BattleTeam
 from src.domain.combat.state import BattleState
 from src.domain.combat_timing import (
     ExertionLevel,
@@ -26,7 +26,9 @@ class BattleEntityRuntimeMixin:
         return [unit for unit in battle.ally_units if unit.alive and not bool(getattr(unit, "is_player_owned", False))]
 
     def _active_enemies(self, battle: BattleState) -> list:
-        return [unit for unit in battle.enemy_units if unit.alive] + [stack for stack in battle.enemy_stacks if stack.alive]
+        return [unit for unit in battle.enemy_units if unit.alive] + [
+            stack for stack in battle.enemy_stacks if stack.alive
+        ]
 
     @staticmethod
     def _entity_name(entity) -> str:
@@ -57,7 +59,9 @@ class BattleEntityRuntimeMixin:
 
     @staticmethod
     def _entity_timeline_id(entity) -> str:
-        return str(getattr(entity, "unit_id", getattr(entity, "stack_id", getattr(entity, "name", "entity"))) or "entity")
+        return str(
+            getattr(entity, "unit_id", getattr(entity, "stack_id", getattr(entity, "name", "entity"))) or "entity"
+        )
 
     def _entity_speed(self, entity) -> float:
         return max(

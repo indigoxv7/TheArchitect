@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from src.domain.campaign import CampaignUnlockGroup
 from src.tools.admin.shared.pickers import MissionSelectDialog
 from .dialogs import CampaignUnlockGroupDialog
 
@@ -46,7 +47,9 @@ class CampaignEditorFrame(ttk.Frame):
         starting_actions = ttk.Frame(starting_frame)
         starting_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(starting_actions, text="Add Mission", command=self._add_starting_mission).pack(side=tk.LEFT)
-        ttk.Button(starting_actions, text="Remove Selected", command=self._remove_starting_mission).pack(side=tk.LEFT, padx=6)
+        ttk.Button(starting_actions, text="Remove Selected", command=self._remove_starting_mission).pack(
+            side=tk.LEFT, padx=6
+        )
 
         unlock_frame = ttk.LabelFrame(self, text="Unlock Groups")
         unlock_frame.pack(fill=tk.BOTH, expand=True, pady=6)
@@ -55,7 +58,9 @@ class CampaignEditorFrame(ttk.Frame):
         unlock_actions = ttk.Frame(unlock_frame)
         unlock_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(unlock_actions, text="Add Group", command=self._add_unlock_group).pack(side=tk.LEFT)
-        ttk.Button(unlock_actions, text="Edit Selected", command=self._edit_selected_unlock_group).pack(side=tk.LEFT, padx=6)
+        ttk.Button(unlock_actions, text="Edit Selected", command=self._edit_selected_unlock_group).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(unlock_actions, text="Remove Selected", command=self._remove_unlock_group).pack(side=tk.LEFT)
 
         self.summary = tk.Text(self, height=10, wrap=tk.WORD)
@@ -109,8 +114,7 @@ class CampaignEditorFrame(ttk.Frame):
 
     def refresh_campaign_list(self, reset_form: bool):
         labels = ["<New Campaign>"] + [
-            self.app.campaign_service.get_campaign_label(campaign)
-            for campaign in self._filtered_campaigns()
+            self.app.campaign_service.get_campaign_label(campaign) for campaign in self._filtered_campaigns()
         ]
         self.pick["values"] = labels
         if reset_form:
@@ -156,13 +160,9 @@ class CampaignEditorFrame(ttk.Frame):
             "",
             "Starting Missions:",
         ]
-        text.extend(
-            [self._mission_label(mission_id) for mission_id in self.starting_mission_ids_draft] or ["<None>"]
-        )
+        text.extend([self._mission_label(mission_id) for mission_id in self.starting_mission_ids_draft] or ["<None>"])
         text.extend(["", "Unlock Groups:"])
-        text.extend(
-            [self._unlock_group_label(payload) for payload in self.unlock_groups_draft] or ["<None>"]
-        )
+        text.extend([self._unlock_group_label(payload) for payload in self.unlock_groups_draft] or ["<None>"])
         self.summary.delete("1.0", tk.END)
         self.summary.insert(tk.END, "\n".join(text))
 

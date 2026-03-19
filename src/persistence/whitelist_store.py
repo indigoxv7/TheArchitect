@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 
 
@@ -22,7 +22,7 @@ class WhitelistStore:
         for value in raw_list:
             try:
                 admin_ids.append(int(value))
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
 
         return admin_ids

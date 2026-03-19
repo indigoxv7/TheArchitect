@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import asyncio
 import json
 from pathlib import Path
@@ -68,7 +68,9 @@ async def run_sequence_file(sequence_file: str):
             menu_name = action.get("menu", start_menu_name)
             if menu_name not in menu_index:
                 raise ValueError(f"Action open references unknown menu '{menu_name}'.")
-            original_message, current_menu = await game.menu_runtime_service.display_menu_with_interface(interface, menu_index[menu_name])
+            original_message, current_menu = await game.menu_runtime_service.display_menu_with_interface(
+                interface, menu_index[menu_name]
+            )
             continue
 
         if original_message is None or current_menu is None:
@@ -78,15 +80,23 @@ async def run_sequence_file(sequence_file: str):
             target = action.get("target")
             target_menu = _find_visible_child_menu(current_menu, original_message, target)
             if target_menu is None:
-                visible = [m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(current_menu, original_message)]
-                raise ValueError(f"Menu '{target}' is not selectable from '{current_menu.uniqueName}'. Visible: {visible}")
-            current_menu = await game.menu_runtime_service.update_menu_with_interface(interface, target_menu, original_message)
+                visible = [
+                    m.uniqueName for m, _ in game.menu_service.get_visible_child_menus(current_menu, original_message)
+                ]
+                raise ValueError(
+                    f"Menu '{target}' is not selectable from '{current_menu.uniqueName}'. Visible: {visible}"
+                )
+            current_menu = await game.menu_runtime_service.update_menu_with_interface(
+                interface, target_menu, original_message
+            )
             continue
 
         if action_type == "back":
             if current_menu.parent is None:
                 raise ValueError(f"Cannot go back from root menu '{current_menu.uniqueName}'.")
-            current_menu = await game.menu_runtime_service.update_menu_with_interface(interface, current_menu.parent, original_message)
+            current_menu = await game.menu_runtime_service.update_menu_with_interface(
+                interface, current_menu.parent, original_message
+            )
             continue
 
         if action_type == "assert_menu":

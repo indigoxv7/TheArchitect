@@ -1,4 +1,4 @@
-﻿import json
+import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -42,7 +42,9 @@ class ItemEditorFrame(ttk.Frame):
             values=["All"] + self.SLOT_OPTIONS,
         )
         self.slot_filter.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ttk.Button(filter_row, text="Apply Filter", command=lambda: self.refresh_item_list(reset_form=False)).pack(side=tk.LEFT, padx=6)
+        ttk.Button(filter_row, text="Apply Filter", command=lambda: self.refresh_item_list(reset_form=False)).pack(
+            side=tk.LEFT, padx=6
+        )
         ttk.Button(filter_row, text="Clear", command=self._clear_filters).pack(side=tk.LEFT)
 
         pick_row = ttk.Frame(self)
@@ -91,7 +93,9 @@ class ItemEditorFrame(ttk.Frame):
 
         self.weapon_frame = ttk.LabelFrame(self, text="Weapon Stats")
         self._row_entry(self.weapon_frame, "Durability", self.vars["durability"])
-        self._row_combo(self.weapon_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType])
+        self._row_combo(
+            self.weapon_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType]
+        )
         self._row_entry(self.weapon_frame, "Damage Min", self.vars["damageMin"])
         self._row_entry(self.weapon_frame, "Damage Max", self.vars["damageMax"])
         self._row_entry(self.weapon_frame, "Armor Multiplier", self.vars["armorMultiplier"])
@@ -103,16 +107,35 @@ class ItemEditorFrame(ttk.Frame):
         self._row_entry(self.armor_frame, "Current Armor", self.vars["currentArmor"])
 
         self.consumable_frame = ttk.LabelFrame(self, text="Consumable Stats")
-        self._row_combo(self.consumable_frame, "Consumable Kind", self.vars["consumableKind"], [entry.name for entry in ConsumableKind])
-        self._row_combo(self.consumable_frame, "Effect Power Type", self.vars["effectPowerType"], [entry.name for entry in PowerType])
+        self._row_combo(
+            self.consumable_frame,
+            "Consumable Kind",
+            self.vars["consumableKind"],
+            [entry.name for entry in ConsumableKind],
+        )
+        self._row_combo(
+            self.consumable_frame,
+            "Effect Power Type",
+            self.vars["effectPowerType"],
+            [entry.name for entry in PowerType],
+        )
         self._row_entry(self.consumable_frame, "Effect Power", self.vars["effectPower"])
         self._row_entry(self.consumable_frame, "Spell Name", self.vars["spellName"])
-        self._row_combo(self.consumable_frame, "Damage Type", self.vars["damageType"], ["NONE"] + [entry.name for entry in DamageType])
+        self._row_combo(
+            self.consumable_frame,
+            "Damage Type",
+            self.vars["damageType"],
+            ["NONE"] + [entry.name for entry in DamageType],
+        )
 
         button_row = ttk.Frame(self)
         button_row.pack(fill=tk.X, pady=8)
-        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
-        ttk.Button(button_row, text="Save Item", command=self._save).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+        ttk.Button(button_row, text="Simulate", command=self._simulate).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4)
+        )
+        ttk.Button(button_row, text="Save Item", command=self._save).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0)
+        )
 
         self.vars["itemClass"].trace_add("write", self._on_item_class_changed)
         self._refresh_item_class_ui(force=True)
@@ -250,7 +273,11 @@ class ItemEditorFrame(ttk.Frame):
             frame.pack_forget()
 
         if item_class == "Weapon":
-            self.item_type_combo["values"] = [ItemType.MELEE_WEAPON.name, ItemType.MELEE_THROWABLE.name, ItemType.RANGED_WEAPON.name]
+            self.item_type_combo["values"] = [
+                ItemType.MELEE_WEAPON.name,
+                ItemType.MELEE_THROWABLE.name,
+                ItemType.RANGED_WEAPON.name,
+            ]
             if force or self.vars["itemType"].get() not in self.item_type_combo["values"]:
                 self.vars["itemType"].set(ItemType.MELEE_WEAPON.name)
             if force and self.vars["slot"].get() not in {EquipSlot.PRIMARY_WEAPON.name, EquipSlot.OFFHAND.name}:
@@ -358,4 +385,3 @@ class ItemEditorFrame(ttk.Frame):
             self.refresh_item_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Item Editor", f"Failed to save item: {exc}")
-

@@ -1,5 +1,5 @@
-﻿from src.domain.character_util import Attribute, BonusType
-from .forms import BONUS_ATTRIBUTE_OPTIONS, _safe_float, _safe_int
+from src.domain.character_util import Attribute, BonusType
+from .forms import _safe_float, _safe_int
 
 
 def _default_bonus_payload() -> dict:
@@ -143,11 +143,12 @@ def _bonus_object_to_payload(bonus_obj) -> dict:
 
 
 def _achievement_object_to_entry(achievement_obj) -> dict:
-    bonuses = [_bonus_object_to_payload(entry) for entry in getattr(achievement_obj, "bonuses", []) if entry is not None]
+    bonuses = [
+        _bonus_object_to_payload(entry) for entry in getattr(achievement_obj, "bonuses", []) if entry is not None
+    ]
     return {
         "name": str(getattr(achievement_obj, "name", "") or ""),
         "title": str(getattr(achievement_obj, "title", "") or ""),
         "description": str(getattr(achievement_obj, "description", "") or ""),
         "bonuses": bonuses,
     }
-

@@ -1,11 +1,18 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import math
 from datetime import datetime, timezone
 from typing import Any
 
 from src.domain.main_character import MainCharacter
-from src.domain.main_character_memory import CharacterMemory, EventRecord, LLMTurnLog, Relationship, SemanticFact, utc_now_iso
+from src.domain.main_character_memory import (
+    CharacterMemory,
+    EventRecord,
+    LLMTurnLog,
+    Relationship,
+    SemanticFact,
+    utc_now_iso,
+)
 from src.persistence.player_memory import PlayerMemoryStore
 from src.services.openai_narrative_service import MemoryDistillationModel, OpenAINarrativeService, TurnResponseModel
 
@@ -108,9 +115,7 @@ class MainCharacterMemoryService:
         if player is None:
             return []
         return [
-            character
-            for character in (getattr(player, "characters", []) or [])
-            if isinstance(character, MainCharacter)
+            character for character in (getattr(player, "characters", []) or []) if isinstance(character, MainCharacter)
         ]
 
     def _coerce_scene_frame(self, scene_frame: dict[str, Any]) -> dict[str, Any]:
@@ -138,7 +143,9 @@ class MainCharacterMemoryService:
             highlights.append(str(getattr(item, "name", "") or "Unknown Item"))
         return highlights[:8]
 
-    def _relationship_snapshot(self, player_id: int, character_instance_id: str, visible_ids: list[str]) -> list[dict[str, Any]]:
+    def _relationship_snapshot(
+        self, player_id: int, character_instance_id: str, visible_ids: list[str]
+    ) -> list[dict[str, Any]]:
         relationships = self.store.list_relationships_for_character(player_id, character_instance_id)
         result = []
         visible_lookup = set(visible_ids)
@@ -168,9 +175,13 @@ class MainCharacterMemoryService:
             "raceTier": str(getattr(character, "raceTier", "Tier I") or "Tier I"),
             "level": int(getattr(character, "level", 0) or 0),
             "health": int(getattr(character, "health", 100) or 100),
-            "healthState": getattr(getattr(character, "healthState", None), "name", str(getattr(character, "healthState", "HEALTHY"))),
+            "healthState": getattr(
+                getattr(character, "healthState", None), "name", str(getattr(character, "healthState", "HEALTHY"))
+            ),
             "activeAchievementTitle": str(getattr(character, "activeAchievementTitle", "") or ""),
-            "achievements": [str(getattr(item, "name", "") or "") for item in (getattr(character, "achievements", []) or [])],
+            "achievements": [
+                str(getattr(item, "name", "") or "") for item in (getattr(character, "achievements", []) or [])
+            ],
             "gearHighlights": self._gear_highlights(character),
             "characterInfo": character_info.to_dict() if hasattr(character_info, "to_dict") else {},
             "llmControlProfile": llm_profile.to_dict() if hasattr(llm_profile, "to_dict") else {},
@@ -199,12 +210,16 @@ class MainCharacterMemoryService:
             tags.add(location)
         return sorted(tags)
 
-    def _memory_score(self, memory: CharacterMemory, query_embedding: list[float], visible_ids: list[str], relationship_ids: set[str]) -> float:
+    def _memory_score(
+        self, memory: CharacterMemory, query_embedding: list[float], visible_ids: list[str], relationship_ids: set[str]
+    ) -> float:
         similarity = self._cosine_similarity(query_embedding, memory.embedding)
         recency = self._recency_score(memory.created_at)
         importance = self._clamp(memory.importance, 0.0, 1.0)
         relationship_boost = 0.1 if any(tag in relationship_ids for tag in memory.tags) else 0.0
-        participant_boost = 0.1 if any(visible_id.lower() in memory.summary.lower() for visible_id in visible_ids) else 0.0
+        participant_boost = (
+            0.1 if any(visible_id.lower() in memory.summary.lower() for visible_id in visible_ids) else 0.0
+        )
         return (0.45 * similarity) + (0.25 * recency) + (0.20 * importance) + relationship_boost + participant_boost
 
     def _fact_score(self, fact: SemanticFact, query_embedding: list[float]) -> float:
@@ -213,7 +228,9 @@ class MainCharacterMemoryService:
         recency = self._recency_score(fact.created_at, half_life_days=45.0)
         return (0.55 * similarity) + (0.30 * confidence) + (0.15 * recency)
 
-    def build_prompt_packet(self, player_id: int, character_instance_id: str, scene_frame: dict[str, Any]) -> dict[str, Any]:
+    def build_prompt_packet(
+        self, player_id: int, character_instance_id: str, scene_frame: dict[str, Any]
+    ) -> dict[str, Any]:
         _player, character = self._player_and_character(player_id, character_instance_id)
         if not isinstance(character, MainCharacter):
             raise ValueError("Only MainCharacters participate in the memory system in v1.")
@@ -361,7 +378,9 @@ class MainCharacterMemoryService:
             updated += 1
         return updated
 
-    def _insert_fact_candidates(self, player_id: int, character_instance_id: str, memory_id: int, distillation: MemoryDistillationModel) -> int:
+    def _insert_fact_candidates(
+        self, player_id: int, character_instance_id: str, memory_id: int, distillation: MemoryDistillationModel
+    ) -> int:
         existing_fact_texts = {
             str(fact.fact_text or "").strip().lower()
             for fact in self.store.list_facts_for_character(player_id, character_instance_id, limit=200)
@@ -387,7 +406,9 @@ class MainCharacterMemoryService:
             existing_fact_texts.add(fact_text.lower())
         return inserted
 
-    def _maybe_reflect(self, player_id: int, character_instance_id: str, character_packet: dict[str, Any], latest_importance: float) -> int:
+    def _maybe_reflect(
+        self, player_id: int, character_instance_id: str, character_packet: dict[str, Any], latest_importance: float
+    ) -> int:
         memory_count = self.store.count_memories_for_character(player_id, character_instance_id)
         should_reflect = latest_importance >= 0.85 or (memory_count > 0 and memory_count % 10 == 0)
         if not should_reflect:
@@ -482,7 +503,9 @@ class MainCharacterMemoryService:
             if not isinstance(participant_character, MainCharacter):
                 continue
             existing_memory_count = self.store.count_memories_for_character(player_id, participant_id)
-            if participant_id != character_instance_id and not self._should_distill_memory(event, existing_memory_count):
+            if participant_id != character_instance_id and not self._should_distill_memory(
+                event, existing_memory_count
+            ):
                 continue
 
             character_packet = self._character_packet(participant_character)
@@ -592,10 +615,24 @@ class MainCharacterMemoryService:
         _player, character = self._player_and_character(player_id, character_instance_id)
         return {
             "character": self._character_packet(character),
-            "events": [event.__dict__ for event in self.store.list_events_for_character(player_id, character_instance_id, limit=25)],
-            "memories": [memory.__dict__ for memory in self.store.list_memories_for_character(player_id, character_instance_id, limit=25)],
-            "facts": [fact.__dict__ for fact in self.store.list_facts_for_character(player_id, character_instance_id, limit=25)],
-            "relationships": [relationship.__dict__ for relationship in self.store.list_relationships_for_character(player_id, character_instance_id)],
-            "turn_logs": [turn_log.__dict__ for turn_log in self.store.list_turn_logs_for_character(player_id, character_instance_id, limit=10)],
+            "events": [
+                event.__dict__
+                for event in self.store.list_events_for_character(player_id, character_instance_id, limit=25)
+            ],
+            "memories": [
+                memory.__dict__
+                for memory in self.store.list_memories_for_character(player_id, character_instance_id, limit=25)
+            ],
+            "facts": [
+                fact.__dict__
+                for fact in self.store.list_facts_for_character(player_id, character_instance_id, limit=25)
+            ],
+            "relationships": [
+                relationship.__dict__
+                for relationship in self.store.list_relationships_for_character(player_id, character_instance_id)
+            ],
+            "turn_logs": [
+                turn_log.__dict__
+                for turn_log in self.store.list_turn_logs_for_character(player_id, character_instance_id, limit=10)
+            ],
         }
-

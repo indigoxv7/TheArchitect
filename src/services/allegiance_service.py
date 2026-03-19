@@ -1,6 +1,6 @@
 import re
 
-from src.domain.allegiance import Allegiance, AllegianceDefaultPolicy, AllegianceRelationship
+from src.domain.allegiance import Allegiance, AllegianceRelationship
 from src.persistence.allegiancebook_store import AllegiancebookStore
 from src.services.game_context import GameContext
 
@@ -86,7 +86,9 @@ class AllegianceService:
         if by_id is not None:
             return by_id
 
-        matches = [allegiance for allegiance in self.list_allegiances() if allegiance.name.strip().lower() == key.lower()]
+        matches = [
+            allegiance for allegiance in self.list_allegiances() if allegiance.name.strip().lower() == key.lower()
+        ]
         if len(matches) == 1:
             return matches[0]
         return None

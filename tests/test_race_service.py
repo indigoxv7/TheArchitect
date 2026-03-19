@@ -37,7 +37,16 @@ class TestRaceService(unittest.TestCase):
         )
         race_service.load_racebook()
 
-        return context, item_service, spell_service, character_service, race_service, racebook_path, characters_dir, spellbook_path
+        return (
+            context,
+            item_service,
+            spell_service,
+            character_service,
+            race_service,
+            racebook_path,
+            characters_dir,
+            spellbook_path,
+        )
 
     def test_create_edit_and_reload_racebook(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -79,12 +88,18 @@ class TestRaceService(unittest.TestCase):
                 }
             )
             item_service.create_item_from_dict({"name": "Goblin Hood", "slot": "HEAD", "itemType": "ARMOR"})
-            item_service.create_item_from_dict({"name": "Rusty Knife", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"})
+            item_service.create_item_from_dict(
+                {"name": "Rusty Knife", "slot": "PRIMARY_WEAPON", "itemType": "MELEE_WEAPON"}
+            )
             hood = item_service.get_item("Goblin Hood")
             knife = item_service.get_item("Rusty Knife")
 
-            avg_id, _avg_character = character_service.create_character_from_dict({"name": "Average Goblin", "level": 2})
-            enemy_id, _enemy_character = character_service.create_character_from_dict({"name": "Knight Captain", "level": 5})
+            avg_id, _avg_character = character_service.create_character_from_dict(
+                {"name": "Average Goblin", "level": 2}
+            )
+            enemy_id, _enemy_character = character_service.create_character_from_dict(
+                {"name": "Knight Captain", "level": 5}
+            )
 
             race_service.create_race_from_dict(
                 {
@@ -190,7 +205,16 @@ class TestRaceService(unittest.TestCase):
 
     def test_duplicate_race_names_get_unique_ids(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            _context, _item_service, _spell_service, _character_service, race_service, _path, _characters_dir, _spellbook_path = self._build_services(temp_dir)
+            (
+                _context,
+                _item_service,
+                _spell_service,
+                _character_service,
+                race_service,
+                _path,
+                _characters_dir,
+                _spellbook_path,
+            ) = self._build_services(temp_dir)
 
             payload = {
                 "name": "Human",

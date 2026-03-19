@@ -3,9 +3,7 @@ import re
 from src.domain.environment import (
     Biome,
     Climate,
-    CompatibilitySelectionMode,
     EnvironmentEffect,
-    IncompatibilityMode,
     Terrain,
 )
 from src.persistence.environmentbook_store import EnvironmentbookStore
@@ -140,7 +138,9 @@ class EnvironmentService:
                 raise ValueError(f"Climate '{climate_id}' does not exist.")
 
     def list_effects(self) -> list[EnvironmentEffect]:
-        return sorted(self.context.all_environment_effects.values(), key=lambda effect: (effect.name.lower(), effect.effectId))
+        return sorted(
+            self.context.all_environment_effects.values(), key=lambda effect: (effect.name.lower(), effect.effectId)
+        )
 
     def list_terrains(self) -> list[Terrain]:
         return sorted(self.context.all_terrains.values(), key=lambda terrain: (terrain.name.lower(), terrain.terrainId))
@@ -322,7 +322,10 @@ class EnvironmentService:
         terrains = self.list_terrains()
         if not terrains:
             return "No terrains in terrainbook yet."
-        lines = [f"- {terrain.name} [{terrain.terrainId}] ({len(terrain.effectIds)} effects)" for terrain in terrains[:max_lines]]
+        lines = [
+            f"- {terrain.name} [{terrain.terrainId}] ({len(terrain.effectIds)} effects)"
+            for terrain in terrains[:max_lines]
+        ]
         if len(terrains) > max_lines:
             lines.append(f"... and {len(terrains) - max_lines} more")
         return "\n".join(lines)

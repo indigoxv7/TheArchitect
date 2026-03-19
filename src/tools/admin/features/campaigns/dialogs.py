@@ -1,4 +1,3 @@
-import copy
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -25,9 +24,7 @@ class CampaignUnlockGroupDialog(tk.Toplevel):
             if str(entry or "").strip()
         ]
         self.unlocked_mission_ids = [
-            str(entry or "").strip()
-            for entry in (initial.get("missionIds", []) or [])
-            if str(entry or "").strip()
+            str(entry or "").strip() for entry in (initial.get("missionIds", []) or []) if str(entry or "").strip()
         ]
         self.summary_var = tk.StringVar(value="")
 
@@ -46,7 +43,9 @@ class CampaignUnlockGroupDialog(tk.Toplevel):
         required_actions = ttk.Frame(required_frame)
         required_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(required_actions, text="Add Mission", command=self._add_required_mission).pack(side=tk.LEFT)
-        ttk.Button(required_actions, text="Remove Selected", command=self._remove_required_mission).pack(side=tk.LEFT, padx=6)
+        ttk.Button(required_actions, text="Remove Selected", command=self._remove_required_mission).pack(
+            side=tk.LEFT, padx=6
+        )
 
         unlock_frame = ttk.LabelFrame(container, text="Unlocked Missions")
         unlock_frame.pack(fill=tk.BOTH, expand=True, pady=6)
@@ -55,9 +54,13 @@ class CampaignUnlockGroupDialog(tk.Toplevel):
         unlock_actions = ttk.Frame(unlock_frame)
         unlock_actions.pack(fill=tk.X, padx=6, pady=(0, 6))
         ttk.Button(unlock_actions, text="Add Mission", command=self._add_unlocked_mission).pack(side=tk.LEFT)
-        ttk.Button(unlock_actions, text="Remove Selected", command=self._remove_unlocked_mission).pack(side=tk.LEFT, padx=6)
+        ttk.Button(unlock_actions, text="Remove Selected", command=self._remove_unlocked_mission).pack(
+            side=tk.LEFT, padx=6
+        )
 
-        ttk.Label(container, textvariable=self.summary_var, justify=tk.LEFT, wraplength=760).pack(fill=tk.X, pady=(2, 8))
+        ttk.Label(container, textvariable=self.summary_var, justify=tk.LEFT, wraplength=760).pack(
+            fill=tk.X, pady=(2, 8)
+        )
 
         actions = ttk.Frame(container)
         actions.pack(fill=tk.X)
@@ -90,7 +93,9 @@ class CampaignUnlockGroupDialog(tk.Toplevel):
         description = CampaignUnlockGroup(
             missionIds=self.unlocked_mission_ids,
             requiredCompletedMissionIds=self.required_mission_ids,
-            minimumCharacterLevel=None if self.minimum_level_var.get().strip() == "" else _safe_int(self.minimum_level_var.get(), 0),
+            minimumCharacterLevel=None
+            if self.minimum_level_var.get().strip() == ""
+            else _safe_int(self.minimum_level_var.get(), 0),
             unlockId=self.unlock_id,
         ).describe()
         self.summary_var.set(description)

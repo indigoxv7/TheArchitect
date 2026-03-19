@@ -1,0 +1,101 @@
+{
+    "format_version": 1,
+    "character_id": "ElizabethShepard6",
+    "character_state": {
+        "name": "Elizabeth Shepard",
+        "level": 0,
+        "characterType": "MainCharacter",
+        "raceTier": "Tier I",
+        "race": "Human1",
+        "health": 100.0,
+        "healthState": "HEALTHY",
+        "activeAchievementTitle": "",
+        "attributes": {
+            "physicalPower": 6.0,
+            "physicalStamina": 5.0,
+            "physicalResistance": 8.0,
+            "magicPower": 5.0,
+            "magicStamina": 5.0,
+            "magicResistance": 5.0
+        },
+        "affinities": {
+            "chi": 0.5,
+            "mana": 0.5,
+            "psi": 0.5,
+            "aether": 0.5
+        },
+        "gear": {
+            "head_item_id": null,
+            "neck_item_id": null,
+            "body_item_id": null,
+            "hands_item_id": null,
+            "ring_item_id": null,
+            "legs_item_id": null,
+            "feet_item_id": null,
+            "primary_weapon_item_id": null,
+            "offhand_item_id": null,
+            "inventory_item_ids": []
+        },
+        "achievements": [],
+        "buffs": [],
+        "spells": [],
+        "generalSkills": [],
+        "stats": {
+            "kills": 0,
+            "damageTaken": 0.0,
+            "missionCount": 0,
+            "damageDone": 0.0,
+            "spellsCast": 0,
+            "injuriesTaken": 0,
+            "alliesProtected": 0,
+            "bossesKilled": 0,
+            "elitesKilled": 0,
+            "unitsKilled": {}
+        },
+        "hobbies": [
+            {
+                "name": "Couponing",
+                "interestLevel": "Interested"
+            },
+            {
+                "name": "Party games",
+                "interestLevel": "BurningPassion"
+            }
+        ],
+        "description": "",
+        "portraitURL": "",
+        "footerImageURL": "",
+        "characterInfo": {
+            "age": 62,
+            "birthday": "January 6, 1964",
+            "sex": "Female",
+            "height": "5'1.7\"",
+            "build": "fit",
+            "skinTone": "fair",
+            "hairColor": "black",
+            "eyeColor": "brown",
+            "distinguishingMarks": "scar",
+            "distinguishingMarksLocation": "NECK",
+            "background": "poor/underprivileged",
+            "occupation": "government employee",
+            "job": "Police Officer",
+            "personalityType": "ESFJ",
+            "coreValue": "freedom",
+            "strength": "intelligence",
+            "flaw": "impulsiveness",
+            "socialStyle": "blunt",
+            "speechStyle": "rambling",
+            "goal": "protect_family",
+            "secret": "none",
+            "emotionalTrigger": "being_lied_to",
+            "copingHabit": "anger"
+        },
+        "llmControlProfile": {
+            "systemNotes": "",
+            "voiceNotes": "",
+            "responseStyleNotes": "",
+            "knowledgeBoundaryNotes": ""
+        },
+        "friendlyFireTolerance": "No friendly fire"
+    }
+}
