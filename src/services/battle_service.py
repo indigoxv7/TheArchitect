@@ -15,6 +15,20 @@ from src.domain.MainCharacter import MainCharacter
 from src.domain.Mission import EliminationObjective, MissionObjective, MissionObjectiveStatus, MissionStatistics
 from src.domain.Race import CreatureSize
 from src.domain.Spells import Spell
+from src.domain.combat_encounter import EncounterDefinition, EncounterEnemyEntry
+from src.domain.combat_enums import (
+    BattleOutcome,
+    BattlePhase,
+    BattleTeam,
+    BattleTriggerType,
+    CombatRole,
+    CommanderStance,
+    EncounterType,
+    TargetPriority,
+    TokenPolicy,
+    lane_width_for_size,
+)
+from src.domain.combat_state import BattleExchangeSummary, BattleState, BattleTrigger, CommanderOrders
 from src.domain.combat_timing import (
     ExertionLevel,
     accuracy_bonus_for_exertion,
@@ -34,26 +48,7 @@ from src.domain.combat_timing import (
     stamina_regen_per_second_from_physical_stamina,
     sync_stamina,
 )
-from src.domain.combat import (
-    BattleExchangeSummary,
-    BattleOutcome,
-    BattlePhase,
-    BattleState,
-    BattleTeam,
-    BattleTrigger,
-    BattleTriggerType,
-    CombatRole,
-    CombatUnitState,
-    CommanderOrders,
-    CommanderStance,
-    EncounterDefinition,
-    EncounterEnemyEntry,
-    EncounterType,
-    EnemyStackState,
-    TargetPriority,
-    TokenPolicy,
-    lane_width_for_size,
-)
+from src.domain.combat_units import CombatUnitState, EnemyStackState
 from src.services.battle_roster_builder import BattleRosterBuilder
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator

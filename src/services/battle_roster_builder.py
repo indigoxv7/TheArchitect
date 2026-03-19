@@ -5,20 +5,15 @@ from typing import Any, Callable
 from src.domain.CharacterUtil import Attributes
 from src.domain.Items import Gear, Weapon
 from src.domain.Race import CreatureSize
-from src.domain.combat import (
-    BattleTeam,
-    CombatRole,
-    CombatUnitState,
-    EncounterEnemyEntry,
-    EnemyStackState,
-    lane_width_for_size,
-)
+from src.domain.combat_encounter import EncounterEnemyEntry
+from src.domain.combat_enums import BattleTeam, CombatRole, lane_width_for_size
 from src.domain.combat_timing import (
     ExertionLevel,
     speed_factor_from_attributes,
     stamina_limit_from_physical_stamina,
     stamina_regen_per_second_from_physical_stamina,
 )
+from src.domain.combat_units import CombatUnitState, EnemyStackState
 from src.services.combat_loadout_service import select_active_character_weapon
 
 

@@ -6,7 +6,8 @@ import random
 import re
 from pathlib import Path
 
-from src.domain.combat import EncounterDefinition, EncounterEnemyEntry, EncounterType, ReinforcementEntry
+from src.domain.combat_encounter import EncounterDefinition, EncounterEnemyEntry, ReinforcementEntry
+from src.domain.combat_enums import EncounterType
 
 
 class EncounterService:
