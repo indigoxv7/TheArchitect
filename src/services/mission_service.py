@@ -1,6 +1,6 @@
 import re
 
-from src.domain.Mission import DeliveryObjective, EscortObjective, Mission
+from src.domain.Mission import DeliveryObjective, EscortObjective, MissionTemplate
 from src.persistence.missionbook_store import MissionbookStore
 from src.services.game_context import GameContext
 
@@ -28,7 +28,7 @@ class MissionService:
         return candidate
 
     @staticmethod
-    def get_mission_label(mission: Mission) -> str:
+    def get_mission_label(mission: MissionTemplate) -> str:
         return f"{mission.name} [{mission.missionId}]"
 
     @staticmethod
@@ -38,7 +38,7 @@ class MissionService:
             return text[text.rfind("[") + 1 : -1].strip()
         return text
 
-    def _validate_mission(self, mission: Mission):
+    def _validate_mission(self, mission: MissionTemplate):
         if not getattr(mission, "objective", None):
             raise ValueError("Mission must include an objective.")
 
@@ -88,7 +88,7 @@ class MissionService:
         self.context.all_missions.clear()
         for raw in raw_missions:
             try:
-                mission = Mission.from_dict(raw)
+                mission = MissionTemplate.from_dict(raw)
                 self._validate_mission(mission)
             except Exception:
                 continue
@@ -115,14 +115,14 @@ class MissionService:
         self.store.save(payload)
         self.context.missionbook_overview = self.build_missionbook_overview()
 
-    def list_missions(self) -> list[Mission]:
+    def list_missions(self) -> list[MissionTemplate]:
         missions = list(self.context.all_missions.values())
         return sorted(missions, key=lambda mission: (mission.name.lower(), mission.missionId))
 
-    def get_mission_by_id(self, mission_id: str) -> Mission | None:
+    def get_mission_by_id(self, mission_id: str) -> MissionTemplate | None:
         return self.context.all_missions.get(str(mission_id or "").strip())
 
-    def get_mission(self, identifier: str) -> Mission | None:
+    def get_mission(self, identifier: str) -> MissionTemplate | None:
         key = str(identifier or "").strip()
         if not key:
             return None
@@ -137,7 +137,7 @@ class MissionService:
         return None
 
     def create_mission_from_dict(self, data: dict):
-        mission = Mission.from_dict(data)
+        mission = MissionTemplate.from_dict(data)
         self._validate_mission(mission)
         if not mission.missionId:
             mission.missionId = self._generate_mission_id(mission.name)
@@ -158,7 +158,7 @@ class MissionService:
             merged["name"] = existing.name
         merged["missionId"] = existing.missionId
 
-        updated = Mission.from_dict(merged)
+        updated = MissionTemplate.from_dict(merged)
         updated.missionId = existing.missionId
         self._validate_mission(updated)
         self.context.all_missions[updated.missionId] = updated

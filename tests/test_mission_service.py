@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Mission import Mission, MissionObjectiveStatus, MissionStatistics
+from src.domain.Mission import Mission, MissionObjectiveStatus, MissionStatistics, MissionTemplate
 from src.services.allegiance_service import AllegianceService
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
@@ -257,8 +257,11 @@ class TestMissionService(unittest.TestCase):
             b = mission_service.create_mission_from_dict({"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 2.0}})
             self.assertNotEqual(a.missionId, b.missionId)
 
+    def test_mission_template_alias_is_preserved(self):
+        self.assertIs(Mission, MissionTemplate)
+
     def test_objective_evaluation_uses_mission_statistics(self):
-        mission = Mission.from_dict(
+        mission = MissionTemplate.from_dict(
             {
                 "name": "Rescue Trial",
                 "objective": {
@@ -285,7 +288,7 @@ class TestMissionService(unittest.TestCase):
         self.assertEqual(mission.evaluate_objective(winning_stats), MissionObjectiveStatus.SUCCESS)
 
     def test_delivery_and_elimination_objectives_use_statistics_helpers(self):
-        mission = Mission.from_dict(
+        mission = MissionTemplate.from_dict(
             {
                 "name": "Supply Push",
                 "objective": {
