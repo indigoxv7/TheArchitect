@@ -54,6 +54,7 @@ from src.domain.combat import (
     TokenPolicy,
     lane_width_for_size,
 )
+from src.services.battle_roster_builder import BattleRosterBuilder
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
 
@@ -96,6 +97,12 @@ class BattleService:
         self.openai_service = openai_service
         self.memory_service = memory_service
         self._rng = random.Random()
+        self.roster_builder = BattleRosterBuilder(
+            context=context,
+            item_service=item_service,
+            character_service=character_service,
+            health_state_for_ratio=self._health_state_for_ratio,
+        )
 
     def initialize(self):
         self.store.ensure_directory()
@@ -236,118 +243,28 @@ class BattleService:
         return battle
 
     def _party_members(self, player) -> list:
-        get_mission_party = getattr(player, "GetMissionPartyCharacters", None)
-        if callable(get_mission_party):
-            return list(get_mission_party())
-        return list(getattr(player, "characters", []) or [])
+        return self.roster_builder.party_members(player)
 
     def _build_ally_units(self, player) -> list[CombatUnitState]:
-        units = []
-        for index, character in enumerate(self._party_members(player)):
-            units.append(
-                self._character_to_unit(
-                    character=character,
-                    team=BattleTeam.ALLY,
-                    unit_id=f"ally_{index}_{getattr(character, 'playerInstanceId', '') or getattr(character, 'name', 'unit')}",
-                    character_instance_id=str(getattr(character, "playerInstanceId", "") or ""),
-                    is_player_owned=True,
-                )
-            )
-        return units
+        return self.roster_builder.build_ally_units(player)
 
     def _spawn_enemy_entry(self, entry: EncounterEnemyEntry) -> tuple[list[CombatUnitState], list[EnemyStackState]]:
-        template = None
-        template_character_id = ""
-        race_id = ""
-        if entry.kind == "character":
-            template_character_id = str(entry.identifier or "")
-            template = self.character_service.get_character(template_character_id)
-            if template is None:
-                return [], []
-            race_id = str(getattr(template, "race", "Human1") or "Human1")
-        else:
-            race_id = str(entry.identifier or "Human1")
-            race = self.context.all_races.get(race_id)
-            if race is None:
-                return [], []
-            template = getattr(race, "averageSpecimine", None)
-            if template is None:
-                return [], []
-            for character_id, character in self.context.all_characters.items():
-                if character is template or getattr(character, "name", "") == getattr(template, "name", ""):
-                    template_character_id = character_id
-                    break
-
-        if template is None:
-            return [], []
-
-        if entry.use_stack and int(entry.count) > 1:
-            stack = self._character_to_stack(
-                character=template,
-                count=int(entry.count),
-                stack_id=f"stack_{entry.kind}_{entry.identifier}_{entry.count}",
-                template_character_id=template_character_id,
-                race_id=race_id,
-                name_override=entry.name_override or getattr(template, "name", "Enemy Stack"),
-            )
-            return [], [stack]
-
-        units = []
-        for index in range(int(entry.count)):
-            units.append(
-                self._character_to_unit(
-                    character=template,
-                    team=BattleTeam.ENEMY,
-                    unit_id=f"enemy_{entry.kind}_{entry.identifier}_{index}",
-                    template_character_id=template_character_id,
-                    name_override=entry.name_override or getattr(template, "name", "Enemy"),
-                    notable=bool(entry.notable),
-                )
-            )
-        return units, []
+        return self.roster_builder.spawn_enemy_entry(entry)
 
     def _resolve_item_id(self, item) -> str:
-        if item is None:
-            return ""
-        item_id = str(getattr(item, "itemId", "") or "").strip()
-        if item_id:
-            return item_id
-        name = str(getattr(item, "name", "") or "").strip()
-        resolved = self.item_service.get_item(name)
-        if resolved is None:
-            return ""
-        return str(getattr(resolved, "itemId", "") or "")
+        return self.roster_builder.resolve_item_id(item)
 
     def _race_lookup(self, race_id: str):
-        return self.context.all_races.get(str(race_id or "").strip())
+        return self.roster_builder.race_lookup(race_id)
 
     def _resolve_size_for_character(self, character) -> CreatureSize:
-        race_id = str(getattr(character, "race", "Human1") or "Human1")
-        race = self.context.all_races.get(race_id)
-        if race is None:
-            return CreatureSize.STANDARD
-        return getattr(race, "size", CreatureSize.STANDARD)
+        return self.roster_builder.resolve_size_for_character(character)
 
     def _extract_direct_damage_spells(self, character) -> list[str]:
-        result = []
-        for spell in getattr(character, "spells", []) or []:
-            try:
-                if float(getattr(spell, "power", 0) or 0) > 0:
-                    result.append(str(getattr(spell, "name", "") or ""))
-            except Exception:
-                continue
-        return result
+        return self.roster_builder.extract_direct_damage_spells(character)
 
     def _infer_role(self, character) -> CombatRole:
-        active_weapon = select_active_character_weapon(character, race_lookup=self._race_lookup)
-        if isinstance(active_weapon, Weapon) and active_weapon.isRanged:
-            return CombatRole.RANGED
-        direct_damage_spells = self._extract_direct_damage_spells(character)
-        if direct_damage_spells and active_weapon is None:
-            return CombatRole.RANGED
-        if not active_weapon and not direct_damage_spells:
-            return CombatRole.SUPPORT
-        return CombatRole.FRONTLINE
+        return self.roster_builder.infer_role(character)
 
     def _character_to_unit(
         self,
@@ -362,54 +279,17 @@ class BattleService:
         is_boss: bool = False,
         is_elite: bool = False,
     ) -> CombatUnitState:
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", Attributes()))
-        gear = getattr(character, "gear", Gear())
-        size = self._resolve_size_for_character(character)
-        get_max_health = getattr(character, "GetMaxHealth", None)
-        max_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
-        current_health = max(0.0, min(float(getattr(character, "health", max_health) or max_health), max_health))
-        get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
-        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
-        get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
-        return CombatUnitState(
-            unit_id=unit_id,
-            name=name_override or str(getattr(character, "name", "Unit") or "Unit"),
+        return self.roster_builder.character_to_unit(
+            character=character,
             team=team,
-            role=self._infer_role(character),
-            size=size,
-            level=int(getattr(character, "level", 0) or 0),
-            health=current_health,
-            max_health=max_health,
-            health_state=self._health_state_for_ratio(current_health, max_health).name,
-            lane_width=lane_width_for_size(size),
-            starting_line=0,
+            unit_id=unit_id,
             character_instance_id=character_instance_id,
+            template_character_id=template_character_id,
+            name_override=name_override,
+            notable=notable,
             is_player_owned=is_player_owned,
             is_boss=is_boss,
             is_elite=is_elite,
-            template_character_id=template_character_id,
-            race_id=str(getattr(character, "race", "Human1") or "Human1"),
-            physical_power=float(getattr(attrs, "physicalPower", 5.0)),
-            physical_stamina=float(getattr(attrs, "physicalStamina", 5.0)),
-            physical_resistance=float(getattr(attrs, "physicalResistance", 5.0)),
-            magic_power=float(getattr(attrs, "magicPower", 5.0)),
-            magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
-            magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
-            speed=speed,
-            stamina_current=stamina_limit,
-            stamina_limit=stamina_limit,
-            stamina_regen_per_second=stamina_regen,
-            stamina_last_update_time=0.0,
-            next_action_time=0.0,
-            exertion_level=ExertionLevel.FRESH.name,
-            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
-            offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
-            inventory_item_ids=[self._resolve_item_id(item) for item in getattr(gear, "inventory", []) or [] if self._resolve_item_id(item)],
-            spell_names=self._extract_direct_damage_spells(character),
-            notable=notable,
         )
 
     def _character_to_stack(
@@ -421,51 +301,13 @@ class BattleService:
         race_id: str,
         name_override: str,
     ) -> EnemyStackState:
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", Attributes()))
-        gear = getattr(character, "gear", Gear())
-        size = self._resolve_size_for_character(character)
-        get_max_health = getattr(character, "GetMaxHealth", None)
-        unit_health = max(1.0, float(get_max_health() if callable(get_max_health) else getattr(character, "health", 100.0) or 100.0))
-        get_speed = getattr(character, "GetSpeed", None)
-        speed = float(get_speed() if callable(get_speed) else speed_factor_from_attributes(getattr(attrs, "physicalPower", 5.0), getattr(attrs, "magicPower", 5.0)))
-        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        stamina_limit = float(get_stamina_limit() if callable(get_stamina_limit) else stamina_limit_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
-        get_stamina_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        stamina_regen = float(get_stamina_regen() if callable(get_stamina_regen) else stamina_regen_per_second_from_physical_stamina(getattr(attrs, "physicalStamina", 5.0)))
-        return EnemyStackState(
+        return self.roster_builder.character_to_stack(
+            character=character,
+            count=count,
             stack_id=stack_id,
-            name=name_override,
-            team=BattleTeam.ENEMY,
-            role=self._infer_role(character),
-            size=size,
-            count=max(1, int(count)),
-            max_count=max(1, int(count)),
-            unit_health=unit_health,
-            total_health=float(max(1, int(count))) * unit_health,
-            health_state="HEALTHY",
-            lane_width=lane_width_for_size(size),
-            starting_line=0,
             template_character_id=template_character_id,
-            is_boss=False,
-            is_elite=False,
             race_id=race_id,
-            level=int(getattr(character, "level", 0) or 0),
-            physical_power=float(getattr(attrs, "physicalPower", 5.0)),
-            physical_stamina=float(getattr(attrs, "physicalStamina", 5.0)),
-            physical_resistance=float(getattr(attrs, "physicalResistance", 5.0)),
-            magic_power=float(getattr(attrs, "magicPower", 5.0)),
-            magic_stamina=float(getattr(attrs, "magicStamina", 5.0)),
-            magic_resistance=float(getattr(attrs, "magicResistance", 5.0)),
-            speed=speed,
-            stamina_current=stamina_limit,
-            stamina_limit=stamina_limit,
-            stamina_regen_per_second=stamina_regen,
-            stamina_last_update_time=0.0,
-            next_action_time=0.0,
-            exertion_level=ExertionLevel.FRESH.name,
-            primary_weapon_item_id=self._resolve_item_id(getattr(gear, "primaryWeapon", None)),
-            offhand_item_id=self._resolve_item_id(getattr(gear, "offhand", None)),
-            spell_names=self._extract_direct_damage_spells(character),
+            name_override=name_override,
         )
     def _active_allies(self, battle: BattleState) -> list:
         return [unit for unit in battle.ally_units if unit.alive]

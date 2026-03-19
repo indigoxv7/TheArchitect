@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import random
-import re
 from dataclasses import dataclass
 
 from src.config.tuning import battle_factor, character_stat_factor, misc_factor, misc_factor_int
@@ -28,15 +27,24 @@ from src.domain.combat_timing import (
     damage_multiplier_for_exertion,
     default_offensive_action_stamina_cost,
     defense_stat_penalty_for_exertion,
-    initialize_runtime_fields,
     schedule_next_action,
-    speed_factor_from_attributes,
     spend_stamina,
-    start_time_gap_seconds,
     stamina_damage_from_hit,
-    stamina_limit_from_physical_stamina,
-    stamina_regen_per_second_from_physical_stamina,
     sync_stamina,
+)
+from src.services.combat_duel_shared import (
+    build_runtime_state,
+    character_max_health,
+    character_speed,
+    character_stamina_limit,
+    character_stamina_regen,
+    initialize_duel_timeline,
+    max_duel_battle_time,
+    parse_numeric_value as shared_parse_numeric_value,
+    roll_hit_location,
+    round_number_for_time,
+    scaled_weapon_for_damage_multiplier,
+    select_next_duel_side,
 )
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
@@ -76,9 +84,6 @@ class PowerRatingService:
     RECOMMENDED_HEURISTIC_WEIGHT = 0.20
     NEUTRAL_AFFINITY = 0.5
 
-    _DICE_PATTERN = re.compile(r"^\s*(\d+)\s*d\s*(\d+)(?:\s*([+-])\s*(\d+(?:\.\d+)?))?\s*$", re.IGNORECASE)
-    _LEADING_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
-
     def __init__(self, spell_service=None, item_service=None, race_service=None, sample_count: int = DEFAULT_SAMPLE_COUNT, seed: int = 1337):
         self.spell_service = spell_service
         self.item_service = item_service
@@ -88,36 +93,7 @@ class PowerRatingService:
 
     @classmethod
     def parse_numeric_value(cls, value, default: float = 0.0) -> float:
-        if isinstance(value, (int, float)):
-            return float(value)
-        text = str(value or "").strip()
-        if not text:
-            return float(default)
-        try:
-            return float(text)
-        except ValueError:
-            pass
-
-        dice_match = cls._DICE_PATTERN.match(text)
-        if dice_match:
-            count = int(dice_match.group(1))
-            faces = int(dice_match.group(2))
-            sign = dice_match.group(3)
-            modifier = float(dice_match.group(4) or 0.0)
-            average = count * ((faces + 1.0) / 2.0)
-            if sign == "-":
-                average -= modifier
-            else:
-                average += modifier
-            return max(0.0, average)
-
-        match = cls._LEADING_NUMBER_PATTERN.search(text)
-        if match:
-            try:
-                return float(match.group(0))
-            except ValueError:
-                return float(default)
-        return float(default)
+        return shared_parse_numeric_value(value, default=default, allow_dice_average=True)
 
     @classmethod
     def normalize_affinity_fraction(cls, value) -> float:
@@ -365,20 +341,11 @@ class PowerRatingService:
 
     @staticmethod
     def _character_max_health(character: Character) -> float:
-        get_max_health = getattr(character, "GetMaxHealth", None)
-        if callable(get_max_health):
-            return max(1.0, float(get_max_health()))
-        return 100.0
+        return character_max_health(character)
 
     @staticmethod
     def _character_speed(character: Character) -> float:
-        get_speed = getattr(character, "GetSpeed", None)
-        if callable(get_speed):
-            return max(character_stat_factor("minimum_speed_factor", 0.1), float(get_speed()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        physical_power = float(getattr(attrs, "physicalPower", 5.0))
-        magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return speed_factor_from_attributes(physical_power, magic_power)
+        return character_speed(character)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
@@ -386,35 +353,14 @@ class PowerRatingService:
 
     @staticmethod
     def _character_stamina_limit(character: Character) -> float:
-        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        if callable(get_stamina_limit):
-            return max(1.0, float(get_stamina_limit()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return stamina_limit_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
+        return character_stamina_limit(character)
 
     @staticmethod
     def _character_stamina_regen(character: Character) -> float:
-        get_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        if callable(get_regen):
-            return max(0.0, float(get_regen()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return stamina_regen_per_second_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
+        return character_stamina_regen(character)
 
     def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
-        runtime = CombatRuntimeState(
-            stamina_current=self._character_stamina_limit(character),
-            stamina_limit=self._character_stamina_limit(character),
-            stamina_regen_per_second=self._character_stamina_regen(character),
-        )
-        initialize_runtime_fields(
-            runtime,
-            stamina_limit=runtime.stamina_limit,
-            stamina_regen_per_second=runtime.stamina_regen_per_second,
-            stamina_current=runtime.stamina_limit,
-            stamina_last_update_time=0.0,
-            next_action_time=0.0,
-        )
-        return runtime
+        return build_runtime_state(character)
 
     @staticmethod
     def _equip_item_by_slot(gear: Gear, item: Item | None):
@@ -539,18 +485,13 @@ class PowerRatingService:
         )
 
     def _run_duel(self, left: _Combatant, right: _Combatant, rng: random.Random) -> int:
-        first_side = "left" if rng.random() < 0.5 else "right"
-        second_side = "right" if first_side == "left" else "left"
-        turn_gap = start_time_gap_seconds(2)
+        timeline = initialize_duel_timeline(rng)
         left.runtime = left.runtime or self._build_runtime_state(left.character)
         right.runtime = right.runtime or self._build_runtime_state(right.character)
-        left.runtime.next_action_time = 0.0 if first_side == "left" else turn_gap
-        right.runtime.next_action_time = 0.0 if first_side == "right" else turn_gap
-        next_action_times = {
-            "left": float(left.runtime.next_action_time),
-            "right": float(right.runtime.next_action_time),
-        }
-        tie_break_order = [first_side, second_side]
+        left.runtime.next_action_time = float(timeline.next_action_times.get("left", timeline.turn_gap))
+        right.runtime.next_action_time = float(timeline.next_action_times.get("right", timeline.turn_gap))
+        next_action_times = dict(timeline.next_action_times)
+        tie_break_order = list(timeline.tie_break_order)
         rounds = 1
 
         while rounds <= self.MAX_DUEL_ROUNDS:
@@ -562,21 +503,14 @@ class PowerRatingService:
             if len(alive_sides) < 2:
                 break
 
-            priority = {side: index for index, side in enumerate(tie_break_order)}
-            side = min(
-                alive_sides,
-                key=lambda entry: (
-                    float(next_action_times.get(entry, 0.0)),
-                    priority.get(entry, len(priority)),
-                ),
-            )
+            side = select_next_duel_side(alive_sides, next_action_times, tie_break_order)
             turn_start_time = float(next_action_times.get(side, 0.0))
-            if turn_start_time > (self.MAX_DUEL_ROUNDS * baseline_turn_seconds()):
+            if turn_start_time > max_duel_battle_time(self.MAX_DUEL_ROUNDS):
                 break
             attacker, defender = (left, right) if side == "left" else (right, left)
             sync_stamina(attacker.runtime, turn_start_time)
             sync_stamina(defender.runtime, turn_start_time)
-            rounds = max(rounds, int(turn_start_time // baseline_turn_seconds()) + 1)
+            rounds = max(rounds, round_number_for_time(turn_start_time))
             self._take_turn(attacker, defender, rng, rounds, turn_start_time)
             next_action_times[side] = schedule_next_action(attacker.runtime, self._character_speed(attacker.character), turn_start_time)
             tie_break_order = [entry for entry in tie_break_order if entry != side] + [side]
@@ -701,28 +635,11 @@ class PowerRatingService:
 
     @staticmethod
     def _roll_hit_location(rng: random.Random) -> HitLocation:
-        weights = [
-            (HitLocation.HEAD, battle_factor("combat_sim_head_hit_weight", 0.15)),
-            (HitLocation.BODY, battle_factor("combat_sim_body_hit_weight", 0.45)),
-            (HitLocation.ARMS, battle_factor("combat_sim_arms_hit_weight", 0.20)),
-            (HitLocation.LEGS, battle_factor("combat_sim_legs_hit_weight", 0.20)),
-        ]
-        roll = rng.random()
-        cursor = 0.0
-        for location, weight in weights:
-            cursor += weight
-            if roll <= cursor:
-                return location
-        return HitLocation.BODY
+        return roll_hit_location(rng)
 
     @staticmethod
     def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
-        if abs(float(damage_multiplier) - 1.0) < 0.0001:
-            return weapon
-        scaled_weapon = copy.deepcopy(weapon)
-        scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
-        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
-        return scaled_weapon
+        return scaled_weapon_for_damage_multiplier(weapon, damage_multiplier)
 
     def _consumable_damage(self, attacker: _Combatant, item: Consumable, rng: random.Random, defender: _Combatant, turn_start_time: float) -> float:
         if item.spellName and self.spell_service is not None:

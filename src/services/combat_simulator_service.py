@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import random
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -20,15 +19,24 @@ from src.domain.combat_timing import (
     damage_multiplier_for_exertion,
     default_offensive_action_stamina_cost,
     defense_stat_penalty_for_exertion,
-    initialize_runtime_fields,
     schedule_next_action,
-    speed_factor_from_attributes,
     spend_stamina,
-    start_time_gap_seconds,
     stamina_damage_from_hit,
-    stamina_limit_from_physical_stamina,
-    stamina_regen_per_second_from_physical_stamina,
     sync_stamina,
+)
+from src.services.combat_duel_shared import (
+    build_runtime_state,
+    character_speed,
+    character_stamina_limit,
+    character_stamina_regen,
+    health_state_for_character,
+    initialize_duel_timeline,
+    max_duel_battle_time,
+    parse_numeric_value,
+    roll_hit_location,
+    round_number_for_time,
+    scaled_weapon_for_damage_multiplier,
+    select_next_duel_side,
 )
 from src.services.combat_loadout_service import select_active_character_weapon
 from src.services.damage_calculator import DamageCalculator
@@ -77,7 +85,6 @@ class TurnOutcome:
 class CombatSimulatorService:
     MAX_DUEL_ROUNDS = 30
     DEFAULT_SEED = 20260317
-    _LEADING_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
     def __init__(
         self,
@@ -104,21 +111,7 @@ class CombatSimulatorService:
 
     @classmethod
     def _parse_numeric_value(cls, value: Any, default: float = 0.0) -> float:
-        if isinstance(value, (int, float)):
-            return float(value)
-        text = str(value or "").strip()
-        if not text:
-            return float(default)
-        try:
-            return float(text)
-        except ValueError:
-            match = cls._LEADING_NUMBER_PATTERN.search(text)
-            if match:
-                try:
-                    return float(match.group(0))
-                except ValueError:
-                    return float(default)
-        return float(default)
+        return parse_numeric_value(value, default=default)
 
     @staticmethod
     def _normalize_affinity_fraction(value: Any) -> float:
@@ -231,13 +224,7 @@ class CombatSimulatorService:
 
     @staticmethod
     def _character_speed(character: Character) -> float:
-        get_speed = getattr(character, "GetSpeed", None)
-        if callable(get_speed):
-            return max(character_stat_factor("minimum_speed_factor", 0.1), float(get_speed()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        physical_power = float(getattr(attrs, "physicalPower", 5.0))
-        magic_power = float(getattr(attrs, "magicPower", 5.0))
-        return speed_factor_from_attributes(physical_power, magic_power)
+        return character_speed(character)
 
     @classmethod
     def _action_interval(cls, character: Character) -> float:
@@ -245,38 +232,17 @@ class CombatSimulatorService:
 
     @staticmethod
     def _character_stamina_limit(character: Character) -> float:
-        get_stamina_limit = getattr(character, "GetStaminaLimit", None)
-        if callable(get_stamina_limit):
-            return max(1.0, float(get_stamina_limit()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return stamina_limit_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
+        return character_stamina_limit(character)
 
     @staticmethod
     def _character_stamina_regen(character: Character) -> float:
-        get_regen = getattr(character, "GetStaminaRegenPerSecond", None)
-        if callable(get_regen):
-            return max(0.0, float(get_regen()))
-        attrs = getattr(character, "finalAttributes", getattr(character, "attributes", None))
-        return stamina_regen_per_second_from_physical_stamina(float(getattr(attrs, "physicalStamina", 5.0)))
+        return character_stamina_regen(character)
 
     def _max_duel_battle_time(self) -> float:
-        return self.MAX_DUEL_ROUNDS * baseline_turn_seconds()
+        return max_duel_battle_time(self.MAX_DUEL_ROUNDS)
 
     def _build_runtime_state(self, character: Character) -> CombatRuntimeState:
-        runtime = CombatRuntimeState(
-            stamina_current=self._character_stamina_limit(character),
-            stamina_limit=self._character_stamina_limit(character),
-            stamina_regen_per_second=self._character_stamina_regen(character),
-        )
-        initialize_runtime_fields(
-            runtime,
-            stamina_limit=runtime.stamina_limit,
-            stamina_regen_per_second=runtime.stamina_regen_per_second,
-            stamina_current=runtime.stamina_limit,
-            stamina_last_update_time=0.0,
-            next_action_time=0.0,
-        )
-        return runtime
+        return build_runtime_state(character)
 
     @staticmethod
     def _alive_sides(session: CombatSimulationSession) -> list[str]:
@@ -288,43 +254,25 @@ class CombatSimulatorService:
         return alive
 
     def _select_next_side(self, session: CombatSimulationSession) -> str | None:
-        alive = self._alive_sides(session)
-        if not alive:
-            return None
-        if len(alive) == 1:
-            return alive[0]
-        priority = {side: index for index, side in enumerate(session.tie_break_order)}
-        return min(
-            alive,
-            key=lambda side: (
-                float(session.next_action_times.get(side, 0.0)),
-                priority.get(side, len(priority)),
-            ),
-        )
+        return select_next_duel_side(self._alive_sides(session), session.next_action_times, session.tie_break_order)
 
     def _initialize_turn_timeline(self, session: CombatSimulationSession) -> list[str]:
-        initiative_roll = session.rng.random()
-        first_side = "left" if initiative_roll < 0.5 else "right"
-        second_side = "right" if first_side == "left" else "left"
-        turn_gap = start_time_gap_seconds(2)
-        session.runtime_states[first_side].next_action_time = 0.0
-        session.runtime_states[second_side].next_action_time = turn_gap
-        session.next_action_times = {
-            first_side: 0.0,
-            second_side: turn_gap,
-        }
-        session.tie_break_order = [first_side, second_side]
+        timeline = initialize_duel_timeline(session.rng)
+        session.runtime_states[timeline.first_side].next_action_time = 0.0
+        session.runtime_states[timeline.second_side].next_action_time = timeline.turn_gap
+        session.next_action_times = dict(timeline.next_action_times)
+        session.tie_break_order = list(timeline.tie_break_order)
         session.round_number = 1
         session.battle_time_seconds = 0.0
-        lead_name = session.left_character.name if first_side == "left" else session.right_character.name
+        lead_name = session.left_character.name if timeline.first_side == "left" else session.right_character.name
         round_line = f"Round 1 begins. Lead action: {lead_name}."
         lines = [round_line]
         session.log_lines.append(round_line)
         if session.debug:
             lines.append(
                 "  Debug: "
-                f"initiative roll={initiative_roll:.4f} (left acts first if < 0.5000); "
-                f"turn gap={turn_gap:.2f}s; "
+                f"lead={timeline.first_side}; "
+                f"turn gap={timeline.turn_gap:.2f}s; "
                 f"left speed={self._character_speed(session.left_character):.2f}, "
                 f"right speed={self._character_speed(session.right_character):.2f}."
             )
@@ -353,7 +301,7 @@ class CombatSimulatorService:
             session.log_lines.append(session.result_text)
             return new_lines + [session.result_text]
 
-        round_number = int(turn_start_time // baseline_turn_seconds()) + 1
+        round_number = round_number_for_time(turn_start_time)
         if round_number > session.round_number:
             session.round_number = round_number
             lead_name = session.left_character.name if side == "left" else session.right_character.name
@@ -714,12 +662,7 @@ class CombatSimulatorService:
 
     @staticmethod
     def _scaled_weapon_for_damage_multiplier(weapon: Weapon, damage_multiplier: float) -> Weapon:
-        if abs(float(damage_multiplier) - 1.0) < 0.0001:
-            return weapon
-        scaled_weapon = copy.deepcopy(weapon)
-        scaled_weapon.damageMin = max(0.0, float(getattr(weapon, "damageMin", 0.0) or 0.0) * float(damage_multiplier))
-        scaled_weapon.damageMax = max(scaled_weapon.damageMin, float(getattr(weapon, "damageMax", scaled_weapon.damageMin) or scaled_weapon.damageMin) * float(damage_multiplier))
-        return scaled_weapon
+        return scaled_weapon_for_damage_multiplier(weapon, damage_multiplier)
 
     def _consumable_damage_power(self, attacker: Character, item: Consumable) -> float:
         spell_name = str(getattr(item, "spellName", "") or "").strip()
@@ -742,34 +685,11 @@ class CombatSimulatorService:
 
     @staticmethod
     def _health_state(character: Character) -> HealthState:
-        health = max(0.0, float(getattr(character, "health", 0.0) or 0.0))
-        if health <= 0.0:
-            return HealthState.UNCONSCIOUS
-        max_health = max(1.0, float(getattr(character, "GetMaxHealth", lambda: 100.0)()))
-        percent = health / max_health
-        if percent >= character_stat_factor("healthy_health_ratio_threshold", 0.76):
-            return HealthState.HEALTHY
-        if percent >= character_stat_factor("injured_health_ratio_threshold", 0.51):
-            return HealthState.INJURED
-        if percent >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26):
-            return HealthState.HEAVILY_INJURED
-        return HealthState.DYING
+        return health_state_for_character(character)
 
     @staticmethod
     def _roll_hit_location(rng: random.Random) -> HitLocation:
-        weights = [
-            (HitLocation.HEAD, battle_factor("combat_sim_head_hit_weight", 0.15)),
-            (HitLocation.BODY, battle_factor("combat_sim_body_hit_weight", 0.45)),
-            (HitLocation.ARMS, battle_factor("combat_sim_arms_hit_weight", 0.20)),
-            (HitLocation.LEGS, battle_factor("combat_sim_legs_hit_weight", 0.20)),
-        ]
-        roll = rng.random()
-        cursor = 0.0
-        for location, weight in weights:
-            cursor += weight
-            if roll <= cursor:
-                return location
-        return HitLocation.BODY
+        return roll_hit_location(rng)
 
     @staticmethod
     def _default_unarmed_weapon() -> Weapon:

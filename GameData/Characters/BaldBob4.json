@@ -4,11 +4,10 @@
     "character_state": {
         "name": "Bald Bob",
         "level": 0,
-        "characterType": "Character",
+        "characterType": "MainCharacter",
         "raceTier": "Tier I",
         "race": "Human1",
-        "party": 0,
-        "health": 100,
+        "health": 100.0,
         "healthState": "HEALTHY",
         "activeAchievementTitle": "",
         "attributes": {
@@ -43,13 +42,56 @@
         "generalSkills": [],
         "stats": {
             "kills": 0,
-            "damageTaken": 0,
-            "missionCount": 0
+            "damageTaken": 0.0,
+            "missionCount": 0,
+            "damageDone": 0.0,
+            "spellsCast": 0,
+            "injuriesTaken": 0,
+            "alliesProtected": 0,
+            "bossesKilled": 0,
+            "elitesKilled": 0,
+            "unitsKilled": {}
         },
+        "hobbies": [
+            {
+                "name": "Fun sock collecting",
+                "interestLevel": "Interested"
+            }
+        ],
         "description": "A simple woodcutter",
         "portraitURL": "",
         "footerImageURL": "",
-        "characterInfo": null,
-        "llmControlProfile": null
+        "characterInfo": {
+            "age": 79,
+            "birthday": "August 18, 1946",
+            "sex": "Male",
+            "height": "5'3.2\"",
+            "build": "overweight",
+            "skinTone": "medium",
+            "hairColor": "black",
+            "eyeColor": "hazel",
+            "distinguishingMarks": "scar",
+            "distinguishingMarksLocation": "BACK",
+            "background": "suburban middle-class",
+            "occupation": "hospitality or service worker",
+            "job": "Front Desk Clerk",
+            "personalityType": "ESFJ",
+            "coreValue": "freedom",
+            "strength": "charisma",
+            "flaw": "narcissism",
+            "socialStyle": "manipulative",
+            "speechStyle": "formal",
+            "goal": "survival",
+            "secret": "hidden_addiction",
+            "emotionalTrigger": "being_ignored",
+            "copingHabit": "withdrawal"
+        },
+        "llmControlProfile": {
+            "systemNotes": "",
+            "voiceNotes": "",
+            "responseStyleNotes": "",
+            "knowledgeBoundaryNotes": ""
+        },
+        "friendlyFireTolerance": "No friendly fire"
     }
 }

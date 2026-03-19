@@ -8,6 +8,7 @@ from src.domain.CharacterUtil import DEFAULT_DURABILITY, DamageType, EquipSlot, 
 from src.domain.combat import EncounterType
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
+from src.services.menu_runtime_actions import MenuSpecialActionRouter
 from src.services.menu_service import MenuService, RenderedMenu
 from src.services.player_service import PlayerService
 from src.services.spell_service import SpellService
@@ -400,6 +401,16 @@ class MenuInterface(ABC):
     def display_name(self) -> str:
         pass
 
+    @property
+    @abstractmethod
+    def supports_modals(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def discord_interaction(self) -> discord.Interaction | None:
+        pass
+
     @abstractmethod
     async def send_ephemeral(self, content: str):
         pass
@@ -414,6 +425,10 @@ class MenuInterface(ABC):
 
     @abstractmethod
     async def send_update(self, rendered: RenderedMenu, menu: Menu, original_message: "OriginalMessage"):
+        pass
+
+    @abstractmethod
+    async def send_modal(self, modal: discord.ui.Modal):
         pass
 
 
@@ -446,6 +461,7 @@ class MenuRuntimeService:
         self.item_service = item_service
         self.context = context
         self.battle_runtime_service = battle_runtime_service
+        self._special_action_router = MenuSpecialActionRouter(self)
 
     def build_discord_embed(self, rendered: RenderedMenu):
         embed = discord.Embed(title=rendered.title, description=rendered.description)
@@ -463,6 +479,35 @@ class MenuRuntimeService:
             original_message=original_message,
             visible_children=visible_children,
             on_select=self.update_menu,
+        )
+
+    def build_spell_select_modal(self, original_message: OriginalMessage) -> discord.ui.Modal:
+        return SpellSelectModal(self, original_message)
+
+    def build_item_select_modal(self, original_message: OriginalMessage) -> discord.ui.Modal:
+        return ItemSelectModal(self, original_message)
+
+    def build_field_edit_modal(self, menu: Menu, original_message: OriginalMessage) -> discord.ui.Modal:
+        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG:
+            draft_attr = "spellDraft"
+            field_key, field_label, parser = SPELL_FIELD_EDIT_CONFIG[menu.uniqueName]
+            modal_title = "Edit Spell Field"
+        elif menu.uniqueName in ITEM_FIELD_EDIT_CONFIG:
+            draft_attr, field_key, field_label, parser = ITEM_FIELD_EDIT_CONFIG[menu.uniqueName]
+            modal_title = "Edit Item Field"
+        else:
+            draft_attr, field_key, field_label, parser = COMPONENT_FIELD_EDIT_CONFIG[menu.uniqueName]
+            modal_title = "Edit Field"
+        return_menu = menu.parent if menu.parent is not None else menu
+        return FieldEditModal(
+            runtime=self,
+            original_message=original_message,
+            return_menu=return_menu,
+            draft_attr=draft_attr,
+            field_key=field_key,
+            field_label=field_label,
+            parser=parser,
+            title=modal_title,
         )
 
     @staticmethod
@@ -640,222 +685,7 @@ class MenuRuntimeService:
         self.context.itembook_overview = self.item_service.build_itembook_overview()
 
     async def _handle_special_menu_action(self, interface: "MenuInterface", menu: Menu, original_message: OriginalMessage):
-        # returns (target_menu, should_render_menu, response_already_consumed)
-        if menu.uniqueName == "scavengingMissionAction":
-            if self.battle_runtime_service is None or not isinstance(interface, DiscordMenuInterface):
-                await interface.send_ephemeral("Combat runtime is only available in Discord right now.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            await self.battle_runtime_service.start_or_resume_battle(
-                interaction=interface.interaction,
-                player_id=interface.user_id,
-                encounter_type=EncounterType.SCAVENGING,
-            )
-            return menu.parent if menu.parent is not None else menu, False, True
-
-        if menu.uniqueName == "portalMissionAction":
-            if self.battle_runtime_service is None or not isinstance(interface, DiscordMenuInterface):
-                await interface.send_ephemeral("Combat runtime is only available in Discord right now.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            await self.battle_runtime_service.start_or_resume_battle(
-                interaction=interface.interaction,
-                player_id=interface.user_id,
-                encounter_type=EncounterType.PORTAL,
-            )
-            return menu.parent if menu.parent is not None else menu, False, True
-
-        if menu.uniqueName == "spellCreateAction":
-            self._start_spell_draft(original_message.menuContext)
-            return self.context.menus_by_name.get("spellCreateNameMenu", menu), True, False
-
-        if menu.uniqueName == "spellCreateSaveAction":
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to save spells.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            payload = self._build_spell_payload_from_draft(original_message.menuContext.spellDraft)
-            source_spell_name = original_message.menuContext.spellDraftSourceName
-            try:
-                if source_spell_name:
-                    self.spell_service.edit_spell_from_patch(source_spell_name, payload)
-                    await interface.send_ephemeral("Spell updated.")
-                else:
-                    self.spell_service.create_spell_from_dict(payload)
-                    await interface.send_ephemeral("Spell saved.")
-            except Exception as exc:
-                await interface.send_ephemeral(f"Failed to save spell: {exc}")
-            self._clear_spell_draft(original_message.menuContext)
-            self._refresh_spellbook_overview()
-            return self.context.menus_by_name.get("spellbookMenu", menu), True, True
-
-        if menu.uniqueName == "spellCreateCancelAction":
-            self._clear_spell_draft(original_message.menuContext)
-            self._refresh_spellbook_overview()
-            await interface.send_ephemeral("Spell creation cancelled.")
-            return self.context.menus_by_name.get("spellbookMenu", menu), True, True
-
-        if menu.uniqueName == "spellEditAction":
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit drafts.")
-                return menu.parent if menu.parent is not None else menu, False, True
-            if isinstance(interface, DiscordMenuInterface):
-                await interface.interaction.response.send_modal(SpellSelectModal(self, original_message))
-            else:
-                await interface.send_ephemeral("Spell edit modal is available in Discord UI only.")
-            self._refresh_spellbook_overview()
-            return menu.parent if menu.parent is not None else menu, False, True
-
-
-        if menu.uniqueName == "itemCreateAction":
-            self._start_item_draft(original_message.menuContext)
-            return self.context.menus_by_name.get("itemCreateNameMenu", menu), True, False
-
-        if menu.uniqueName == "itemCreateSaveAction":
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to save items.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            try:
-                payload = self._build_item_payload_from_draft(original_message.menuContext.itemDraft)
-                source_item_id = (
-                    original_message.menuContext.itemDraftSourceId
-                    if hasattr(original_message.menuContext, "itemDraftSourceId")
-                    else original_message.menuContext.itemDraftSourceName
-                )
-                if source_item_id:
-                    self.item_service.edit_item_from_patch(source_item_id, payload)
-                    await interface.send_ephemeral("Item updated.")
-                else:
-                    self.item_service.create_item_from_dict(payload)
-                    await interface.send_ephemeral("Item saved.")
-            except Exception as exc:
-                await interface.send_ephemeral(f"Failed to save item: {exc}")
-            self._clear_item_draft(original_message.menuContext)
-            self._refresh_itembook_overview()
-            return self.context.menus_by_name.get("itembookMenu", menu), True, True
-
-        if menu.uniqueName == "itemCreateCancelAction":
-            self._clear_item_draft(original_message.menuContext)
-            self._refresh_itembook_overview()
-            await interface.send_ephemeral("Item creation cancelled.")
-            return self.context.menus_by_name.get("itembookMenu", menu), True, True
-
-        if menu.uniqueName == "itemEditAction":
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit items.")
-                return menu.parent if menu.parent is not None else menu, False, True
-            if isinstance(interface, DiscordMenuInterface):
-                await interface.interaction.response.send_modal(ItemSelectModal(self, original_message))
-            else:
-                await interface.send_ephemeral("Item edit modal is available in Discord UI only.")
-            self._refresh_itembook_overview()
-            return menu.parent if menu.parent is not None else menu, False, True
-
-
-
-        if menu.uniqueName == "attributesEditorMenu":
-            if not original_message.menuContext.attributesDraftActive:
-                self._start_attributes_draft(original_message.menuContext)
-            return menu, True, False
-
-        if menu.uniqueName == "gearEditorMenu":
-            if not original_message.menuContext.gearDraftActive:
-                self._start_gear_draft(original_message.menuContext)
-            return menu, True, False
-
-        if menu.uniqueName == "bonusEditorMenu":
-            if not original_message.menuContext.bonusDraftActive:
-                self._start_bonus_draft(original_message.menuContext)
-            return menu, True, False
-
-        if menu.uniqueName == "achievementEditorMenu":
-            if not original_message.menuContext.achievementDraftActive:
-                self._start_achievement_draft(original_message.menuContext)
-            return menu, True, False
-
-        if menu.uniqueName == "attributesTempSaveAction":
-            self._clear_attributes_draft(original_message.menuContext)
-            await interface.send_ephemeral("Attributes saved for this session only (not persisted).")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "attributesTempCancelAction":
-            self._clear_attributes_draft(original_message.menuContext)
-            await interface.send_ephemeral("Attributes editor cancelled.")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "gearTempSaveAction":
-            self._clear_gear_draft(original_message.menuContext)
-            await interface.send_ephemeral("Gear saved for this session only (not persisted).")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "gearTempCancelAction":
-            self._clear_gear_draft(original_message.menuContext)
-            await interface.send_ephemeral("Gear editor cancelled.")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "bonusTempSaveAction":
-            self._clear_bonus_draft(original_message.menuContext)
-            await interface.send_ephemeral("Bonus saved for this session only (not persisted).")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "bonusTempCancelAction":
-            self._clear_bonus_draft(original_message.menuContext)
-            await interface.send_ephemeral("Bonus editor cancelled.")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "achievementTempSaveAction":
-            self._clear_achievement_draft(original_message.menuContext)
-            await interface.send_ephemeral("Achievement saved for this session only (not persisted).")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName == "achievementTempCancelAction":
-            self._clear_achievement_draft(original_message.menuContext)
-            await interface.send_ephemeral("Achievement editor cancelled.")
-            return self.context.menus_by_name.get("mainMenu", menu), True, True
-
-        if menu.uniqueName in ITEM_ENUM_ACTIONS:
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit items.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            field_key, value = ITEM_ENUM_ACTIONS[menu.uniqueName]
-            original_message.menuContext.itemDraft[field_key] = value
-            return menu.parent if menu.parent is not None else menu, True, False
-        if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG or menu.uniqueName in ITEM_FIELD_EDIT_CONFIG or menu.uniqueName in COMPONENT_FIELD_EDIT_CONFIG:
-            if not original_message.is_developer_admin:
-                await interface.send_ephemeral("You are not authorized to edit drafts.")
-                return menu.parent if menu.parent is not None else menu, False, True
-
-            if isinstance(interface, DiscordMenuInterface):
-                if menu.uniqueName in SPELL_FIELD_EDIT_CONFIG:
-                    draft_attr = "spellDraft"
-                    field_key, field_label, parser = SPELL_FIELD_EDIT_CONFIG[menu.uniqueName]
-                    modal_title = "Edit Spell Field"
-                elif menu.uniqueName in ITEM_FIELD_EDIT_CONFIG:
-                    draft_attr, field_key, field_label, parser = ITEM_FIELD_EDIT_CONFIG[menu.uniqueName]
-                    modal_title = "Edit Item Field"
-                else:
-                    draft_attr, field_key, field_label, parser = COMPONENT_FIELD_EDIT_CONFIG[menu.uniqueName]
-                    modal_title = "Edit Field"
-                return_menu = menu.parent if menu.parent is not None else menu
-                await interface.interaction.response.send_modal(
-                    FieldEditModal(
-                        runtime=self,
-                        original_message=original_message,
-                        return_menu=return_menu,
-                        draft_attr=draft_attr,
-                        field_key=field_key,
-                        field_label=field_label,
-                        parser=parser,
-                        title=modal_title,
-                    )
-                )
-            else:
-                await interface.send_ephemeral("Field edit modal is available in Discord UI only.")
-            return menu.parent if menu.parent is not None else menu, False, True
-
-        return None
+        return await self._special_action_router.handle(interface, menu, original_message)
 
     async def display_menu(self, interaction: discord.Interaction, menu: Menu):
         interface = DiscordMenuInterface(interaction, self)
@@ -950,6 +780,14 @@ class DiscordMenuInterface(MenuInterface):
     def display_name(self) -> str:
         return self.interaction.user.nick or self.interaction.user.display_name
 
+    @property
+    def supports_modals(self) -> bool:
+        return True
+
+    @property
+    def discord_interaction(self) -> discord.Interaction | None:
+        return self.interaction
+
     async def send_ephemeral(self, content: str):
         if self.interaction.response.is_done():
             await self.interaction.followup.send(content=content, ephemeral=True)
@@ -971,6 +809,9 @@ class DiscordMenuInterface(MenuInterface):
         view = self.runtime.build_view(menu, original_message)
         await original_message.message.edit(embed=embed, view=view)
 
+    async def send_modal(self, modal: discord.ui.Modal):
+        await self.interaction.response.send_modal(modal)
+
 
 class ConsoleMenuInterface(MenuInterface):
     def __init__(self, user_id: int, display_name: str = "IntegrationTester"):
@@ -984,6 +825,14 @@ class ConsoleMenuInterface(MenuInterface):
     @property
     def display_name(self) -> str:
         return self._display_name
+
+    @property
+    def supports_modals(self) -> bool:
+        return False
+
+    @property
+    def discord_interaction(self) -> discord.Interaction | None:
+        return None
 
     async def send_ephemeral(self, content: str):
         print(f"[EPHEMERAL] {content}")
@@ -1017,3 +866,6 @@ class ConsoleMenuInterface(MenuInterface):
 
     async def send_update(self, rendered: RenderedMenu, menu: Menu, original_message: OriginalMessage):
         self._print_render(rendered)
+
+    async def send_modal(self, modal: discord.ui.Modal):
+        raise RuntimeError("Console menu interface does not support modals.")

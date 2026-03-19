@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import main as game
+from src.domain.player_functions import Player
 
 
 def _walk_menu(menu, index: dict[str, object]):
@@ -28,6 +29,17 @@ def _find_visible_child_menu(current_menu, original_message, target_name: str):
     return None
 
 
+def _ensure_test_player(user_id: int, display_name: str):
+    cached = game.context.player_cache.get(user_id)
+    if cached is not None:
+        return cached
+    player = Player(user_id)
+    player.playerName = display_name
+    player.isNewPlayer = False
+    game.context.player_cache[user_id] = player
+    return player
+
+
 async def run_sequence_file(sequence_file: str):
     game.initialize_game()
 
@@ -39,6 +51,7 @@ async def run_sequence_file(sequence_file: str):
     start_menu_name = sequence.get("start_menu", "mainMenu")
     actions = sequence.get("actions", [])
 
+    _ensure_test_player(user_id, display_name)
     interface = game.ConsoleMenuInterface(user_id=user_id, display_name=display_name)
     menu_index = build_menu_index()
     if start_menu_name not in menu_index:
