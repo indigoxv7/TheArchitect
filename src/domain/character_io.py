@@ -1,9 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
 from src.domain.Character import Buff, Character, HealthState
-from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, LLMControlProfile, MainCharacter
 from src.domain.CharacterUtil import (
     Achievement,
     Affinities,
@@ -255,6 +255,43 @@ def _stats_from_dict(data: Any) -> CharacterStatistics | None:
     )
 
 
+def _hobbies_to_list(hobbies: list[tuple[str, HobbyInterestLevel]] | None) -> list[dict[str, Any]]:
+    if not hobbies:
+        return []
+
+    result = []
+    for hobby_name, interest_level in hobbies:
+        if not str(hobby_name or "").strip():
+            continue
+        result.append(
+            {
+                "name": str(hobby_name or ""),
+                "interestLevel": getattr(interest_level, "value", HobbyInterestLevel.INDIFFERENT.value),
+            }
+        )
+    return result
+
+
+def _hobbies_from_list(data: Any) -> list[tuple[str, HobbyInterestLevel]]:
+    if not isinstance(data, list):
+        return []
+
+    result: list[tuple[str, HobbyInterestLevel]] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        hobby_name = str(item.get("name", "") or "").strip()
+        if not hobby_name:
+            continue
+        interest_level = _enum_from_name(
+            HobbyInterestLevel,
+            item.get("interestLevel"),
+            HobbyInterestLevel.INDIFFERENT,
+        )
+        result.append((hobby_name, interest_level))
+    return result
+
+
 def _skills_to_list(general_skills: list[GeneralSkills] | None) -> list[dict[str, Any]]:
     if not general_skills:
         return []
@@ -426,6 +463,7 @@ def character_to_state(character: Character) -> dict[str, Any]:
         "spells": _spells_to_list(getattr(character, "spells", [])),
         "generalSkills": _skills_to_list(getattr(character, "generalSkills", [])),
         "stats": _stats_to_dict(getattr(character, "stats", None)) if isinstance(character, MainCharacter) else None,
+        "hobbies": _hobbies_to_list(getattr(character, "hobbies", None)) if isinstance(character, MainCharacter) else [],
         "description": str(getattr(character, "description", "") or ""),
         "portraitURL": str(getattr(character, "portraitURL", "") or ""),
         "footerImageURL": str(getattr(character, "footerImageURL", "") or ""),
@@ -470,6 +508,7 @@ def character_from_state(
     general_skills = _skills_from_list(data.get("generalSkills", []))
     spells = _spells_from_list(data.get("spells", []))
     stats = _stats_from_dict(data.get("stats"))
+    hobbies = _hobbies_from_list(data.get("hobbies"))
     description = str(data.get("description", "") or "")
     portrait_url = str(data.get("portraitURL", "") or "")
     footer_image_url = str(data.get("footerImageURL", "") or "")
@@ -497,6 +536,7 @@ def character_from_state(
             characterInfo=character_info if character_info is not None else CharacterInfo(),
             llmControlProfile=llm_control_profile if llm_control_profile is not None else LLMControlProfile(),
             stats=stats,
+            hobbies=hobbies,
             **character_kwargs,
         )
     else:
@@ -514,3 +554,4 @@ def character_from_state(
 
     character.CalculateBonus()
     return character
+

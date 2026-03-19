@@ -1,7 +1,15 @@
-﻿import copy
+import copy
+import enum
 
 from src.domain.Character import Character
 from src.domain.CharacterUtil import CharacterStatistics
+
+
+class HobbyInterestLevel(enum.Enum):
+    BURNING_PASSION = "BurningPassion"
+    PASSIONATE = "Passionate"
+    INTERESTED = "Interested"
+    INDIFFERENT = "Indifferent"
 
 
 class CharacterInfo:
@@ -184,12 +192,42 @@ class MainCharacter(Character):
         characterInfo: CharacterInfo | None = None,
         llmControlProfile: LLMControlProfile | None = None,
         stats: CharacterStatistics | None = None,
+        hobbies: list[tuple[str, HobbyInterestLevel]] | list[list[object]] | None = None,
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
         self.characterInfo = characterInfo if characterInfo is not None else CharacterInfo()
         self.llmControlProfile = llmControlProfile if llmControlProfile is not None else LLMControlProfile()
         self.stats = stats if stats is not None else CharacterStatistics()
+        self.hobbies = self._normalize_hobbies(hobbies)
+
+    @staticmethod
+    def _normalize_hobbies(
+        hobbies: list[tuple[str, HobbyInterestLevel]] | list[list[object]] | None,
+    ) -> list[tuple[str, HobbyInterestLevel]]:
+        normalized: list[tuple[str, HobbyInterestLevel]] = []
+        if not isinstance(hobbies, list):
+            return normalized
+
+        for entry in hobbies:
+            if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+                continue
+            hobby_name = str(entry[0] or "").strip()
+            if not hobby_name:
+                continue
+
+            interest_level = entry[1]
+            if isinstance(interest_level, HobbyInterestLevel):
+                normalized.append((hobby_name, interest_level))
+                continue
+
+            if isinstance(interest_level, str):
+                raw_value = interest_level.strip()
+                for option in HobbyInterestLevel:
+                    if raw_value.upper() == option.name or raw_value.lower() == option.value.lower():
+                        normalized.append((hobby_name, option))
+                        break
+        return normalized
 
     def EnsureRuntimeDefaults(self):
         super().EnsureRuntimeDefaults()
@@ -205,6 +243,10 @@ class MainCharacter(Character):
             self.stats = CharacterStatistics()
         elif isinstance(self.stats, dict):
             self.stats = CharacterStatistics(**self.stats)
+        if not hasattr(self, "hobbies") or self.hobbies is None:
+            self.hobbies = []
+        else:
+            self.hobbies = self._normalize_hobbies(self.hobbies)
 
     @classmethod
     def from_character(
@@ -216,14 +258,19 @@ class MainCharacter(Character):
         if isinstance(base_character, MainCharacter):
             character_info = copy.deepcopy(base_character.characterInfo)
             llm_profile = copy.deepcopy(base_character.llmControlProfile)
+            hobbies = copy.deepcopy(base_character.hobbies)
         else:
-            from src.services.main_character_generator import generate_character_info
+            from src.services.main_character_generator import generate_character_info, generate_hobbies
 
             character_info = generate_character_info(
                 generation_data_directory=generation_data_directory,
                 rng=rng,
             )
             llm_profile = LLMControlProfile()
+            hobbies = generate_hobbies(
+                generation_data_directory=generation_data_directory,
+                rng=rng,
+            )
 
         main_character = cls(
             name=str(getattr(base_character, "name", "") or "Generated Main Character"),
@@ -241,6 +288,7 @@ class MainCharacter(Character):
             playerInstanceId=str(getattr(base_character, "playerInstanceId", "") or ""),
             characterInfo=character_info,
             llmControlProfile=llm_profile,
+            hobbies=hobbies,
         )
         main_character.health = int(getattr(base_character, "health", 100))
         main_character.healthState = getattr(base_character, "healthState", main_character.healthState)

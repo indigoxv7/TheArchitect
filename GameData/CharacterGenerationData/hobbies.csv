@@ -1,0 +1,501 @@
+trait_group,trait_name,option,weight
+personality,hobby,Cooking and baking,410
+personality,hobby,Reading,370
+personality,hobby,Spending time with pets,350
+personality,hobby,Video gaming,330
+personality,hobby,Outdoor activities,300
+personality,hobby,Shopping,290
+personality,hobby,Traveling,290
+personality,hobby,Arts crafts and DIY,250
+personality,hobby,Socializing,260
+personality,hobby,Playing board and card games,260
+personality,hobby,Gardening and plants,240
+personality,hobby,Sports and fitness,200
+personality,hobby,Meditation and wellness,200
+personality,hobby,Photography,200
+personality,hobby,Tech and computing,200
+personality,hobby,Writing,190
+personality,hobby,Making music,170
+personality,hobby,Watching movies or TV shows,450
+personality,hobby,Accessory collecting,40
+personality,hobby,Acting,39.9
+personality,hobby,Action figure collecting,39.8
+personality,hobby,Home decorating,39.7
+personality,hobby,Adopting a pet,39.6
+personality,hobby,Advocacy,39.4
+personality,hobby,Alaskan cruise,39.3
+personality,hobby,All-inclusive resort stays,39.2
+personality,hobby,Antique collecting,39.1
+personality,hobby,Archery,39
+personality,hobby,Astrology,38.9
+personality,hobby,Astronomy,38.8
+personality,hobby,Attending art galleries,38.7
+personality,hobby,Attending literary festivals,38.5
+personality,hobby,Attending pet shows,38.4
+personality,hobby,Attending plays and operas,38.3
+personality,hobby,Attending support groups,38.2
+personality,hobby,Attending workshops,38.1
+personality,hobby,Autograph collecting,38
+personality,hobby,Backpacking,37.9
+personality,hobby,Badminton,37.8
+personality,hobby,Ballroom dancing,37.7
+personality,hobby,Barbie collecting,37.5
+personality,hobby,Baseball,37.4
+personality,hobby,Basketball,37.3
+personality,hobby,Bathroom remodel,37.2
+personality,hobby,Beach vacations,37.1
+personality,hobby,Beekeeping,37
+personality,hobby,Belly dancing,36.9
+personality,hobby,Berry picking,36.8
+personality,hobby,Biking,36.6
+personality,hobby,Billiards,36.5
+personality,hobby,Bingo,36.4
+personality,hobby,Bird watching,36.3
+personality,hobby,Blogging,36.2
+personality,hobby,Boating,36.1
+personality,hobby,Bodybuilding,36
+personality,hobby,Book collecting,35.9
+personality,hobby,Bowling,35.8
+personality,hobby,Boxing,35.6
+personality,hobby,Braising,35.5
+personality,hobby,Bread making,35.4
+personality,hobby,Break dancing,35.3
+personality,hobby,Building a shed,35.2
+personality,hobby,Building furniture,35.1
+personality,hobby,Bullet journaling,35
+personality,hobby,Bungee jumping,34.9
+personality,hobby,Butterfly gardening,34.7
+personality,hobby,Butterfly watching,34.6
+personality,hobby,Cake decorating,34.5
+personality,hobby,Calligraphy,34.4
+personality,hobby,Camping,34.3
+personality,hobby,Candle making,34.2
+personality,hobby,Canning,34.1
+personality,hobby,Canoeing,34
+personality,hobby,Card games,33.8
+personality,hobby,Caribbean cruise,33.7
+personality,hobby,Caving,33.6
+personality,hobby,Cheese making,33.5
+personality,hobby,Chess,33.4
+personality,hobby,Christmas ornament collecting,33.3
+personality,hobby,City walking tours,33.2
+personality,hobby,Coffee roasting,33.1
+personality,hobby,Collage making,33
+personality,hobby,Coloring,32.8
+personality,hobby,Comic collecting,32.7
+personality,hobby,Composting,32.6
+personality,hobby,Cookie decorating,32.5
+personality,hobby,Couponing,32.4
+personality,hobby,Cricket,32.3
+personality,hobby,Crocheting,32.2
+personality,hobby,DIY headboard,31.9
+personality,hobby,DIY home product creation,31.8
+personality,hobby,Daily affirmations,31.7
+personality,hobby,Darts,31.6
+personality,hobby,Designing a meditation room,31.5
+personality,hobby,Dining at new restaurants,31.4
+personality,hobby,Disc golf,31.3
+personality,hobby,Dog training,31.2
+personality,hobby,Dog walking,31.1
+personality,hobby,Drawing,30.9
+personality,hobby,Editing,30.8
+personality,hobby,Escape rooms,30.7
+personality,hobby,Exploring your hometown as a tourist,30.6
+personality,hobby,Fantasy sports,30.5
+personality,hobby,Fashion trends,30.4
+personality,hobby,Fencing,30.3
+personality,hobby,Fireplace makeover,30.2
+personality,hobby,Fishing,30
+personality,hobby,Flower arranging,29.9
+personality,hobby,Football,29.8
+personality,hobby,Fossil hunting,29.7
+personality,hobby,Fruit tree gardening,29.6
+personality,hobby,Fun sock collecting,29.5
+personality,hobby,Genealogy,29.4
+personality,hobby,Geocaching,29.3
+personality,hobby,Ghost hunting,29.2
+personality,hobby,Glassblowing,29
+personality,hobby,Go-karting,28.9
+personality,hobby,Attending book signings,28.8
+personality,hobby,Golf,28.7
+personality,hobby,Gratitude journaling,28.6
+personality,hobby,Greeting card design,28.5
+personality,hobby,Grilling and BBQ,28.4
+personality,hobby,Growing plants from seedlings,28.3
+personality,hobby,Guided group tours,28.1
+personality,hobby,Gymnastics,28
+personality,hobby,Hair styling and braiding,27.9
+personality,hobby,Hanging hummingbird feeders,27.8
+personality,hobby,Hanging shelves,27.7
+personality,hobby,Herb gardening,27.6
+personality,hobby,Hiking,27.5
+personality,hobby,Hockey,27.4
+personality,hobby,Home organization,27.3
+personality,hobby,Horseback riding,27.1
+personality,hobby,Hosting dinner parties,27
+personality,hobby,Hot air ballooning,26.9
+personality,hobby,Hot sauce collecting,26.8
+personality,hobby,Hula hooping,26.7
+personality,hobby,Ice skating,26.6
+personality,hobby,Identifying plants,26.5
+personality,hobby,Installing smart home technology,26.4
+personality,hobby,Jewelry making,26.2
+personality,hobby,Jigsaw puzzles,26.1
+personality,hobby,Jogging,26
+personality,hobby,Joining a Meetup group,25.9
+personality,hobby,Joining a book club,25.8
+personality,hobby,Joining a club,25.7
+personality,hobby,Joining a gym,25.6
+personality,hobby,Joining a political campaign,25.5
+personality,hobby,Journaling,25.4
+personality,hobby,Juggling,25.2
+personality,hobby,Karaoke,25.1
+personality,hobby,Kayaking,25
+personality,hobby,Kitchen remodel,24.9
+personality,hobby,Kite flying,24.8
+personality,hobby,Knife throwing,24.7
+personality,hobby,Knitting,24.6
+personality,hobby,Kombucha brewing,24.5
+personality,hobby,Lacrosse,24.3
+personality,hobby,Laser tag,24.2
+personality,hobby,Learning ethnic recipes,24.1
+personality,hobby,Learning magic tricks,24
+personality,hobby,Learning recipes from cooking shows,23.9
+personality,hobby,Listening to music,23.8
+personality,hobby,Listening to podcasts,23.7
+personality,hobby,Makeup application,23.6
+personality,hobby,Making a vision board,23.5
+personality,hobby,Making fun foods for kids,23.3
+personality,hobby,Making homemade ice cream,23.2
+personality,hobby,Making jam or jelly,23.1
+personality,hobby,Making jerky,23
+personality,hobby,Martial arts,22.9
+personality,hobby,Meditation,22.8
+personality,hobby,Mediterranean cruise,22.7
+personality,hobby,Metal detecting,22.6
+personality,hobby,Mixed media art,22.4
+personality,hobby,Model building,22.3
+personality,hobby,Mosaic making,22.2
+personality,hobby,Mountain biking,22.1
+personality,hobby,Mountain climbing,22
+personality,hobby,Movie memorabilia collecting,21.9
+personality,hobby,Murder mystery shows,21.8
+personality,hobby,Museum visits,21.7
+personality,hobby,Mushroom hunting,21.5
+personality,hobby,Music memorabilia collecting,21.4
+personality,hobby,Nature walks,21.3
+personality,hobby,Obsolete tech collecting,21.1
+personality,hobby,Origami,21
+personality,hobby,Original artwork collecting,20.9
+personality,hobby,Paintball,20.8
+personality,hobby,Painting,20.7
+personality,hobby,Painting an accent wall,20.5
+personality,hobby,Painting cabinets,20.4
+personality,hobby,Paper crafts,20.3
+personality,hobby,Parasailing,20.2
+personality,hobby,Participating in competitive food festivals,20.1
+personality,hobby,Party games,20
+personality,hobby,Pasta making,19.9
+personality,hobby,Pastry and confection making,19.8
+personality,hobby,People watching,19.6
+personality,hobby,Pet fostering,19.5
+personality,hobby,Pet sitting,19.4
+personality,hobby,Pickleball,19.2
+personality,hobby,Pickling,19.1
+personality,hobby,Pie making,19
+personality,hobby,Plant parenting,18.9
+personality,hobby,Planting a flower bed,18.8
+personality,hobby,Plate collecting,18.6
+personality,hobby,Playing an instrument,18.5
+personality,hobby,Poetry slams,18.4
+personality,hobby,Pottery,18.3
+personality,hobby,Pressed flower craft,18.2
+personality,hobby,Puppeteering,18.1
+personality,hobby,Quilting,18
+personality,hobby,Racing,17.9
+personality,hobby,Racquetball,17.7
+personality,hobby,Rapping,17.6
+personality,hobby,Raw diet meal preparation,17.5
+personality,hobby,Reading magazines,17.4
+personality,hobby,Reading research,17.3
+personality,hobby,Reading self-improvement books,17.2
+personality,hobby,Recipe collecting,17.1
+personality,hobby,Record collecting,17
+personality,hobby,Recreating restaurant dishes,16.9
+personality,hobby,Redecorating a room,16.7
+personality,hobby,Reduced fat cooking,16.6
+personality,hobby,Retro video game collecting,16.5
+personality,hobby,Road trips,16.4
+personality,hobby,Rock and crystal collecting,16.3
+personality,hobby,Rock climbing,16.2
+personality,hobby,Roller derby,16.1
+personality,hobby,Rugby,16
+personality,hobby,Sailing,15.8
+personality,hobby,Sauteing,15.7
+personality,hobby,Scrapbooking,15.6
+personality,hobby,Scuba diving,15.5
+personality,hobby,Sculpting,15.4
+personality,hobby,Seeing live concerts,15.3
+personality,hobby,Seeing the Northern Lights,15.2
+personality,hobby,Selling art on Etsy,15.1
+personality,hobby,Sewing,15
+personality,hobby,Shell collecting,14.8
+personality,hobby,Singing,14.7
+personality,hobby,Skateboarding,14.6
+personality,hobby,Sketching,14.5
+personality,hobby,Skiing,14.4
+personality,hobby,Skydiving,14.3
+personality,hobby,Slow cooker meals,14.2
+personality,hobby,Smoothie making,14.1
+personality,hobby,Snorkeling,13.9
+personality,hobby,Snowboarding,13.8
+personality,hobby,Soap making,13.7
+personality,hobby,Soccer,13.6
+personality,hobby,Social media,13.5
+personality,hobby,Songwriting,13.4
+personality,hobby,Soup and stock making,13.3
+personality,hobby,Souvenir collecting,13.2
+personality,hobby,Sports memorabilia collecting,13.1
+personality,hobby,Standup comedy,12.9
+personality,hobby,Stenciling,12.8
+personality,hobby,Sticker collecting,12.7
+personality,hobby,Storage unit auctions,12.6
+personality,hobby,Strategy games,12.5
+personality,hobby,Stretching,12.4
+personality,hobby,Submitting magazine articles,12.3
+personality,hobby,Sunbathing,12.2
+personality,hobby,Surfing,12
+personality,hobby,Sushi making,11.9
+personality,hobby,Swamp tours,11.8
+personality,hobby,Swimming,11.7
+personality,hobby,Swing dancing,11.6
+personality,hobby,Table football,11.5
+personality,hobby,Table tennis,11.4
+personality,hobby,Tai chi,11.3
+personality,hobby,Taking a class,11.2
+personality,hobby,Taking a cooking class,11
+personality,hobby,Taking dance classes,10.9
+personality,hobby,Taking improv classes,10.8
+personality,hobby,Taking voice lessons,10.7
+personality,hobby,Tea brewing,10.6
+personality,hobby,Tennis,10.5
+personality,hobby,Theme park visits,10.4
+personality,hobby,Ticket stub collecting,10.3
+personality,hobby,Topiary,10.1
+personality,hobby,Toy collecting,10
+personality,hobby,Traveling to all continents,9.9
+personality,hobby,Traveling to all states,9.8
+personality,hobby,Trying new recipes regularly,9.6
+personality,hobby,Unicycle riding,9.5
+personality,hobby,Updating a closet,9.4
+personality,hobby,Updating furniture,9.2
+personality,hobby,Updating lighting,9.1
+personality,hobby,Chalk painting,8.6
+personality,hobby,Vase collecting,8.5
+personality,hobby,Vegan cooking,8.4
+personality,hobby,Vegetable gardening,8.2
+personality,hobby,Vintage item collecting,8.1
+personality,hobby,Volleyball,7.3
+personality,hobby,Volunteering,7.2
+personality,hobby,Watching documentaries,6.9
+personality,hobby,Wildlife observation,6.8
+personality,hobby,Waterskiing,6.7
+personality,hobby,Weaving,6.5
+personality,hobby,Weight training,6.3
+personality,hobby,Whale watching,6.2
+personality,hobby,Whitewater rafting,6.1
+personality,hobby,Wikipedia editing,6
+personality,hobby,Wilderness survival,5.9
+personality,hobby,Wood carving,5.8
+personality,hobby,Wrestling,5.7
+personality,hobby,Writing a book,5.6
+personality,hobby,Writing poetry,5.4
+personality,hobby,Writing short stories,5.3
+personality,hobby,Yard sale shopping,5.2
+personality,hobby,Yoga,5.1
+personality,hobby,Zoo visits,5
+personality,hobby,Creative writing,5
+personality,hobby,Playing a musical instrument,5
+personality,hobby,Bookbinding,5
+personality,hobby,Woodworking,5
+personality,hobby,Digital art,5
+personality,hobby,Graphic design,5
+personality,hobby,Mosaic art,5
+personality,hobby,Pyrography,5
+personality,hobby,Cross-stitching,5
+personality,hobby,Embroidery,5
+personality,hobby,Macrame,5
+personality,hobby,Felting,5
+personality,hobby,Leatherworking,5
+personality,hobby,Metalworking,5
+personality,hobby,Latte art,5
+personality,hobby,Ceramics,5
+personality,hobby,Chocolate making,5
+personality,hobby,Jam making,5
+personality,hobby,Fermentation,5
+personality,hobby,Wine tasting,5
+personality,hobby,Home brewing,5
+personality,hobby,Mixology,5
+personality,hobby,Coin collecting,5
+personality,hobby,Stamp collecting,5
+personality,hobby,Vinyl record collecting,5
+personality,hobby,Comic book collecting,5
+personality,hobby,Trading card collecting,5
+personality,hobby,Sneaker collecting,5
+personality,hobby,Vintage clothing collecting,5
+personality,hobby,Bottle cap collecting,5
+personality,hobby,Postcard collecting,5
+personality,hobby,Bouldering,5
+personality,hobby,Cross-country skiing,5
+personality,hobby,Windsurfing,5
+personality,hobby,Kitesurfing,5
+personality,hobby,Paddleboarding,5
+personality,hobby,Parkour,5
+personality,hobby,Slacklining,5
+personality,hobby,Rollerblading,5
+personality,hobby,Spelunking,5
+personality,hobby,Foraging,5
+personality,hobby,Birdwatching,5
+personality,hobby,Stargazing,5
+personality,hobby,Orienteering,5
+personality,hobby,Trail running,5
+personality,hobby,Nature journaling,5
+personality,hobby,Tree climbing,5
+personality,hobby,Figure skating,5
+personality,hobby,Snowshoeing,5
+personality,hobby,Canyoning,5
+personality,hobby,River rafting,5
+personality,hobby,Pilates,5
+personality,hobby,Crossfit,5
+personality,hobby,Weightlifting,5
+personality,hobby,Running,5
+personality,hobby,Cycling,5
+personality,hobby,Squash,5
+personality,hobby,Frisbee golf,5
+personality,hobby,Judo,5
+personality,hobby,Karate,5
+personality,hobby,Taekwondo,5
+personality,hobby,Jiu-jitsu,5
+personality,hobby,Triathlon,5
+personality,hobby,Rowing,5
+personality,hobby,Checkers,5
+personality,hobby,Go,5
+personality,hobby,Sudoku,5
+personality,hobby,Crossword puzzles,5
+personality,hobby,Scrabble,5
+personality,hobby,Rubik’s Cube,5
+personality,hobby,Magic the Gathering,5
+personality,hobby,Dungeons & Dragons,5
+personality,hobby,Warhammer,5
+personality,hobby,Miniatures painting,5
+personality,hobby,Puzzle designing,5
+personality,hobby,Card tricks,5
+personality,hobby,Mahjong,5
+personality,hobby,Poker,5
+personality,hobby,Bridge,5
+personality,hobby,Backgammon,5
+personality,hobby,Dominoes,5
+personality,hobby,Tetris,5
+personality,hobby,Strategy board games,5
+personality,hobby,Game design,5
+personality,hobby,Computer programming,5
+personality,hobby,Web development,5
+personality,hobby,App development,5
+personality,hobby,Game development,5
+personality,hobby,Robotics,5
+personality,hobby,Electronics,5
+personality,hobby,Ham radio,5
+personality,hobby,Drone piloting,5
+personality,hobby,RC car racing,5
+personality,hobby,RC plane flying,5
+personality,hobby,RC boat racing,5
+personality,hobby,3D printing,5
+personality,hobby,3D modeling,5
+personality,hobby,Rocket building,5
+personality,hobby,Astrophotography,5
+personality,hobby,Video editing,5
+personality,hobby,Learning new languages,5
+personality,hobby,Genealogy research,5
+personality,hobby,Philosophy study,5
+personality,hobby,Archaeology,5
+personality,hobby,History research,5
+personality,hobby,Community gardening,5
+personality,hobby,Environmental activism,5
+personality,hobby,Mentoring,5
+personality,hobby,Cosplay,5
+personality,hobby,LARPing,5
+personality,hobby,Fantasy map making,5
+personality,hobby,Miniature creation,5
+personality,hobby,Aquascaping,5
+personality,hobby,Terrarium building,5
+personality,hobby,Aquarium keeping,5
+personality,hobby,Bonsai,5
+personality,hobby,Succulent gardening,5
+personality,hobby,Doll making,5
+personality,hobby,Soap carving,5
+personality,hobby,Puzzle solving,5
+personality,hobby,Pen spinning,5
+personality,hobby,Fire dancing,5
+personality,hobby,Poi spinning,5
+personality,hobby,Blacksmithing,5
+personality,hobby,Knifemaking,5
+personality,hobby,Forging,5
+personality,hobby,Stained glass art,5
+personality,hobby,Paper quilling,5
+personality,hobby,Card making,5
+personality,hobby,Whittling,5
+personality,hobby,Bonsai gardening,5
+personality,hobby,Greenhouse gardening,5
+personality,hobby,Succulent collecting,5
+personality,hobby,Rockhounding,5
+personality,hobby,Gold panning,5
+personality,hobby,Gemology,5
+personality,hobby,Metal casting,5
+personality,hobby,Candle carving,5
+personality,hobby,Puppet making,5
+personality,hobby,Toy making,5
+personality,hobby,Kite making,5
+personality,hobby,Paragliding,5
+personality,hobby,Hang gliding,5
+personality,hobby,Gliding,5
+personality,hobby,Motorcycling,5
+personality,hobby,Spear fishing,5
+personality,hobby,Freediving,5
+personality,hobby,Bow making,5
+personality,hobby,Gunpla building,5
+personality,hobby,Lego building,5
+personality,hobby,Lego collecting,5
+personality,hobby,Escape room designing,5
+personality,hobby,Virtual reality gaming,5
+personality,hobby,Augmented reality experiences,5
+personality,hobby,Drone racing,5
+personality,hobby,Drone building,5
+personality,hobby,Arduino programming,5
+personality,hobby,Raspberry Pi projects,5
+personality,hobby,Microcontroller tinkering,5
+personality,hobby,Amateur astronomy,5
+personality,hobby,Geology collecting,5
+personality,hobby,Paleontology study,5
+personality,hobby,Meteorology study,5
+personality,hobby,DIY furniture building,5
+personality,hobby,Upcycling furniture,5
+personality,hobby,Upcycling clothes,5
+personality,hobby,Clothes design,5
+personality,hobby,Makeup artistry,5
+personality,hobby,Hair styling,5
+personality,hobby,Face painting,5
+personality,hobby,Body painting,5
+personality,hobby,Magic show performing,5
+personality,hobby,Busking,5
+personality,hobby,Rap battle,5
+personality,hobby,Beatboxing,5
+personality,hobby,Choir singing,5
+personality,hobby,Opera singing,5
+personality,hobby,Ballet dancing,5
+personality,hobby,Tap dancing,5
+personality,hobby,Salsa dancing,5
+personality,hobby,Hip-hop dancing,5
+personality,hobby,Pole dancing,5
+personality,hobby,Roller skating,5
+personality,hobby,Ice dancing,5
+personality,hobby,Synchronized swimming,5

@@ -1,10 +1,10 @@
-﻿import json
+import json
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from src.domain.Character import HealthState
-from src.domain.MainCharacter import CharacterInfo, LLMControlProfile, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, LLMControlProfile, MainCharacter
 from src.domain.Items import Armor, Consumable, Item, Weapon
 from src.domain.CharacterUtil import (
     Affinities,
@@ -1778,10 +1778,10 @@ class RacePickerDialog(tk.Toplevel):
 
 
 class MainCharacterInfoDialog(tk.Toplevel):
-    def __init__(self, parent, info_draft: dict, profile_draft: dict, on_save):
+    def __init__(self, parent, info_draft: dict, profile_draft: dict, hobbies_draft: list[dict], on_save):
         super().__init__(parent)
         self.title("Main Character Info")
-        self.geometry("780x980")
+        self.geometry("820x1040")
         self.on_save = on_save
         self.info_vars = {}
         self.profile_widgets = {}
@@ -1797,6 +1797,24 @@ class MainCharacterInfoDialog(tk.Toplevel):
             var = tk.StringVar(value=str(info_draft.get(field_key, "") or ""))
             self.info_vars[field_key] = var
             ttk.Entry(row, textvariable=var).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        ttk.Separator(body, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=12)
+        ttk.Label(body, text="Hobbies", font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
+        ttk.Label(body, text="One per line: Hobby Name | InterestLevel").pack(anchor="w")
+        self.hobbies_widget = tk.Text(body, height=7, wrap=tk.WORD)
+        self.hobbies_widget.pack(fill=tk.BOTH, expand=False, pady=(4, 0))
+        hobby_lines = []
+        for entry in hobbies_draft or []:
+            if not isinstance(entry, dict):
+                continue
+            hobby_name = str(entry.get("name", "") or "").strip()
+            if not hobby_name:
+                continue
+            interest_level = str(entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value) or HobbyInterestLevel.INDIFFERENT.value)
+            hobby_lines.append(f"{hobby_name} | {interest_level}")
+        if not hobby_lines:
+            hobby_lines = [f"No particular hobby | {HobbyInterestLevel.INDIFFERENT.value}"]
+        self.hobbies_widget.insert("1.0", "\n".join(hobby_lines))
 
         ttk.Separator(body, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=12)
         ttk.Label(body, text="LLM Control Profile", font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 8))
@@ -1817,10 +1835,45 @@ class MainCharacterInfoDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
 
+    def _parse_hobbies(self) -> list[dict]:
+        hobbies = []
+        seen = set()
+        raw_text = self.hobbies_widget.get("1.0", tk.END)
+        for raw_line in raw_text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if "|" in line:
+                hobby_name, interest_text = [part.strip() for part in line.split("|", 1)]
+            else:
+                hobby_name, interest_text = line, HobbyInterestLevel.INDIFFERENT.value
+            if not hobby_name:
+                continue
+            lowered = hobby_name.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            normalized_interest = next(
+                (
+                    option.value
+                    for option in HobbyInterestLevel
+                    if interest_text.upper() == option.name or interest_text.lower() == option.value.lower()
+                ),
+                HobbyInterestLevel.INDIFFERENT.value,
+            )
+            hobbies.append({"name": hobby_name, "interestLevel": normalized_interest})
+        return hobbies
+
     def _save(self):
         payload = {
             "characterInfo": {},
             "llmControlProfile": {},
+            "hobbies": self._parse_hobbies() or [
+                {
+                    "name": "No particular hobby",
+                    "interestLevel": HobbyInterestLevel.INDIFFERENT.value,
+                }
+            ],
         }
         for field_key, _label in CharacterInfo.FIELD_SPECS:
             value = self.info_vars[field_key].get().strip()
@@ -1842,6 +1895,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.is_main_character = False
         self.main_character_info_draft = self._default_main_character_info()
         self.llm_control_profile_draft = self._default_llm_control_profile()
+        self.main_character_hobbies_draft = self._default_main_character_hobbies()
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -1958,11 +2012,36 @@ class CharacterEditorFrame(ttk.Frame):
     def _default_llm_control_profile(self):
         return LLMControlProfile().to_dict()
 
+    def _default_main_character_hobbies(self):
+        return []
+
     def _normalize_main_character_info(self, payload) -> dict:
         return CharacterInfo.from_dict(payload).to_dict()
 
     def _normalize_llm_control_profile(self, payload) -> dict:
         return LLMControlProfile.from_dict(payload).to_dict()
+
+    def _normalize_main_character_hobbies(self, payload) -> list[dict]:
+        normalized = []
+        if not isinstance(payload, list):
+            return normalized
+        for entry in payload:
+            if isinstance(entry, dict):
+                hobby_name = str(entry.get("name", "") or "").strip()
+                interest_value = str(entry.get("interestLevel", HobbyInterestLevel.INDIFFERENT.value) or HobbyInterestLevel.INDIFFERENT.value)
+            elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                hobby_name = str(entry[0] or "").strip()
+                interest_value = str(getattr(entry[1], "value", entry[1]) or HobbyInterestLevel.INDIFFERENT.value)
+            else:
+                continue
+            if not hobby_name:
+                continue
+            valid_interest = next(
+                (option.value for option in HobbyInterestLevel if interest_value.upper() == option.name or interest_value.lower() == option.value.lower()),
+                HobbyInterestLevel.INDIFFERENT.value,
+            )
+            normalized.append({"name": hobby_name, "interestLevel": valid_interest})
+        return normalized
 
     def _refresh_main_character_button(self):
         button_text = "Edit Main Character Info" if self.is_main_character else "Convert to Main Character"
@@ -1973,6 +2052,7 @@ class CharacterEditorFrame(ttk.Frame):
         self.is_main_character = False
         self.main_character_info_draft = self._default_main_character_info()
         self.llm_control_profile_draft = self._default_llm_control_profile()
+        self.main_character_hobbies_draft = self._default_main_character_hobbies()
         self.vars["name"].set("")
         self.vars["description"].set("")
         self.vars["portraitURL"].set("")
@@ -2025,6 +2105,11 @@ class CharacterEditorFrame(ttk.Frame):
             if self.is_main_character
             else self._default_llm_control_profile()
         )
+        self.main_character_hobbies_draft = (
+            self._normalize_main_character_hobbies(state.get("hobbies"))
+            if self.is_main_character
+            else self._default_main_character_hobbies()
+        )
         self.vars["name"].set(state.get("name", ""))
         self.vars["description"].set(str(state.get("description", "") or ""))
         self.vars["portraitURL"].set(str(state.get("portraitURL", "") or ""))
@@ -2064,6 +2149,15 @@ class CharacterEditorFrame(ttk.Frame):
             return
         self._load_state_into_form(character_to_state(character), character_id=character_id)
 
+    def _format_hobby_summary(self) -> str:
+        if not self.main_character_hobbies_draft:
+            return "No particular hobby [Indifferent]"
+        return ", ".join(
+            f"{entry.get('name', '')} [{entry.get('interestLevel', HobbyInterestLevel.INDIFFERENT.value)}]"
+            for entry in self.main_character_hobbies_draft
+            if str(entry.get("name", "") or "").strip()
+        ) or "No particular hobby [Indifferent]"
+
     def _refresh_summary(self):
         lines = [
             f"Character Type: {'MainCharacter' if self.is_main_character else 'Character'}",
@@ -2082,6 +2176,7 @@ class CharacterEditorFrame(ttk.Frame):
                     f"Occupation: {info.get('occupation', '')}",
                     f"Job: {info.get('job', '')}",
                     f"Personality Type: {info.get('personalityType', '')}",
+                    f"Hobbies: {self._format_hobby_summary()}",
                     f"Voice Notes: {self.llm_control_profile_draft.get('voiceNotes', '')[:80]}",
                     f"Knowledge Boundaries: {self.llm_control_profile_draft.get('knowledgeBoundaryNotes', '')[:80]}",
                 ]
@@ -2166,6 +2261,9 @@ class CharacterEditorFrame(ttk.Frame):
                 self.llm_control_profile_draft = self._normalize_llm_control_profile(
                     main_character.llmControlProfile.to_dict()
                 )
+                self.main_character_hobbies_draft = self._normalize_main_character_hobbies(
+                    character_to_state(main_character).get("hobbies", [])
+                )
                 self.is_main_character = True
             except Exception as exc:
                 messagebox.showerror("Character Editor", f"Failed to convert to Main Character: {exc}")
@@ -2173,11 +2271,12 @@ class CharacterEditorFrame(ttk.Frame):
 
         self._refresh_main_character_button()
         self._refresh_summary()
-        MainCharacterInfoDialog(self, self.main_character_info_draft, self.llm_control_profile_draft, self._on_main_character_info_saved)
+        MainCharacterInfoDialog(self, self.main_character_info_draft, self.llm_control_profile_draft, self.main_character_hobbies_draft, self._on_main_character_info_saved)
 
     def _on_main_character_info_saved(self, payload):
         self.main_character_info_draft = self._normalize_main_character_info(payload.get("characterInfo"))
         self.llm_control_profile_draft = self._normalize_llm_control_profile(payload.get("llmControlProfile"))
+        self.main_character_hobbies_draft = self._normalize_main_character_hobbies(payload.get("hobbies"))
         self.is_main_character = True
         self._refresh_main_character_button()
         self._refresh_summary()
@@ -2258,6 +2357,7 @@ class CharacterEditorFrame(ttk.Frame):
             payload["characterType"] = "MainCharacter"
             payload["characterInfo"] = dict(self.main_character_info_draft)
             payload["llmControlProfile"] = dict(self.llm_control_profile_draft)
+            payload["hobbies"] = list(self.main_character_hobbies_draft)
             payload["stats"] = dict(self.stats_data) if isinstance(self.stats_data, dict) else self.stats_data
         return payload
 

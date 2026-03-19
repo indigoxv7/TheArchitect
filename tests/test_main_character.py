@@ -5,16 +5,37 @@ from pathlib import Path
 
 from src.domain.Character import Character
 from src.domain.CharacterUtil import Attributes, BodyPart
-from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, MainCharacter
 from src.domain.Race import Race
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_generator import (
+    _interest_options_for_profile,
     generate_character_from_race,
+    generate_hobbies,
     generate_main_character,
     generate_main_character_from_scratch,
 )
+
+
+class ScriptedRandom:
+    def __init__(self, scripted_choices: list[object]):
+        self._scripted_choices = list(scripted_choices)
+
+    def choices(self, population, weights=None, k=1):
+        if not self._scripted_choices:
+            raise AssertionError("No scripted choice left for choices().")
+        value = self._scripted_choices.pop(0)
+        return [value]
+
+    def choice(self, population):
+        if not population:
+            raise AssertionError("choice() called with empty population.")
+        return population[0]
+
+    def randint(self, start, end):
+        return int(start)
 
 
 class TestMainCharacter(unittest.TestCase):
@@ -30,7 +51,7 @@ class TestMainCharacter(unittest.TestCase):
         character_service.load_characters()
         return context, item_service, character_service
 
-    def test_generate_main_character_populates_character_info(self):
+    def test_generate_main_character_populates_character_info_and_hobbies(self):
         character = generate_main_character(name="Generated Test", rng=random.Random(12345))
 
         self.assertIsInstance(character, MainCharacter)
@@ -44,6 +65,49 @@ class TestMainCharacter(unittest.TestCase):
         self.assertTrue(character.characterInfo.personalityType)
         self.assertTrue(character.characterInfo.goal)
         self.assertIn(character.characterInfo.distinguishingMarksLocation, BodyPart.__members__)
+        self.assertGreaterEqual(len(character.hobbies), 1)
+        self.assertEqual(len({hobby_name for hobby_name, _interest in character.hobbies}), len(character.hobbies))
+        for hobby_name, interest_level in character.hobbies:
+            self.assertTrue(hobby_name)
+            self.assertIsInstance(interest_level, HobbyInterestLevel)
+
+    def test_generate_hobbies_zero_count_uses_default_entry(self):
+        hobbies = generate_hobbies(rng=ScriptedRandom([0]))
+
+        self.assertEqual(hobbies, [("No particular hobby", HobbyInterestLevel.INDIFFERENT)])
+
+    def test_generate_hobbies_downgrades_second_burning_passion(self):
+        hobbies = generate_hobbies(
+            rng=ScriptedRandom(
+                [
+                    3,
+                    "Enthusiast",
+                    "Cooking and baking",
+                    "Reading",
+                    "Traveling",
+                    HobbyInterestLevel.BURNING_PASSION,
+                    HobbyInterestLevel.BURNING_PASSION,
+                    HobbyInterestLevel.INTERESTED,
+                ]
+            )
+        )
+
+        self.assertEqual(
+            hobbies,
+            [
+                ("Cooking and baking", HobbyInterestLevel.BURNING_PASSION),
+                ("Reading", HobbyInterestLevel.PASSIONATE),
+                ("Traveling", HobbyInterestLevel.INTERESTED),
+            ],
+        )
+
+    def test_single_hobby_interest_weights_make_indifferent_rare(self):
+        base_weights = dict(_interest_options_for_profile("Casual dabbler", 2))
+        single_hobby_weights = dict(_interest_options_for_profile("Casual dabbler", 1))
+
+        self.assertEqual(base_weights[HobbyInterestLevel.INDIFFERENT], 40.0)
+        self.assertLess(single_hobby_weights[HobbyInterestLevel.INDIFFERENT], 10.0)
+        self.assertGreater(single_hobby_weights[HobbyInterestLevel.INTERESTED], base_weights[HobbyInterestLevel.INTERESTED])
 
     def test_generate_character_from_race_respects_attribute_bounds(self):
         average = Character(
@@ -153,6 +217,7 @@ class TestMainCharacter(unittest.TestCase):
         self.assertEqual(main_character.health, 73)
         self.assertEqual(main_character.description, "Field commander")
         self.assertTrue(main_character.characterInfo.occupation)
+        self.assertGreaterEqual(len(main_character.hobbies), 1)
 
     def test_character_service_round_trip_main_character(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -189,12 +254,17 @@ class TestMainCharacter(unittest.TestCase):
                     "emotionalTrigger": "betrayal",
                     "copingHabit": "overworking",
                 },
+                "hobbies": [
+                    {"name": "Reading", "interestLevel": "BurningPassion"},
+                    {"name": "Cooking and baking", "interestLevel": "Interested"},
+                ],
             }
 
             character_id, created = character_service.create_character_from_dict(payload)
             self.assertIsInstance(created, MainCharacter)
             self.assertEqual(created.characterInfo.job, "Software Developer")
             self.assertEqual(created.characterInfo.distinguishingMarksLocation, "FACE")
+            self.assertEqual(created.hobbies[0], ("Reading", HobbyInterestLevel.BURNING_PASSION))
 
             character_service.load_characters()
             loaded = character_service.get_character(character_id)
@@ -204,7 +274,16 @@ class TestMainCharacter(unittest.TestCase):
             self.assertEqual(loaded.characterInfo.occupation, "information/tech worker")
             self.assertEqual(loaded.characterInfo.goal, "protect the team")
             self.assertEqual(loaded.characterInfo.distinguishingMarksLocation, "FACE")
+            self.assertEqual(
+                loaded.hobbies,
+                [
+                    ("Reading", HobbyInterestLevel.BURNING_PASSION),
+                    ("Cooking and baking", HobbyInterestLevel.INTERESTED),
+                ],
+            )
 
 
 if __name__ == "__main__":
     unittest.main()
+
+

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.domain.Character import Character
 from src.domain.CharacterUtil import Attributes, BodyPart
-from src.domain.MainCharacter import CharacterInfo, MainCharacter
+from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, MainCharacter
 from src.domain.Race import Race
 
 DEFAULT_GENERATION_DATA_DIRECTORY = (
@@ -58,6 +58,48 @@ BUILD_MODIFIERS = {
     "overweight": {"physicalResistance": 1, "physicalStamina": -1},
     "obese": {field: -2 for field in PHYSICAL_ATTRIBUTE_FIELDS},
 }
+HOBBY_COUNT_OPTIONS = (
+    (0, 15.0),
+    (1, 18.0),
+    (2, 30.15),
+    (3, 20.10),
+    (4, 10.05),
+    (5, 6.70),
+)
+HOBBY_STYLE_OPTIONS = (
+    ("Casual dabbler", 30.0),
+    ("Balanced hobbyist", 45.0),
+    ("Enthusiast", 20.0),
+    ("Obsessive", 5.0),
+)
+HOBBY_INTEREST_OPTIONS = {
+    "Casual dabbler": (
+        (HobbyInterestLevel.BURNING_PASSION, 2.0),
+        (HobbyInterestLevel.PASSIONATE, 13.0),
+        (HobbyInterestLevel.INTERESTED, 45.0),
+        (HobbyInterestLevel.INDIFFERENT, 40.0),
+    ),
+    "Balanced hobbyist": (
+        (HobbyInterestLevel.BURNING_PASSION, 4.0),
+        (HobbyInterestLevel.PASSIONATE, 21.0),
+        (HobbyInterestLevel.INTERESTED, 50.0),
+        (HobbyInterestLevel.INDIFFERENT, 25.0),
+    ),
+    "Enthusiast": (
+        (HobbyInterestLevel.BURNING_PASSION, 8.0),
+        (HobbyInterestLevel.PASSIONATE, 32.0),
+        (HobbyInterestLevel.INTERESTED, 45.0),
+        (HobbyInterestLevel.INDIFFERENT, 15.0),
+    ),
+    "Obsessive": (
+        (HobbyInterestLevel.BURNING_PASSION, 15.0),
+        (HobbyInterestLevel.PASSIONATE, 40.0),
+        (HobbyInterestLevel.INTERESTED, 35.0),
+        (HobbyInterestLevel.INDIFFERENT, 10.0),
+    ),
+}
+SINGLE_HOBBY_INDIFFERENT_WEIGHT = 3.0
+NO_HOBBY_ENTRY = ("No particular hobby", HobbyInterestLevel.INDIFFERENT)
 
 
 @lru_cache(maxsize=1)
@@ -89,10 +131,22 @@ def _load_weighted_options(csv_path_text: str) -> tuple[tuple[str, float], ...]:
     options: list[tuple[str, float]] = []
     for row in reader:
         option = str(row.get("option", "") or "").strip()
+        raw_weight = row.get("weight", 0)
+        overflow = row.get(None) if isinstance(row.get(None), list) else []
+
+        if overflow:
+            overflow_parts = [str(part or "").strip() for part in overflow if str(part or "").strip()]
+            merged_option_parts = [part for part in (option, str(raw_weight or "").strip()) if part]
+            if overflow_parts:
+                merged_option_parts.extend(overflow_parts[:-1])
+                raw_weight = overflow_parts[-1]
+            option = ", ".join(merged_option_parts)
+
+        option = option.strip()
         if not option:
             continue
         try:
-            weight = float(row.get("weight", 0) or 0)
+            weight = float(raw_weight or 0)
         except Exception:
             weight = 0.0
         if weight <= 0:
@@ -107,12 +161,58 @@ def _slugify(value: str) -> str:
     return normalized
 
 
-def _choose_weighted_option(options: tuple[tuple[str, float], ...], rng) -> str:
+def _choose_weighted_option(options, rng):
     if not options:
         return ""
     choices = [option for option, _weight in options]
     weights = [weight for _option, weight in options]
     return rng.choices(choices, weights=weights, k=1)[0]
+
+
+def _choose_weighted_unique_options(
+    options: tuple[tuple[str, float], ...],
+    count: int,
+    rng,
+) -> list[str]:
+    remaining = list(options)
+    selected: list[str] = []
+    while remaining and len(selected) < max(0, int(count)):
+        chosen = _choose_weighted_option(tuple(remaining), rng)
+        chosen_text = str(chosen or "").strip()
+        if not chosen_text:
+            break
+        selected.append(chosen_text)
+        remaining = [entry for entry in remaining if str(entry[0] or "").strip() != chosen_text]
+    return selected
+
+
+def _interest_options_for_profile(
+    hobby_profile: str,
+    hobby_count: int,
+) -> tuple[tuple[HobbyInterestLevel, float], ...]:
+    base_options = HOBBY_INTEREST_OPTIONS.get(hobby_profile, HOBBY_INTEREST_OPTIONS["Balanced hobbyist"])
+    if int(hobby_count or 0) != 1:
+        return base_options
+
+    adjusted: list[tuple[HobbyInterestLevel, float]] = []
+    indifferent_shift = 0.0
+    for interest_level, weight in base_options:
+        if interest_level == HobbyInterestLevel.INDIFFERENT:
+            trimmed_weight = min(weight, SINGLE_HOBBY_INDIFFERENT_WEIGHT)
+            indifferent_shift = max(0.0, weight - trimmed_weight)
+            adjusted.append((interest_level, trimmed_weight))
+        else:
+            adjusted.append((interest_level, weight))
+
+    if indifferent_shift > 0:
+        adjusted = [
+            (
+                interest_level,
+                weight + indifferent_shift if interest_level == HobbyInterestLevel.INTERESTED else weight,
+            )
+            for interest_level, weight in adjusted
+        ]
+    return tuple(adjusted)
 
 
 def _format_height_inches(height_inches: float) -> str:
@@ -204,6 +304,40 @@ def _clamp_attribute_dict(values: dict[str, int], minimums: dict[str, int], maxi
 
 def _normalize_build_key(build_value: str) -> str:
     return str(build_value or "").strip().lower().replace("-", " ").replace("_", " ")
+
+
+def generate_hobbies(
+    generation_data_directory: str | None = None,
+    rng: random.Random | None = None,
+) -> list[tuple[str, HobbyInterestLevel]]:
+    rng = rng if rng is not None else random.Random()
+    generation_directory = _resolve_generation_directory(generation_data_directory)
+    hobby_options = _load_weighted_options(str(generation_directory / "hobbies.csv"))
+    hobby_count = int(_choose_weighted_option(HOBBY_COUNT_OPTIONS, rng) or 0)
+
+    if hobby_count <= 0 or not hobby_options:
+        return [NO_HOBBY_ENTRY]
+
+    hobby_profile = str(_choose_weighted_option(HOBBY_STYLE_OPTIONS, rng) or "Balanced hobbyist")
+    selected_hobbies = _choose_weighted_unique_options(hobby_options, hobby_count, rng)
+    if not selected_hobbies:
+        return [NO_HOBBY_ENTRY]
+
+    hobbies: list[tuple[str, HobbyInterestLevel]] = []
+    has_burning_passion = False
+    interest_options = _interest_options_for_profile(hobby_profile, len(selected_hobbies))
+    for hobby_name in selected_hobbies:
+        interest_level = _choose_weighted_option(interest_options, rng)
+        if not isinstance(interest_level, HobbyInterestLevel):
+            interest_level = HobbyInterestLevel.INTERESTED
+        if interest_level == HobbyInterestLevel.BURNING_PASSION:
+            if has_burning_passion:
+                interest_level = HobbyInterestLevel.PASSIONATE
+            else:
+                has_burning_passion = True
+        hobbies.append((hobby_name, interest_level))
+
+    return hobbies or [NO_HOBBY_ENTRY]
 
 
 def generate_character_info(
@@ -361,6 +495,10 @@ def generate_main_character_from_scratch(
         generation_data_directory=generation_data_directory,
         rng=rng,
     )
+    hobbies = generate_hobbies(
+        generation_data_directory=generation_data_directory,
+        rng=rng,
+    )
     if not str(getattr(info, 'distinguishingMarksLocation', '') or '').strip():
         info.distinguishingMarksLocation = rng.choice(list(BodyPart)).name
 
@@ -370,6 +508,7 @@ def generate_main_character_from_scratch(
         rng=rng,
     )
     main_character.characterInfo = info
+    main_character.hobbies = hobbies
 
     minimums = getattr(race, 'minAverageAttributes', None) if race is not None else None
     maximums = getattr(race, 'maxAverageAttributes', None) if race is not None else None
