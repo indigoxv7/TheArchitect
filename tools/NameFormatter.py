@@ -2,8 +2,8 @@ import csv
 import re
 
 
-INPUT_FILE_NAME = "tools/last_names.txt"
-OUTPUT_FILE_NAME = "tools/last_names.csv"
+INPUT_FILE_NAME = "tools/first_names_male.txt"
+OUTPUT_FILE_NAME = "tools/first_names_male.csv"
 
 
 def transform_line(raw_line):
@@ -16,10 +16,10 @@ def transform_line(raw_line):
         return None
 
     last_name = columns[0]
-    percentage_value = float(columns[2].replace(",", ""))
+    percentage_value = float(columns[1].replace(",", ""))
     weight = int(round(percentage_value * 1000))
 
-    return ["name", "last_name", last_name, weight]
+    return ["name", "male", last_name, weight]
 
 
 def main():

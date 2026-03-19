@@ -13,10 +13,12 @@ from src.services.item_service import ItemService
 from src.services.character_generation import (
     _interest_options_for_profile,
     generate_character_from_race,
+    generate_character_name,
     generate_hobbies,
     generate_main_character,
     generate_main_character_from_scratch,
 )
+from src.services.character_generation.names import load_first_name_options, load_last_name_options
 
 
 class ScriptedRandom:
@@ -70,6 +72,13 @@ class TestMainCharacter(unittest.TestCase):
         for hobby_name, interest_level in character.hobbies:
             self.assertTrue(hobby_name)
             self.assertIsInstance(interest_level, HobbyInterestLevel)
+
+    def test_generate_character_name_uses_sex_specific_first_name_lists(self):
+        male_name = generate_character_name("Male", rng=ScriptedRandom(["James", "Smith"]))
+        female_name = generate_character_name("Female", rng=ScriptedRandom(["Mary", "Smith"]))
+
+        self.assertEqual(male_name, "James Smith")
+        self.assertEqual(female_name, "Mary Smith")
 
     def test_generate_hobbies_zero_count_uses_default_entry(self):
         hobbies = generate_hobbies(rng=ScriptedRandom([0]))
@@ -166,6 +175,64 @@ class TestMainCharacter(unittest.TestCase):
         self.assertEqual(generated.attributes.magicPower, 5)
         self.assertEqual(generated.attributes.magicStamina, 5)
         self.assertEqual(generated.attributes.magicResistance, 5)
+
+    def test_generate_main_character_from_scratch_generates_name_after_sex_roll(self):
+        average = Character(
+            name="Average Human",
+            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            race="Human1",
+        )
+        race = Race(
+            name="Human",
+            raceId="Human1",
+            averageSpecimine=average,
+            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+        )
+        info = CharacterInfo(sex="Female", build="average", distinguishingMarks="Birthmark")
+
+        generated = generate_main_character_from_scratch(
+            name="",
+            race=race,
+            rng=random.Random(18),
+            character_info=info,
+        )
+
+        female_first_names = {name for name, _weight in load_first_name_options("Female")}
+        last_names = {name for name, _weight in load_last_name_options()}
+
+        self.assertTrue(generated.name)
+        self.assertNotEqual(generated.name, "Generated Main Character")
+        self.assertIn(generated.name.split()[0], female_first_names)
+        self.assertIn(generated.name.split()[-1], last_names)
+        self.assertEqual(generated.characterInfo.sex, "Female")
+
+    def test_generate_main_character_from_scratch_replaces_placeholder_name(self):
+        average = Character(
+            name="Average Human",
+            attributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            race="Human1",
+        )
+        race = Race(
+            name="Human",
+            raceId="Human1",
+            averageSpecimine=average,
+            minAverageAttributes=Attributes(physicalPower=5, physicalStamina=5, physicalResistance=5, magicPower=5, magicStamina=5, magicResistance=5),
+            maxAverageAttributes=Attributes(physicalPower=10, physicalStamina=10, physicalResistance=10, magicPower=10, magicStamina=10, magicResistance=10),
+        )
+        info = CharacterInfo(sex="Male", build="average", distinguishingMarks="Scar")
+
+        generated = generate_main_character_from_scratch(
+            name="Human Main Character",
+            race=race,
+            rng=random.Random(7),
+            character_info=info,
+        )
+
+        male_first_names = {name for name, _weight in load_first_name_options("Male")}
+
+        self.assertNotEqual(generated.name, "Human Main Character")
+        self.assertIn(generated.name.split()[0], male_first_names)
 
     def test_generate_main_character_from_scratch_applies_build_modifier(self):
         average = Character(

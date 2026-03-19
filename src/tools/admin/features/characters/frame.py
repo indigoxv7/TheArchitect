@@ -354,7 +354,7 @@ class CharacterEditorFrame(ttk.Frame):
             messagebox.showerror("Character Editor", f"Select a valid race before generating. '{race_id}' was not found.")
             return
 
-        generated_name = self.vars["name"].get().strip() or f"{race.name} Main Character"
+        generated_name = self.vars["name"].get().strip()
         try:
             generated = generate_main_character_from_scratch(
                 name=generated_name,

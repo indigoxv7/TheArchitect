@@ -8,6 +8,7 @@ from src.domain.character_util import BodyPart
 from src.domain.main_character import CharacterInfo, MainCharacter
 from src.domain.race import Race
 from src.services.character_generation.attributes import apply_build_modifier, randomize_attributes_point_buy
+from src.services.character_generation.names import generate_character_name, is_placeholder_main_character_name
 from src.services.character_generation.traits import generate_character_info, generate_hobbies
 
 
@@ -62,11 +63,20 @@ def generate_main_character_from_scratch(
     character_info: CharacterInfo | None = None,
 ) -> MainCharacter:
     rng = rng if rng is not None else random.Random()
-    base_character = generate_character_from_race(name=name, race=race, rng=rng)
     info = copy.deepcopy(character_info) if character_info is not None else generate_character_info(
         generation_data_directory=generation_data_directory,
         rng=rng,
     )
+    race_name = str(getattr(race, "name", "") or "").strip()
+    resolved_name = str(name or "").strip()
+    if is_placeholder_main_character_name(resolved_name, race_name=race_name):
+        resolved_name = generate_character_name(
+            getattr(info, "sex", ""),
+            rng,
+            generation_data_directory=generation_data_directory,
+        )
+
+    base_character = generate_character_from_race(name=resolved_name, race=race, rng=rng)
     hobbies = generate_hobbies(
         generation_data_directory=generation_data_directory,
         rng=rng,
@@ -79,6 +89,7 @@ def generate_main_character_from_scratch(
         generation_data_directory=generation_data_directory,
         rng=rng,
     )
+    main_character.name = resolved_name
     main_character.characterInfo = info
     main_character.hobbies = hobbies
 
