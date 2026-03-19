@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Environment import CompatibilitySelectionMode, IncompatibilityMode
+from src.domain.environment import CompatibilitySelectionMode, IncompatibilityMode
 from src.tools.admin.shared.pickers import ClimateSelectDialog, EffectSelectDialog, TerrainSelectDialog
 
 

@@ -1,8 +1,21 @@
 ﻿import copy
-from src.domain.CharacterUtil import *
-from src.domain.Items import Gear, Item
-from src.domain.GeneralSkills import GeneralSkills
-from src.domain.Spells import Spell, SpellComponent
+from enum import Enum
+
+from src.domain.character_util import (
+    AbbreviateNumber,
+    Achievement,
+    Affinities,
+    Attribute,
+    AttributeBonus,
+    Attributes,
+    Bonus,
+    BonusType,
+    FriendlyFireTolerance,
+    TotalBonus,
+)
+from src.domain.items import Gear, Item
+from src.domain.general_skills import GeneralSkills
+from src.domain.spells import Spell, SpellComponent
 from src.domain.combat_timing import (
     BASELINE_STAMINA_LIMIT,
     speed_factor_from_attributes,
@@ -10,7 +23,7 @@ from src.domain.combat_timing import (
     stamina_regen_per_second_from_physical_stamina,
 )
 from src.config.tuning import character_stat_factor
-from src.config.Globals import *
+from src.config import NANO_EMOJI
 
 class HealthState(Enum):
     HEALTHY = 0
@@ -420,7 +433,7 @@ Race - {self.raceTier}
 Achievements -
 {achievementString}
 {self.GetGeneralSkillsString()}{self.GetSpellsString()}
-Pooled Nano {nanoEmoji} - {nanoString}
+Pooled Nano {NANO_EMOJI} - {nanoString}
         """
 
         return result
@@ -429,3 +442,6 @@ Pooled Nano {nanoEmoji} - {nanoString}
     def IncreaseAttribute(self, a: Attribute, amount: int=1):
         self.attributes.IncreaseAttribute(a,amount)
         self.CalculateFinalAttributes()
+
+
+

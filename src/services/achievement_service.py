@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from src.domain.CharacterUtil import Achievement, Affinities, Attribute, AttributeBonus, Bonus, BonusType
+from src.domain.character_util import Achievement, Affinities, Attribute, AttributeBonus, Bonus, BonusType
 from src.persistence.achievementbook_store import AchievementbookStore
 from src.services.game_context import GameContext
 
@@ -221,3 +221,4 @@ class AchievementService:
             lines.append(f"... and {len(achievements) - max_lines} more")
 
         return "\n".join(lines)
+

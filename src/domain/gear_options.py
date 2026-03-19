@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Callable
 
-from src.domain.CharacterUtil import EquipSlot
-from src.domain.Items import Item
+from src.domain.character_util import EquipSlot
+from src.domain.items import Item
 
 
 class GearOptions:
@@ -97,3 +97,4 @@ class GearOptions:
                         resolved_items.append(resolved)
             kwargs[field_name] = resolved_items
         return cls(**kwargs)
+

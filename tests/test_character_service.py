@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.MainCharacter import MainCharacter
+from src.domain.main_character import MainCharacter
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
@@ -312,5 +312,6 @@ class TestCharacterService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

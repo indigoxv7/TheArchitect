@@ -1,8 +1,8 @@
-import json
+﻿import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.CharacterUtil import EquipSlot
+from src.domain.character_util import EquipSlot
 from .forms import _safe_int
 
 
@@ -142,3 +142,4 @@ class GearEditorDialog(tk.Toplevel):
         payload["inventory_item_ids"] = [str(i).strip() for i in inventory_ids if str(i).strip()]
         self.on_save(payload)
         self.destroy()
+

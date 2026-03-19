@@ -1,30 +1,42 @@
 ﻿import importlib
 import json
 import os
+import tempfile
 import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from src.domain.Campaign import CampaignProgress
+from src.domain.campaign import CampaignProgress
 from src.domain.faction_functions import Faction
-from src.domain.CharacterUtil import TitlePreference
+from src.domain.character_util import TitlePreference
 
 LEGACY_MODULE_MAP = {
     "player_functions": "src.domain.player_functions",
-    "menu_functions": "src.ui.menu_functions",
-    "Character": "src.domain.Character",
-    "CharacterUtil": "src.domain.CharacterUtil",
-    "Items": "src.domain.Items",
-    "Spells": "src.domain.Spells",
+    "menu_functions": "src.ui.menu",
+    "Character": "src.domain.character",
+    "CharacterUtil": "src.domain.character_util",
+    "Items": "src.domain.items",
+    "Spells": "src.domain.spells",
     "faction_functions": "src.domain.faction_functions",
-    "GeneralSkills": "src.domain.GeneralSkills",
-    "Globals": "src.config.Globals",
-    "Campaign": "src.domain.Campaign",
+    "GeneralSkills": "src.domain.general_skills",
+    "Globals": "src.config",
+    "Campaign": "src.domain.campaign",
+    "Mission": "src.domain.mission",
+    "combat": "src.domain.combat",
+    "character_io": "src.domain.character_io",
+    "main_character_generator": "src.services.character_generation",
     "src.thearchitect.domain.player_functions": "src.domain.player_functions",
-    "src.thearchitect.ui.menu_functions": "src.ui.menu_functions",
-    "src.thearchitect.domain.Campaign": "src.domain.Campaign",
-    "MainCharacter": "src.domain.MainCharacter",
-    "src.thearchitect.domain.MainCharacter": "src.domain.MainCharacter",
+    "src.thearchitect.ui.menu_functions": "src.ui.menu",
+    "src.thearchitect.domain.Campaign": "src.domain.campaign",
+    "MainCharacter": "src.domain.main_character",
+    "src.thearchitect.domain.MainCharacter": "src.domain.main_character",
+    "src.thearchitect.domain.Character": "src.domain.character",
+    "src.thearchitect.domain.CharacterUtil": "src.domain.character_util",
+    "src.thearchitect.domain.Items": "src.domain.items",
+    "src.thearchitect.domain.Spells": "src.domain.spells",
+    "src.thearchitect.domain.GeneralSkills": "src.domain.general_skills",
+    "src.thearchitect.domain.Mission": "src.domain.mission",
+    "src.thearchitect.domain.combat": "src.domain.combat",
 }
 
 
@@ -314,23 +326,53 @@ def _deserialize_value(value: Any):
     return value
 
 
-def save_player(player: Player, filename: str):
+def _write_json_atomic(payload: Dict[str, Any], filename: str):
     directory = os.path.dirname(filename)
     if directory:
         os.makedirs(directory, exist_ok=True)
 
+    temp_fd = None
+    temp_path = None
+    try:
+        temp_fd, temp_path = tempfile.mkstemp(dir=directory or None, prefix=".player_", suffix=".json.tmp")
+        with os.fdopen(temp_fd, "w", encoding="utf-8") as file:
+            temp_fd = None
+            json.dump(payload, file, indent=4, ensure_ascii=False)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temp_path, filename)
+    finally:
+        if temp_fd is not None:
+            os.close(temp_fd)
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+
+def save_player(player: Player, filename: str):
     payload: Dict[str, Any] = {
         "format_version": 1,
         "player_state": _serialize_value(player),
     }
-
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(payload, file, indent=4, ensure_ascii=False)
+    _write_json_atomic(payload, filename)
 
 
 def load_player(filename: str) -> Player:
     with open(filename, "r", encoding="utf-8-sig") as file:
-        payload = json.load(file)
+        raw_payload = file.read()
+
+    if not raw_payload.strip():
+        raise ValueError(f"Player save '{filename}' is empty.")
+
+    try:
+        payload = json.loads(raw_payload)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Player save '{filename}' contains invalid JSON.") from exc
+
+    if not isinstance(payload, dict):
+        raise TypeError(f"Player save '{filename}' did not contain a JSON object.")
 
     playerData = payload.get("player_state", payload)
     player = _deserialize_value(playerData)
@@ -340,3 +382,6 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
+
+
+

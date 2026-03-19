@@ -1,7 +1,7 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk
 
-from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, LLMControlProfile
+from src.domain.main_character import CharacterInfo, HobbyInterestLevel, LLMControlProfile
 from src.tools.admin.shared.forms import _safe_int
 
 
@@ -113,3 +113,4 @@ class MainCharacterInfoDialog(tk.Toplevel):
             payload["llmControlProfile"][field_key] = self.profile_widgets[field_key].get("1.0", tk.END).strip()
         self.on_save(payload)
         self.destroy()
+

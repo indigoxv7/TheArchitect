@@ -1,12 +1,13 @@
-import unittest
+﻿import unittest
 
-from src.config import Globals
+from src.config import EMOJI_PLACEHOLDERS, nanoEmoji
 import main as game
 from src.domain.player_functions import Player
-from src.domain.Items import Weapon
-from src.domain.CharacterUtil import EquipSlot
-from src.services.menu_runtime_service import OriginalMessage
-from src.ui.menu_functions import MenuContext, MenuState, load_menus_from_directory
+from src.domain.items import Weapon
+from src.domain.character_util import EquipSlot
+from src.persistence.menu_store import load_menus_from_directory
+from src.services.menu_runtime import OriginalMessage
+from src.ui.menu import MenuContext, MenuState
 
 
 class TestMenuRuntime(unittest.TestCase):
@@ -21,8 +22,8 @@ class TestMenuRuntime(unittest.TestCase):
         text = "Nano $nanoEmoji $nano :nano: {nanoEmoji}"
         replaced = game.menu_service.replace_placeholders(text, player, MenuContext())
 
-        self.assertIn(Globals.nanoEmoji, replaced)
-        self.assertEqual(replaced.count(Globals.nanoEmoji), 3)
+        self.assertIn(nanoEmoji, replaced)
+        self.assertEqual(replaced.count(nanoEmoji), 3)
         self.assertNotIn("$nanoEmoji", replaced)
         self.assertNotIn(":nano:", replaced)
         self.assertNotIn("{nanoEmoji}", replaced)
@@ -102,3 +103,5 @@ class TestMenuRuntime(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+

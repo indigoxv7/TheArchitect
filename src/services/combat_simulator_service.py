@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import copy
 import random
@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.config.tuning import battle_factor, character_stat_factor, misc_factor
-from src.domain.Character import Character, HealthState
-from src.domain.CharacterUtil import ConsumableKind, HitLocation, PowerType
-from src.domain.Items import Consumable, Weapon
-from src.domain.Spells import Spell
+from src.domain.character import Character, HealthState
+from src.domain.character_util import ConsumableKind, HitLocation, PowerType
+from src.domain.items import Consumable, Weapon
+from src.domain.spells import Spell
 from src.domain.character_io import character_from_state
 from src.domain.combat_timing import (
     CombatRuntimeState,
@@ -702,3 +702,4 @@ class CombatSimulatorService:
             penetrationBase=2.0,
             staminaCost=default_offensive_action_stamina_cost(),
         )
+

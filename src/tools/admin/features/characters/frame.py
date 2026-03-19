@@ -1,12 +1,12 @@
-import json
+﻿import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Character import HealthState
-from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, LLMControlProfile, MainCharacter
-from src.domain.CharacterUtil import FriendlyFireTolerance
+from src.domain.character import HealthState
+from src.domain.main_character import CharacterInfo, HobbyInterestLevel, LLMControlProfile, MainCharacter
+from src.domain.character_util import FriendlyFireTolerance
 from src.domain.character_io import character_from_state, character_to_state
-from src.services.main_character_generator import generate_main_character_from_scratch
+from src.services.character_generation import generate_main_character_from_scratch
 from src.tools.admin.shared.bonus_dialogs import BonusEditorDialog
 from src.tools.admin.shared.bonus_payloads import _normalize_achievement_entry
 from src.tools.admin.shared.forms import _parse_label_id, _safe_float, _safe_int
@@ -504,3 +504,4 @@ class CharacterEditorFrame(ttk.Frame):
             self.refresh_character_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Character Editor", f"Failed to save character: {exc}")
+

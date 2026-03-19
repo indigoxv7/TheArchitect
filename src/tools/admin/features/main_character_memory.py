@@ -1,8 +1,8 @@
-import json
+﻿import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.MainCharacter import MainCharacter
+from src.domain.main_character import MainCharacter
 
 
 def _pretty(value) -> str:
@@ -274,3 +274,4 @@ class MainCharacterMemoryFrame(ttk.Frame):
         self.persisted_output.insert(tk.END, result.get("persisted_summary", ""))
         self._refresh_snapshot()
         messagebox.showinfo("Main Character Memory", "Turn generated and stored.")
+

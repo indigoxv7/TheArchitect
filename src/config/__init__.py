@@ -1,0 +1,7 @@
+NANO_EMOJI = "<:Nano:1274243202773418024>"
+nanoEmoji = NANO_EMOJI
+EMOJI_PLACEHOLDERS = {
+    "nanoEmoji": NANO_EMOJI,
+}
+
+__all__ = ["EMOJI_PLACEHOLDERS", "NANO_EMOJI", "nanoEmoji"]

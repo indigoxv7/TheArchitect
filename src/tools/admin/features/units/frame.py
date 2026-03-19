@@ -1,10 +1,10 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.CharacterUtil import Attributes
-from src.domain.Race import CreatureSize
+from src.domain.character_util import Attributes
+from src.domain.race import CreatureSize
 from src.tools.admin.shared.pickers import CharacterSelectDialog, SpellSelectDialog
-from src.tools.gear_options_editor import GearOptionsEditorDialog, build_gear_options_summary, normalize_gear_options_payload
+from src.tools.admin.shared.gear_options import GearOptionsEditorDialog, build_gear_options_summary, normalize_gear_options_payload
 from .dialogs import AttributeBoundsEditorDialog
 from .helpers import UnitEditorFrameMixin, _safe_float, _safe_int
 
@@ -403,4 +403,5 @@ class UnitEditorFrame(UnitEditorFrameMixin, ttk.Frame):
                     self._load_unit(unit)
             except Exception as exc:
                 messagebox.showerror("Unit Editor", f"Failed to save unit: {exc}")
+
 

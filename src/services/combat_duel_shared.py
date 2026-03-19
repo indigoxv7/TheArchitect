@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import copy
 import random
@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.config.tuning import battle_factor, character_stat_factor
-from src.domain.Character import Character, HealthState
-from src.domain.CharacterUtil import HitLocation
-from src.domain.Items import Weapon
+from src.domain.character import Character, HealthState
+from src.domain.character_util import HitLocation
+from src.domain.items import Weapon
 from src.domain.combat_timing import (
     CombatRuntimeState,
     baseline_turn_seconds,
@@ -198,3 +198,4 @@ def health_state_for_character(character: Character) -> HealthState:
     if percent >= character_stat_factor("heavily_injured_health_ratio_threshold", 0.26):
         return HealthState.HEAVILY_INJURED
     return HealthState.DYING
+

@@ -1,4 +1,4 @@
-from src.domain.CharacterUtil import Attribute, BonusType
+﻿from src.domain.character_util import Attribute, BonusType
 from .forms import BONUS_ATTRIBUTE_OPTIONS, _safe_float, _safe_int
 
 
@@ -150,3 +150,4 @@ def _achievement_object_to_entry(achievement_obj) -> dict:
         "description": str(getattr(achievement_obj, "description", "") or ""),
         "bonuses": bonuses,
     }
+

@@ -5,7 +5,7 @@ from pathlib import Path
 import main as game
 from tests.tools.integration_test_orchestrator import build_menu_index
 from src.domain.player_functions import Player
-from src.services.menu_runtime_service import OriginalMessage
+from src.services.menu_runtime import OriginalMessage
 
 
 def _path_from_start(start_menu, target_menu):
@@ -87,4 +87,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

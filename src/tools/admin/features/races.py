@@ -1,10 +1,10 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.CharacterUtil import Attributes
-from src.domain.Race import CreatureSize
+from src.domain.character_util import Attributes
+from src.domain.race import CreatureSize
 from src.tools.admin.shared.pickers import CharacterSelectDialog, ItemSelectDialog, SpellSelectDialog
-from src.tools.gear_options_editor import (
+from src.tools.admin.shared.gear_options import (
     build_gear_options_summary,
     default_gear_options_payload,
     normalize_gear_options_payload,
@@ -462,3 +462,4 @@ class RaceEditorFrame(ttk.Frame):
             self.refresh_race_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Race Editor", f"Failed to save race: {exc}")
+

@@ -3,9 +3,9 @@ from __future__ import annotations
 import copy
 from typing import Callable
 
-from src.domain.Character import Character
-from src.domain.Items import Weapon
-from src.domain.Race import Race
+from src.domain.character import Character
+from src.domain.items import Weapon
+from src.domain.race import Race
 
 
 def resolve_race_for_character(

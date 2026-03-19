@@ -1,13 +1,13 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 import math
 import random
 
 from src.config.tuning import battle_factor, character_stat_factor
-from src.domain.Character import Character
-from src.domain.CharacterUtil import HitLocation
-from src.domain.Items import Weapon
+from src.domain.character import Character
+from src.domain.character_util import HitLocation
+from src.domain.items import Weapon
 
 
 @dataclass(frozen=True)
@@ -318,3 +318,4 @@ class DamageCalculator:
         if value > 1.0:
             return 1.0
         return value
+

@@ -1,9 +1,9 @@
-﻿import tempfile
+import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Campaign import CampaignProgress
-from src.domain.Character import Character
+from src.domain.campaign import CampaignProgress
+from src.domain.character import Character
 from src.domain.player_functions import Player
 from src.services.allegiance_service import AllegianceService
 from src.services.campaign_service import CampaignService
@@ -176,3 +176,4 @@ class TestCampaignService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

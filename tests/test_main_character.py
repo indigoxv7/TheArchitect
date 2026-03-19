@@ -1,16 +1,16 @@
-import random
+﻿import random
 import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Character import Character
-from src.domain.CharacterUtil import Attributes, BodyPart
-from src.domain.MainCharacter import CharacterInfo, HobbyInterestLevel, MainCharacter
-from src.domain.Race import Race
+from src.domain.character import Character
+from src.domain.character_util import Attributes, BodyPart
+from src.domain.main_character import CharacterInfo, HobbyInterestLevel, MainCharacter
+from src.domain.race import Race
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
-from src.services.main_character_generator import (
+from src.services.character_generation import (
     _interest_options_for_profile,
     generate_character_from_race,
     generate_hobbies,
@@ -285,5 +285,6 @@ class TestMainCharacter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

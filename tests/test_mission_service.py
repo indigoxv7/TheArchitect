@@ -2,7 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Mission import Mission, MissionObjectiveStatus, MissionStatistics, MissionTemplate
+from src.domain.mission import MissionObjectiveStatus, MissionStatistics, MissionTemplate
+from src.domain.player_functions import LEGACY_MODULE_MAP
 from src.services.allegiance_service import AllegianceService
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
@@ -257,8 +258,8 @@ class TestMissionService(unittest.TestCase):
             b = mission_service.create_mission_from_dict({"name": "Ambush", "objective": {"objectiveType": "SURVIVAL", "requiredHoursSurvived": 2.0}})
             self.assertNotEqual(a.missionId, b.missionId)
 
-    def test_mission_template_alias_is_preserved(self):
-        self.assertIs(Mission, MissionTemplate)
+    def test_legacy_module_map_points_to_mission_package(self):
+        self.assertEqual(LEGACY_MODULE_MAP["Mission"], "src.domain.mission")
 
     def test_objective_evaluation_uses_mission_statistics(self):
         mission = MissionTemplate.from_dict(

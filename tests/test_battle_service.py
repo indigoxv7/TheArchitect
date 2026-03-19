@@ -1,18 +1,18 @@
-import tempfile
+﻿import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.domain.Character import Character
-from src.domain.MainCharacter import MainCharacter
-from src.domain.Mission import MissionObjectiveStatus
-from src.domain.CharacterUtil import Attributes
-from src.domain.Items import Gear
-from src.domain.Race import CreatureSize, Race
-from src.domain.combat import BattleOutcome, BattlePhase, EncounterDefinition, EncounterEnemyEntry, EncounterType
+from src.domain.character import Character
+from src.domain.main_character import MainCharacter
+from src.domain.mission import MissionObjectiveStatus
+from src.domain.character_util import Attributes
+from src.domain.items import Gear
+from src.domain.race import CreatureSize, Race
+from src.domain.combat import BattleOutcome, BattlePhase, BattleState, EncounterDefinition, EncounterEnemyEntry, EncounterType
 from src.domain.player_functions import Player
 from src.persistence.active_battle_store import ActiveBattleStore
-from src.services.battle_service import BattleService
+from src.services.battle import BattleService
 from src.services.encounter_service import EncounterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
@@ -150,6 +150,16 @@ class TestBattleService(unittest.TestCase):
             resumed_battle, resumed = battle_service.start_or_resume_battle(111, EncounterType.PORTAL)
             self.assertTrue(resumed)
             self.assertEqual(resumed_battle.battle_id, battle.battle_id)
+
+    def test_battle_state_round_trips_through_serialization(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(temp_dir)
+
+            battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
+            payload = battle.to_dict()
+            restored = BattleState.from_dict(payload)
+
+            self.assertEqual(restored.to_dict(), payload)
 
     def test_recentering_shifts_pressed_side_toward_equilibrium(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -392,3 +402,4 @@ class TestBattleService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

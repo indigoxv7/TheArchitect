@@ -1,11 +1,11 @@
-import tempfile
+﻿import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.MainCharacter import MainCharacter
+from src.domain.main_character import MainCharacter
 from src.domain.main_character_memory import CharacterMemory, Relationship, SemanticFact, utc_now_iso
 from src.domain.player_functions import Player
-from src.persistence.player_memory_store import PlayerMemoryStore
+from src.persistence.player_memory import PlayerMemoryStore
 from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.openai_narrative_service import MemoryDistillationModel, ReflectionModel, RelationshipDeltaModel, TurnResponseModel
 
@@ -240,3 +240,4 @@ class TestMainCharacterMemoryService(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -1,7 +1,7 @@
-import unittest
+﻿import unittest
 
-from src.domain.Character import Character
-from src.domain.CharacterUtil import Achievement, Attribute, AttributeBonus, Attributes, Bonus, BonusType
+from src.domain.character import Character
+from src.domain.character_util import Achievement, Attribute, AttributeBonus, Attributes, Bonus, BonusType
 
 
 def _uniform_attributes(value: float) -> Attributes:
@@ -121,3 +121,4 @@ class TestCharacterBonusCalculation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

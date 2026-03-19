@@ -1,10 +1,10 @@
-﻿import json
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Campaign import CampaignProgress
-from src.domain.Character import Character
+from src.domain.campaign import CampaignProgress
+from src.domain.character import Character
 from src.domain.player_functions import Player, load_player
 
 
@@ -80,6 +80,14 @@ class TestPlayerSave(unittest.TestCase):
             self.assertEqual(loaded_progress.unlockedMissionIds, ["Prologue0", "Raid1"])
             self.assertEqual(loaded_progress.completedMissionIds, ["Prologue0"])
             self.assertEqual(loaded_progress.appliedUnlockIds, ["FrontierArc0Unlock0"])
+
+    def test_load_player_rejects_empty_save_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            save_path = Path(temp_dir) / "empty.json"
+            save_path.write_text("", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "is empty"):
+                load_player(str(save_path))
 
 
 if __name__ == "__main__":

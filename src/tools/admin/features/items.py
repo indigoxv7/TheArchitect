@@ -1,9 +1,9 @@
-import json
+﻿import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Items import Armor, Consumable, Item, Weapon
-from src.domain.CharacterUtil import ConsumableKind, DamageType, EquipSlot, ItemType, PowerType
+from src.domain.items import Armor, Consumable, Item, Weapon
+from src.domain.character_util import ConsumableKind, DamageType, EquipSlot, ItemType, PowerType
 from src.tools.admin.shared.forms import _safe_float
 
 
@@ -358,3 +358,4 @@ class ItemEditorFrame(ttk.Frame):
             self.refresh_item_list(reset_form=True)
         except Exception as exc:
             messagebox.showerror("Item Editor", f"Failed to save item: {exc}")
+

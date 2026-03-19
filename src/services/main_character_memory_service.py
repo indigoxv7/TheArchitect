@@ -4,9 +4,9 @@ import math
 from datetime import datetime, timezone
 from typing import Any
 
-from src.domain.MainCharacter import MainCharacter
+from src.domain.main_character import MainCharacter
 from src.domain.main_character_memory import CharacterMemory, EventRecord, LLMTurnLog, Relationship, SemanticFact, utc_now_iso
-from src.persistence.player_memory_store import PlayerMemoryStore
+from src.persistence.player_memory import PlayerMemoryStore
 from src.services.openai_narrative_service import MemoryDistillationModel, OpenAINarrativeService, TurnResponseModel
 
 
@@ -598,3 +598,4 @@ class MainCharacterMemoryService:
             "relationships": [relationship.__dict__ for relationship in self.store.list_relationships_for_character(player_id, character_instance_id)],
             "turn_logs": [turn_log.__dict__ for turn_log in self.store.list_turn_logs_for_character(player_id, character_instance_id, limit=10)],
         }
+

@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import tempfile
 import unittest
@@ -12,8 +12,8 @@ from src.config.tuning import (
     configure_tuning_directory,
     get_tuning_registry,
 )
-from src.domain.Character import Character
-from src.domain.CharacterUtil import Attributes
+from src.domain.character import Character
+from src.domain.character_util import Attributes
 from src.domain.combat_timing import ExertionLevel, action_interval_seconds
 from src.services.damage_calculator import DamageCalculator
 
@@ -106,3 +106,4 @@ class TestTuningSettings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

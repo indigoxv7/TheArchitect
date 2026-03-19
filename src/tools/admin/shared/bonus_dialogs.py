@@ -1,7 +1,7 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk
 
-from src.domain.CharacterUtil import Attribute, BonusType
+from src.domain.character_util import Attribute, BonusType
 from .bonus_payloads import (
     BONUS_ATTRIBUTE_OPTIONS,
     _bonus_summary_text,
@@ -325,3 +325,4 @@ class BonusListEditorDialog(tk.Toplevel):
             self._apply_current()
         self.on_save(list(self.entries))
         self.destroy()
+

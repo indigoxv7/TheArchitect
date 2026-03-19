@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from string import Template
 from typing import List, Optional
 
 from src.domain.player_functions import Player
 from src.persistence.menu_store import MenuStore
 from src.services.game_context import GameContext
-from src.ui.menu_functions import Menu, MenuContext, MenuState
+from src.ui.menu import Menu, MenuContext, MenuState
 
 
 @dataclass
@@ -353,5 +353,6 @@ class MenuService:
             hasBack=menu.parent is not None,
             buttons=buttons,
         )
+
 
 

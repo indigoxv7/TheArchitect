@@ -2,7 +2,7 @@ import copy
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Campaign import CampaignUnlockGroup
+from src.domain.campaign import CampaignUnlockGroup
 from src.tools.admin.shared.forms import _safe_int
 from src.tools.admin.shared.pickers import MissionSelectDialog
 

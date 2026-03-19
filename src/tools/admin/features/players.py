@@ -1,7 +1,7 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.CharacterUtil import TitlePreference
+from src.domain.character_util import TitlePreference
 from src.tools.admin.shared.forms import _parse_label_id, _safe_float, _safe_int
 from src.tools.admin.shared.pickers import CharacterPickerDialog, ItemPickerDialog
 from src.tools.admin.shared.campaign_progress_dialog import PlayerCampaignProgressDialog
@@ -420,3 +420,4 @@ class PlayerEditorFrame(ttk.Frame):
             self._refresh_lists()
         except Exception as exc:
             messagebox.showerror("Player Editor", f"Failed to save player: {exc}")
+

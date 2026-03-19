@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -6,8 +6,8 @@ import random
 import re
 from pathlib import Path
 
-from src.domain.combat_encounter import EncounterDefinition, EncounterEnemyEntry, ReinforcementEntry
-from src.domain.combat_enums import EncounterType
+from src.domain.combat.encounter import EncounterDefinition, EncounterEnemyEntry, ReinforcementEntry
+from src.domain.combat.enums import EncounterType
 
 
 class EncounterService:
@@ -163,3 +163,4 @@ class EncounterService:
             player_front_line=3,
             enemy_front_line=4,
         )
+

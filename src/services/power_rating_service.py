@@ -1,12 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import copy
 import random
 from dataclasses import dataclass
 
 from src.config.tuning import battle_factor, character_stat_factor, misc_factor, misc_factor_int
-from src.domain.Character import Character
-from src.domain.CharacterUtil import (
+from src.domain.character import Character
+from src.domain.character_util import (
     Attribute,
     Attributes,
     Bonus,
@@ -17,8 +17,8 @@ from src.domain.CharacterUtil import (
     HitLocation,
     ItemType,
 )
-from src.domain.Items import Armor, Consumable, Gear, Item, Weapon
-from src.domain.Spells import Spell
+from src.domain.items import Armor, Consumable, Gear, Item, Weapon
+from src.domain.spells import Spell
 from src.domain.combat_timing import (
     CombatRuntimeState,
     accuracy_bonus_for_exertion,
@@ -778,3 +778,4 @@ class PowerRatingService:
             staminaCost=default_offensive_action_stamina_cost(),
             powerLevel=0.0,
         )
+

@@ -1,9 +1,10 @@
+import asyncio
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Character import Character
+from src.domain.character import Character
 from src.domain.player_functions import Player, save_player
 from src.services.game_context import GameContext
 from src.services.player_service import PlayerService
@@ -87,6 +88,25 @@ class TestPlayerService(unittest.TestCase):
             self.assertFalse('party' in saved_character)
             self.assertFalse('stats' in saved_character)
             self.assertEqual(payload['player_state']['__state__'].get('missionPartyCharacterIds'), [migrated_character.playerInstanceId])
+
+    def test_get_player_recovers_from_empty_save_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            context, service, player_saves = self._build_service(temp_dir)
+            save_path = player_saves / '303.json'
+            save_path.write_text('', encoding='utf-8')
+
+            player = asyncio.run(service.get_player(303))
+
+            self.assertEqual(player.discordID, 303)
+            self.assertTrue(player.isNewPlayer)
+            self.assertEqual(context.player_cache[303], player)
+            self.assertTrue(save_path.exists())
+            payload = json.loads(save_path.read_text(encoding='utf-8'))
+            self.assertEqual(payload.get('format_version'), 1)
+
+            backups = list(player_saves.glob('303.corrupt-*.json'))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_text(encoding='utf-8'), '')
 
 
 if __name__ == '__main__':

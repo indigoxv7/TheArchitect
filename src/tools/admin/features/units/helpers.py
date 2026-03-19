@@ -1,10 +1,10 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk
 
-from src.domain.CharacterUtil import Attributes
-from src.domain.Race import CreatureSize
+from src.domain.character_util import Attributes
+from src.domain.race import CreatureSize
 from src.tools.admin.shared.pickers import CharacterSelectDialog, SpellSelectDialog
-from src.tools.gear_options_editor import (
+from src.tools.admin.shared.gear_options import (
     GearOptionsEditorDialog,
     build_gear_options_summary,
     default_gear_options_payload,
@@ -320,4 +320,5 @@ class UnitEditorFrameMixin:
             ]
             self.summary.delete("1.0", tk.END)
             self.summary.insert(tk.END, "\n".join(lines))
+
 

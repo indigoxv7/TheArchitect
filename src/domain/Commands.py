@@ -1,7 +1,7 @@
 ﻿from abc import ABC, abstractmethod
 
-from src.domain.Character import Character
-from src.domain.CharacterUtil import Attribute
+from src.domain.character import Character
+from src.domain.character_util import Attribute
 from src.domain.player_functions import Player
 
 command_registry = {}
@@ -39,4 +39,5 @@ class IncreaseCharacterAttribute(Command):
 
     def execute(self):
         self.character.IncreaseAttribute(self.attribute)
+
 

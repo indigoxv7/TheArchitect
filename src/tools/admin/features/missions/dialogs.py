@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Mission import MissionObjective, MissionObjectiveType
+from src.domain.mission import MissionObjective, MissionObjectiveType
 from src.tools.admin.shared.pickers import AllegianceSelectDialog, ItemSelectDialog, UnitSelectDialog
 
 

@@ -1,9 +1,9 @@
-import random
+﻿import random
 import unittest
 
-from src.domain.Character import Character
-from src.domain.CharacterUtil import Attributes, EquipSlot, HitLocation, ItemType
-from src.domain.Items import Armor, Gear, Weapon
+from src.domain.character import Character
+from src.domain.character_util import Attributes, EquipSlot, HitLocation, ItemType
+from src.domain.items import Armor, Gear, Weapon
 from src.services.damage_calculator import DamageCalculator
 
 
@@ -221,3 +221,4 @@ class TestDamageCalculator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

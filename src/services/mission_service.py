@@ -1,6 +1,6 @@
 import re
 
-from src.domain.Mission import DeliveryObjective, EscortObjective, MissionTemplate
+from src.domain.mission import DeliveryObjective, EscortObjective, MissionTemplate
 from src.persistence.missionbook_store import MissionbookStore
 from src.services.game_context import GameContext
 

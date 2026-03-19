@@ -1,7 +1,7 @@
-import re
+﻿import re
 
-from src.domain.CharacterUtil import DEFAULT_DURABILITY, EquipSlot, ItemType
-from src.domain.Items import Armor, Consumable, Item, Weapon
+from src.domain.character_util import DEFAULT_DURABILITY, EquipSlot, ItemType
+from src.domain.items import Armor, Consumable, Item, Weapon
 from src.persistence.itembook_store import ItembookStore
 from src.services.game_context import GameContext
 
@@ -290,3 +290,4 @@ class ItemService:
             lines.append(f"... and {len(items) - max_lines} more")
 
         return "\n".join(lines)
+

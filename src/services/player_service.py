@@ -1,9 +1,11 @@
 ﻿import copy
+import logging
 import os
 import re
+import time
 from typing import Optional
 
-from src.domain.CharacterUtil import (
+from src.domain.character_util import (
     DEFAULT_DURABILITY,
     Attribute,
     AttributeBonus,
@@ -15,11 +17,14 @@ from src.domain.CharacterUtil import (
     ItemType,
     PowerType,
 )
-from src.domain.Items import Armor, Consumable, Item, Weapon
-from src.domain.MainCharacter import MainCharacter
+from src.domain.items import Armor, Consumable, Item, Weapon
+from src.domain.main_character import MainCharacter
 from src.domain.player_functions import Player, load_player
 from src.persistence.roster_store import ExistingPlayersRosterStore
 from src.services.game_context import GameContext
+
+
+logger = logging.getLogger(__name__)
 
 
 class PlayerService:
@@ -268,6 +273,47 @@ class PlayerService:
     def create_new_player(self, discord_id: int) -> Player:
         return Player(discord_id)
 
+    def _quarantine_invalid_save(self, player_save_path: str) -> str | None:
+        if not os.path.exists(player_save_path):
+            return None
+
+        directory = os.path.dirname(player_save_path)
+        stem, extension = os.path.splitext(os.path.basename(player_save_path))
+        extension = extension or ".json"
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        backup_path = os.path.join(directory, f"{stem}.corrupt-{timestamp}{extension}")
+        attempt = 1
+        while os.path.exists(backup_path):
+            backup_path = os.path.join(directory, f"{stem}.corrupt-{timestamp}-{attempt}{extension}")
+            attempt += 1
+
+        os.replace(player_save_path, backup_path)
+        return backup_path
+
+    async def _create_fresh_player(self, discord_id: int, player_save_path: str, nickname: str | None = None) -> Player:
+        new_player = self.create_new_player(discord_id)
+        new_player.AttachSavePath(player_save_path, enableAutoSave=False)
+        self.context.existing_players[discord_id] = True
+        self.save_existing_players_roster(self.existing_players_roster_path)
+        new_player.playerName = nickname or await self.get_name_from_id(self.context.guild, discord_id)
+        new_player.isNewPlayer = True
+        new_player.SetAutoSaveEnabled(True)
+        new_player.Save()
+        self.context.player_cache[discord_id] = new_player
+        return new_player
+
+    def _create_fresh_player_sync(self, discord_id: int, player_save_path: str) -> Player:
+        new_player = self.create_new_player(discord_id)
+        new_player.AttachSavePath(player_save_path, enableAutoSave=False)
+        self.context.existing_players[discord_id] = True
+        self.save_existing_players_roster(self.existing_players_roster_path)
+        new_player.playerName = str(discord_id)
+        new_player.isNewPlayer = True
+        new_player.SetAutoSaveEnabled(True)
+        new_player.Save()
+        self.context.player_cache[discord_id] = new_player
+        return new_player
+
     async def get_player(self, discord_id: int) -> Player:
         if discord_id in self.context.player_cache:
             return self.context.player_cache[discord_id]
@@ -276,7 +322,19 @@ class PlayerService:
 
         if os.path.exists(player_save_path):
             self.context.existing_players[discord_id] = True
-            player = load_player(player_save_path)
+            try:
+                player = load_player(player_save_path)
+            except Exception:
+                backup_path = self._quarantine_invalid_save(player_save_path)
+                logger.warning(
+                    "Recovered from invalid player save for discord_id=%s at %s; quarantined copy=%s",
+                    discord_id,
+                    player_save_path,
+                    backup_path,
+                    exc_info=True,
+                )
+                nickname = await self.get_name_from_id(self.context.guild, discord_id)
+                return await self._create_fresh_player(discord_id, player_save_path, nickname=nickname)
             migrated = self._normalize_loaded_player(player)
             player.AttachSavePath(player_save_path, enableAutoSave=True)
             nickname = await self.get_name_from_id(self.context.guild, discord_id)
@@ -286,17 +344,7 @@ class PlayerService:
             self.context.player_cache[discord_id] = player
             return player
 
-        new_player = self.create_new_player(discord_id)
-        new_player.AttachSavePath(player_save_path, enableAutoSave=False)
-        self.context.existing_players[discord_id] = True
-        self.save_existing_players_roster(self.existing_players_roster_path)
-        nickname = await self.get_name_from_id(self.context.guild, discord_id)
-        new_player.playerName = nickname
-        new_player.isNewPlayer = True
-        new_player.SetAutoSaveEnabled(True)
-        new_player.Save()
-        self.context.player_cache[discord_id] = new_player
-        return new_player
+        return await self._create_fresh_player(discord_id, player_save_path)
 
     def list_known_player_ids(self) -> list[int]:
         ids: set[int] = set()
@@ -316,7 +364,15 @@ class PlayerService:
         try:
             player = load_player(player_save_path)
         except Exception:
-            return None
+            backup_path = self._quarantine_invalid_save(player_save_path)
+            logger.warning(
+                "Recovered from invalid player save during sync load for discord_id=%s at %s; quarantined copy=%s",
+                discord_id,
+                player_save_path,
+                backup_path,
+                exc_info=True,
+            )
+            return self._create_fresh_player_sync(discord_id, player_save_path)
 
         migrated = self._normalize_loaded_player(player)
         player.AttachSavePath(player_save_path, enableAutoSave=True)
@@ -345,3 +401,4 @@ class PlayerService:
             if isinstance(character, MainCharacter):
                 result.append(character)
         return result
+

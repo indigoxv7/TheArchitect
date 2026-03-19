@@ -1,6 +1,6 @@
 import re
 
-from src.domain.Allegiance import Allegiance, AllegianceDefaultPolicy, AllegianceRelationship
+from src.domain.allegiance import Allegiance, AllegianceDefaultPolicy, AllegianceRelationship
 from src.persistence.allegiancebook_store import AllegiancebookStore
 from src.services.game_context import GameContext
 

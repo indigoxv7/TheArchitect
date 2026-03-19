@@ -1,20 +1,20 @@
-import os
+﻿import os
 import time
 
 from dotenv import load_dotenv
 
-from src.config import Globals
+from src.config import EMOJI_PLACEHOLDERS as CONFIG_EMOJI_PLACEHOLDERS
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from src.persistence.active_battle_store import ActiveBattleStore
-from src.persistence.player_memory_store import PlayerMemoryStore
+from src.persistence.player_memory import PlayerMemoryStore
 from src.config.tuning import configure_tuning_directory, get_tuning_registry
 from src.services.achievement_service import AchievementService
 from src.services.allegiance_service import AllegianceService
 from src.services.battle_runtime_service import BattleRuntimeService
-from src.services.battle_service import BattleService
+from src.services.battle import BattleService
 from src.services.campaign_service import CampaignService
 from src.services.combat_simulator_service import CombatSimulatorService
 from src.services.character_service import CharacterService
@@ -24,7 +24,7 @@ from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
 from src.services.mission_service import MissionService
-from src.services.menu_runtime_service import ConsoleMenuInterface, MenuRuntimeService
+from src.services.menu_runtime import ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.player_service import PlayerService
@@ -33,7 +33,7 @@ from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
 from src.services.unit_service import UnitService
 from src.services.whitelist_service import AdminWhitelistService
-from src.tools.admin_gui import start_admin_gui_thread
+from src.tools.admin import start_admin_gui_thread
 
 
 load_dotenv()
@@ -65,9 +65,7 @@ configure_tuning_directory(TUNING_DIRECTORY)
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-EMOJI_PLACEHOLDERS = {
-    key: value for key, value in vars(Globals).items() if key.endswith("Emoji") and isinstance(value, str)
-}
+EMOJI_PLACEHOLDERS = dict(CONFIG_EMOJI_PLACEHOLDERS)
 
 context = GameContext(max_num_characters=4)
 whitelist_service = AdminWhitelistService(ADMIN_WHITELIST_PATH, context=context)
@@ -250,5 +248,7 @@ if __name__ == "__main__":
         combat_simulator_service=combat_simulator_service,
     )
     bot.run(TOKEN)
+
+
 
 

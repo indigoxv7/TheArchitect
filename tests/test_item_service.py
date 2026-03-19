@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Items import Armor, Consumable, Weapon
+from src.domain.items import Armor, Consumable, Weapon
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 
