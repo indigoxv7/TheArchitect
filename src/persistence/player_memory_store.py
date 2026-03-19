@@ -7,10 +7,18 @@ from contextlib import contextmanager
 from typing import Iterable
 
 from src.domain.main_character_memory import CharacterMemory, EventRecord, LLMTurnLog, Relationship, SemanticFact
+from src.persistence.player_memory_rows import (
+    row_to_event,
+    row_to_fact,
+    row_to_memory,
+    row_to_relationship,
+    row_to_turn_log,
+)
+from src.persistence.player_memory_schema import SCHEMA_VERSION, ensure_schema
 
 
 class PlayerMemoryStore:
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = SCHEMA_VERSION
 
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -33,126 +41,7 @@ class PlayerMemoryStore:
 
     def initialize(self):
         with self.connect() as connection:
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
-            )
-            row = connection.execute(
-                "SELECT value FROM schema_meta WHERE key = 'schema_version'"
-            ).fetchone()
-            if row is None:
-                self._create_schema(connection)
-                connection.execute(
-                    "INSERT INTO schema_meta (key, value) VALUES ('schema_version', ?)",
-                    (str(self.SCHEMA_VERSION),),
-                )
-            else:
-                version = int(row["value"])
-                if version != self.SCHEMA_VERSION:
-                    raise RuntimeError(
-                        f"Unsupported player memory schema version {version}; expected {self.SCHEMA_VERSION}."
-                    )
-
-    def _create_schema(self, connection: sqlite3.Connection):
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS events (
-                player_id INTEGER NOT NULL,
-                event_id INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                event_type TEXT NOT NULL,
-                summary TEXT NOT NULL,
-                location TEXT NOT NULL,
-                stakes TEXT NOT NULL,
-                sensory_details TEXT NOT NULL,
-                latest_utterance TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                raw_payload TEXT NOT NULL,
-                importance REAL NOT NULL,
-                PRIMARY KEY (player_id, event_id)
-            );
-            CREATE TABLE IF NOT EXISTS event_participants (
-                player_id INTEGER NOT NULL,
-                event_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                PRIMARY KEY (player_id, event_id, character_instance_id)
-            );
-            CREATE TABLE IF NOT EXISTS event_tags (
-                player_id INTEGER NOT NULL,
-                event_id INTEGER NOT NULL,
-                tag TEXT NOT NULL,
-                PRIMARY KEY (player_id, event_id, tag)
-            );
-            CREATE TABLE IF NOT EXISTS memories (
-                player_id INTEGER NOT NULL,
-                memory_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                summary TEXT NOT NULL,
-                importance REAL NOT NULL,
-                event_ids_json TEXT NOT NULL,
-                embedding_json TEXT NOT NULL,
-                last_recalled_at TEXT,
-                recall_count INTEGER NOT NULL,
-                PRIMARY KEY (player_id, memory_id)
-            );
-            CREATE TABLE IF NOT EXISTS memory_tags (
-                player_id INTEGER NOT NULL,
-                memory_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                tag TEXT NOT NULL,
-                PRIMARY KEY (player_id, memory_id, tag)
-            );
-            CREATE TABLE IF NOT EXISTS facts (
-                player_id INTEGER NOT NULL,
-                fact_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                fact_text TEXT NOT NULL,
-                confidence REAL NOT NULL,
-                source_memory_ids_json TEXT NOT NULL,
-                embedding_json TEXT NOT NULL,
-                PRIMARY KEY (player_id, fact_id)
-            );
-            CREATE TABLE IF NOT EXISTS fact_tags (
-                player_id INTEGER NOT NULL,
-                fact_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                tag TEXT NOT NULL,
-                PRIMARY KEY (player_id, fact_id, tag)
-            );
-            CREATE TABLE IF NOT EXISTS relationships (
-                player_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                target_character_instance_id TEXT NOT NULL,
-                affinity REAL NOT NULL,
-                trust REAL NOT NULL,
-                fear REAL NOT NULL,
-                respect REAL NOT NULL,
-                evidence_memory_ids_json TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                PRIMARY KEY (player_id, character_instance_id, target_character_instance_id)
-            );
-            CREATE TABLE IF NOT EXISTS llm_turn_logs (
-                player_id INTEGER NOT NULL,
-                turn_id INTEGER NOT NULL,
-                character_instance_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                model TEXT NOT NULL,
-                scene_frame_json TEXT NOT NULL,
-                prompt_packet_json TEXT NOT NULL,
-                output_payload_json TEXT NOT NULL,
-                persisted_summary TEXT NOT NULL,
-                PRIMARY KEY (player_id, turn_id)
-            );
-            CREATE INDEX IF NOT EXISTS idx_event_participants_character ON event_participants(player_id, character_instance_id, event_id);
-            CREATE INDEX IF NOT EXISTS idx_memory_character ON memories(player_id, character_instance_id, memory_id);
-            CREATE INDEX IF NOT EXISTS idx_memory_tag ON memory_tags(player_id, character_instance_id, tag, memory_id);
-            CREATE INDEX IF NOT EXISTS idx_fact_character ON facts(player_id, character_instance_id, fact_id);
-            CREATE INDEX IF NOT EXISTS idx_fact_tag ON fact_tags(player_id, character_instance_id, tag, fact_id);
-            CREATE INDEX IF NOT EXISTS idx_relationship_character ON relationships(player_id, character_instance_id, target_character_instance_id);
-            CREATE INDEX IF NOT EXISTS idx_turn_character ON llm_turn_logs(player_id, character_instance_id, turn_id);
-            """
-        )
+            ensure_schema(connection, self.SCHEMA_VERSION)
 
     @staticmethod
     def _to_json(value) -> str:
@@ -470,89 +359,16 @@ class PlayerMemoryStore:
             return [self._row_to_turn_log(row) for row in rows]
 
     def _row_to_event(self, connection: sqlite3.Connection, row: sqlite3.Row) -> EventRecord:
-        participant_rows = connection.execute(
-            "SELECT character_instance_id FROM event_participants WHERE player_id = ? AND event_id = ? ORDER BY character_instance_id",
-            (int(row["player_id"]), int(row["event_id"])),
-        ).fetchall()
-        tag_rows = connection.execute(
-            "SELECT tag FROM event_tags WHERE player_id = ? AND event_id = ? ORDER BY tag",
-            (int(row["player_id"]), int(row["event_id"])),
-        ).fetchall()
-        return EventRecord(
-            player_id=int(row["player_id"]),
-            event_id=int(row["event_id"]),
-            created_at=str(row["created_at"]),
-            event_type=str(row["event_type"]),
-            summary=str(row["summary"]),
-            participants=[str(item["character_instance_id"]) for item in participant_rows],
-            tags=[str(item["tag"]) for item in tag_rows],
-            location=str(row["location"]),
-            stakes=str(row["stakes"]),
-            sensory_details=str(row["sensory_details"]),
-            latest_utterance=str(row["latest_utterance"]),
-            prompt=str(row["prompt"]),
-            raw_payload=self._from_json(row["raw_payload"], {}),
-            importance=float(row["importance"]),
-        )
+        return row_to_event(connection, row, self._from_json)
 
     def _row_to_memory(self, connection: sqlite3.Connection, row: sqlite3.Row) -> CharacterMemory:
-        tag_rows = connection.execute(
-            "SELECT tag FROM memory_tags WHERE player_id = ? AND memory_id = ? ORDER BY tag",
-            (int(row["player_id"]), int(row["memory_id"])),
-        ).fetchall()
-        return CharacterMemory(
-            player_id=int(row["player_id"]),
-            memory_id=int(row["memory_id"]),
-            character_instance_id=str(row["character_instance_id"]),
-            created_at=str(row["created_at"]),
-            summary=str(row["summary"]),
-            importance=float(row["importance"]),
-            tags=[str(item["tag"]) for item in tag_rows],
-            event_ids=self._from_json(row["event_ids_json"], []),
-            embedding=self._from_json(row["embedding_json"], []),
-            last_recalled_at=row["last_recalled_at"],
-            recall_count=int(row["recall_count"]),
-        )
+        return row_to_memory(connection, row, self._from_json)
 
     def _row_to_fact(self, connection: sqlite3.Connection, row: sqlite3.Row) -> SemanticFact:
-        tag_rows = connection.execute(
-            "SELECT tag FROM fact_tags WHERE player_id = ? AND fact_id = ? ORDER BY tag",
-            (int(row["player_id"]), int(row["fact_id"])),
-        ).fetchall()
-        return SemanticFact(
-            player_id=int(row["player_id"]),
-            fact_id=int(row["fact_id"]),
-            character_instance_id=str(row["character_instance_id"]),
-            created_at=str(row["created_at"]),
-            fact_text=str(row["fact_text"]),
-            confidence=float(row["confidence"]),
-            tags=[str(item["tag"]) for item in tag_rows],
-            source_memory_ids=self._from_json(row["source_memory_ids_json"], []),
-            embedding=self._from_json(row["embedding_json"], []),
-        )
+        return row_to_fact(connection, row, self._from_json)
 
     def _row_to_relationship(self, row: sqlite3.Row) -> Relationship:
-        return Relationship(
-            player_id=int(row["player_id"]),
-            character_instance_id=str(row["character_instance_id"]),
-            target_character_instance_id=str(row["target_character_instance_id"]),
-            affinity=float(row["affinity"]),
-            trust=float(row["trust"]),
-            fear=float(row["fear"]),
-            respect=float(row["respect"]),
-            evidence_memory_ids=self._from_json(row["evidence_memory_ids_json"], []),
-            updated_at=str(row["updated_at"]),
-        )
+        return row_to_relationship(row, self._from_json)
 
     def _row_to_turn_log(self, row: sqlite3.Row) -> LLMTurnLog:
-        return LLMTurnLog(
-            player_id=int(row["player_id"]),
-            turn_id=int(row["turn_id"]),
-            character_instance_id=str(row["character_instance_id"]),
-            created_at=str(row["created_at"]),
-            model=str(row["model"]),
-            scene_frame=self._from_json(row["scene_frame_json"], {}),
-            prompt_packet=self._from_json(row["prompt_packet_json"], {}),
-            output_payload=self._from_json(row["output_payload_json"], {}),
-            persisted_summary=str(row["persisted_summary"]),
-        )
+        return row_to_turn_log(row, self._from_json)
