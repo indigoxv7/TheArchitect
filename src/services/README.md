@@ -6,7 +6,7 @@
 This directory should coordinate domain models and persistence stores rather than duplicating model state or embedding raw file/database logic.
 
 ## Entry points
-- Main modules: service facades such as `player_service.py`, `menu_service.py`, `battle/`, `menu_runtime/`, `character_generation/`
+- Main modules: service facades such as `player_service.py`, `menu_service.py`, `battle/`, `menu_runtime/`, `character_generation/`, `mission_map/`
 - Called by: `main.py`, admin tools, tests, and integration flows
 
 ## Public interfaces
@@ -28,6 +28,7 @@ This directory should coordinate domain models and persistence stores rather tha
 | `battle/` | Battle orchestration internals behind `BattleService` |
 | `menu_runtime/` | Discord and console interaction runtime behind `MenuRuntimeService` |
 | `character_generation/` | Main-character and race-based generation helpers |
+| `mission_map/` | Mission-map generation and preview image helpers |
 | `openai_narrative_service.py` | OpenAI-backed narrative and embedding client wrapper |
 
 ## Tests

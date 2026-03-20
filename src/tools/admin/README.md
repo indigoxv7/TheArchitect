@@ -25,7 +25,7 @@ This package owns editor UI composition and local editor workflows. It should go
 |------|----------------|
 | `app.py` | Admin shell, home screen, and frame switching |
 | `threading.py` | Start the Tkinter app on a background thread |
-| `features/` | Feature-specific editors such as characters, missions, units, and environment |
+| `features/` | Feature-specific editors such as characters, missions, units, environment, and map testing |
 | `shared/` | Shared UI helpers, dialogs, pickers, and scrolling infrastructure |
 | `context.py` | Service bundle passed into the editor shell |
 

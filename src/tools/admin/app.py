@@ -10,6 +10,7 @@ from src.tools.admin.features.characters.frame import CharacterEditorFrame
 from src.tools.admin.features.combat_simulator import CombatSimulatorFrame
 from src.tools.admin.features.environment.frame import EnvironmentEditorFrame
 from src.tools.admin.features.items import ItemEditorFrame
+from src.tools.admin.features.map_testing import MapTestingFrame
 from src.tools.admin.features.main_character_memory import MainCharacterMemoryFrame
 from src.tools.admin.features.missions.frame import MissionEditorFrame
 from src.tools.admin.features.players import PlayerEditorFrame
@@ -77,6 +78,7 @@ class AdminEditorApp:
         self.campaign_frame = ScrollableEditorHost(self.container, CampaignEditorFrame, self)
         self.environment_frame = ScrollableEditorHost(self.container, EnvironmentEditorFrame, self)
         self.variable_tuning_frame = ScrollableEditorHost(self.container, VariableTuningFrame, self)
+        self.map_testing_frame = ScrollableEditorHost(self.container, MapTestingFrame, self)
         self.memory_frame = ScrollableEditorHost(self.container, MainCharacterMemoryFrame, self)
         self.combat_simulator_frame = ScrollableEditorHost(self.container, CombatSimulatorFrame, self)
 
@@ -94,6 +96,7 @@ class AdminEditorApp:
             self.campaign_frame,
             self.environment_frame,
             self.variable_tuning_frame,
+            self.map_testing_frame,
             self.memory_frame,
             self.combat_simulator_frame,
         ]
@@ -116,6 +119,7 @@ class AdminEditorApp:
             ("Edit Campaigns", self.show_campaign_editor),
             ("Edit Environment", self.show_environment_editor),
             ("Variable Tuning", self.show_variable_tuning_editor),
+            ("Map Testing", self.show_map_testing),
             ("Main Character Memory", self.show_memory_editor),
             ("Combat Simulator", self.show_combat_simulator),
         ]
@@ -182,6 +186,9 @@ class AdminEditorApp:
     def show_variable_tuning_editor(self):
         self.variable_tuning_frame.reload_from_disk(show_message=False)
         self._show(self.variable_tuning_frame)
+
+    def show_map_testing(self):
+        self._show(self.map_testing_frame)
 
     def show_memory_editor(self):
         self.memory_frame.refresh_player_list(reset_form=True)
