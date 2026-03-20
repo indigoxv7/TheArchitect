@@ -9,6 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from src.persistence.active_battle_store import ActiveBattleStore
+from src.persistence.active_mission_store import ActiveMissionStore
 from src.persistence.player_memory import PlayerMemoryStore
 from src.config.tuning import configure_tuning_directory, get_tuning_registry
 from src.services.achievement_service import AchievementService
@@ -23,10 +24,12 @@ from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
+from src.services.mission_runtime_service import MissionRuntimeService
 from src.services.mission_service import MissionService
 from src.services.menu_runtime import ConsoleMenuInterface as ConsoleMenuInterface, MenuRuntimeService
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
+from src.services.mission_unit_populator import MissionUnitPopulator
 from src.services.player_service import PlayerService
 from src.services.power_rating_service import PowerRatingService
 from src.services.race_service import RaceService
@@ -57,6 +60,7 @@ ENVIRONMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Environment", "environ
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
+ACTIVE_MISSIONS_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveMissions")
 PORTAL_ENCOUNTER_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PortalEncounters")
 TUNING_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "Tuning")
 
@@ -107,6 +111,7 @@ combat_simulator_service = CombatSimulatorService(
     spell_service=spell_service,
     race_service=race_service,
 )
+mission_unit_populator = MissionUnitPopulator(unit_service=unit_service, power_rating_service=power_rating_service)
 environment_service = EnvironmentService(environmentbook_path=ENVIRONMENTBOOK_PATH, context=context)
 mission_service = MissionService(
     missionbook_path=MISSIONBOOK_PATH,
@@ -126,6 +131,7 @@ menu_service = MenuService(
 openai_narrative_service = OpenAINarrativeService()
 player_memory_store = PlayerMemoryStore(db_path=PLAYER_MEMORY_DB_PATH)
 active_battle_store = ActiveBattleStore(battles_directory=ACTIVE_BATTLES_DIRECTORY)
+active_mission_store = ActiveMissionStore(missions_directory=ACTIVE_MISSIONS_DIRECTORY)
 encounter_service = EncounterService(
     portal_encounter_directory=PORTAL_ENCOUNTER_DIRECTORY,
     context=context,
@@ -150,6 +156,19 @@ battle_service = BattleService(
     memory_service=memory_service,
 )
 battle_runtime_service = BattleRuntimeService(battle_service=battle_service)
+mission_runtime_service = MissionRuntimeService(
+    context=context,
+    player_service=player_service,
+    character_service=character_service,
+    mission_service=mission_service,
+    campaign_service=campaign_service,
+    allegiance_service=allegiance_service,
+    mission_unit_populator=mission_unit_populator,
+    active_mission_store=active_mission_store,
+    battle_runtime_service=battle_runtime_service,
+)
+battle_runtime_service.set_mission_runtime_service(mission_runtime_service)
+battle_service.set_mission_runtime_service(mission_runtime_service)
 player_service.set_campaign_service(campaign_service)
 _is_initialized = False
 
@@ -161,6 +180,7 @@ menu_runtime_service = MenuRuntimeService(
     item_service=item_service,
     context=context,
     battle_runtime_service=battle_runtime_service,
+    mission_runtime_service=mission_runtime_service,
 )
 
 
@@ -184,6 +204,7 @@ def initialize_game():
     campaign_service.load_campaignbook()
     memory_service.initialize()
     battle_service.initialize()
+    mission_runtime_service.initialize()
     menu_service.load_menus()
     _is_initialized = True
 

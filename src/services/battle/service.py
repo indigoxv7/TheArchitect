@@ -66,6 +66,7 @@ class BattleService(
         self.damage_calculator = damage_calculator if damage_calculator is not None else DamageCalculator()
         self.openai_service = openai_service
         self.memory_service = memory_service
+        self.mission_runtime_service = None
         self._rng = random.Random()
         self.roster_builder = BattleRosterBuilder(
             context=context,
@@ -73,6 +74,9 @@ class BattleService(
             character_service=character_service,
             health_state_for_ratio=self._health_state_for_ratio,
         )
+
+    def set_mission_runtime_service(self, mission_runtime_service):
+        self.mission_runtime_service = mission_runtime_service
 
     def cycle_stance(self, battle: BattleState):
         values = list(CommanderStance)

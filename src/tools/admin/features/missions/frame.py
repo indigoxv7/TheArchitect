@@ -59,6 +59,10 @@ class MissionEditorFrame(ttk.Frame):
                 "low": tk.StringVar(value=str(map_defaults.deadEndLikelihoodLow)),
                 "high": tk.StringVar(value=str(map_defaults.deadEndLikelihoodHigh)),
             },
+            "nodeJitterFraction": {
+                "low": tk.StringVar(value=str(map_defaults.nodeJitterFractionLow)),
+                "high": tk.StringVar(value=str(map_defaults.nodeJitterFractionHigh)),
+            },
         }
 
         top = ttk.Frame(self)
@@ -168,6 +172,7 @@ class MissionEditorFrame(ttk.Frame):
             ("Narrowness", "narrowness", "0.0 to 1.0"),
             ("Connectedness", "connectedness", "0.0 to 1.0"),
             ("Dead End Likelihood", "deadEndLikelihood", "0.0 to 1.0"),
+            ("Node Jitter Fraction", "nodeJitterFraction", "0.0 to 1.0"),
         ]:
             row = ttk.Frame(map_frame)
             row.pack(fill=tk.X, padx=6, pady=2)
@@ -535,6 +540,8 @@ class MissionEditorFrame(ttk.Frame):
         self.map_range_vars["connectedness"]["high"].set(str(map_range.connectednessHigh))
         self.map_range_vars["deadEndLikelihood"]["low"].set(str(map_range.deadEndLikelihoodLow))
         self.map_range_vars["deadEndLikelihood"]["high"].set(str(map_range.deadEndLikelihoodHigh))
+        self.map_range_vars["nodeJitterFraction"]["low"].set(str(map_range.nodeJitterFractionLow))
+        self.map_range_vars["nodeJitterFraction"]["high"].set(str(map_range.nodeJitterFractionHigh))
 
     def _build_map_generation_range_payload(self):
         return {
@@ -546,6 +553,8 @@ class MissionEditorFrame(ttk.Frame):
             "connectednessHigh": _safe_float(self.map_range_vars["connectedness"]["high"].get().strip() or 0.25, 0.25),
             "deadEndLikelihoodLow": _safe_float(self.map_range_vars["deadEndLikelihood"]["low"].get().strip() or 0.7, 0.7),
             "deadEndLikelihoodHigh": _safe_float(self.map_range_vars["deadEndLikelihood"]["high"].get().strip() or 0.7, 0.7),
+            "nodeJitterFractionLow": _safe_float(self.map_range_vars["nodeJitterFraction"]["low"].get().strip() or 0.45, 0.45),
+            "nodeJitterFractionHigh": _safe_float(self.map_range_vars["nodeJitterFraction"]["high"].get().strip() or 0.45, 0.45),
         }
 
     def _build_map_generation_range(self) -> MissionMapGenerationRange:
@@ -585,7 +594,7 @@ class MissionEditorFrame(ttk.Frame):
             "\n".join(
                 [
                     f"Seed: {self.current_map.settings.seed}",
-                    f"Actual Settings: nodes {self.current_map.settings.total_nodes}, narrowness {self.current_map.settings.narrowness:.2f}, connectedness {self.current_map.settings.connectedness:.2f}, dead ends {self.current_map.settings.dead_end_likelihood:.2f}",
+                    f"Actual Settings: nodes {self.current_map.settings.total_nodes}, narrowness {self.current_map.settings.narrowness:.2f}, connectedness {self.current_map.settings.connectedness:.2f}, dead ends {self.current_map.settings.dead_end_likelihood:.2f}, jitter {self.current_map.settings.node_jitter_fraction:.2f}",
                     f"Characters: {self.current_map_overlay.totalPlacedCharacters} across {len(self.current_map_overlay.characterCountByNode)} nodes",
                     f"Treasure: {len(self.current_map_overlay.nanoByNode)} nodes, {self.current_map_overlay.totalNano} Nano total",
                     f"Clues: {len(self.current_map_overlay.clueTargetNodeByNode)} nodes",

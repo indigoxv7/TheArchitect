@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import discord
 
-from src.bot.views.combat_view import CombatView
+from src.bot.views.combat_view import CombatView, ResolvedBattleView
 from src.domain.combat import BattlePhase, EncounterType
 
 
@@ -33,8 +33,12 @@ class StrategyModal(discord.ui.Modal, title="Battle Strategy"):
 
 
 class BattleRuntimeService:
-    def __init__(self, battle_service):
+    def __init__(self, battle_service, mission_runtime_service=None):
         self.battle_service = battle_service
+        self.mission_runtime_service = mission_runtime_service
+
+    def set_mission_runtime_service(self, mission_runtime_service):
+        self.mission_runtime_service = mission_runtime_service
 
     def _is_active_tab(self, player_id: int, tab_name: str) -> bool:
         battle = self.battle_service.get_active_battle(player_id)
@@ -142,7 +146,7 @@ class BattleRuntimeService:
 
     def build_view(self, battle):
         if battle.phase == BattlePhase.RESOLVED:
-            return discord.ui.View(timeout=30)
+            return ResolvedBattleView(self, battle)
         return CombatView(self, battle)
 
     async def start_or_resume_battle(
@@ -150,6 +154,29 @@ class BattleRuntimeService:
     ):
         battle, resumed = self.battle_service.start_or_resume_battle(player_id, encounter_type)
         note = "Resumed active battle." if resumed else f"Started {encounter_type.name.lower()} battle."
+        await self.render_battle(interaction, battle, note=note)
+
+    async def start_or_resume_mission_battle(
+        self,
+        interaction: discord.Interaction,
+        player_id: int,
+        mission_id: str,
+        mission_name: str,
+        node_id: int,
+        enemy_characters: list[dict[str, object]],
+        encounter_type: EncounterType,
+        allow_retreat: bool,
+    ):
+        battle, resumed = self.battle_service.start_or_resume_mission_battle(
+            player_id=player_id,
+            mission_id=mission_id,
+            mission_name=mission_name,
+            node_id=node_id,
+            enemy_characters=enemy_characters,
+            encounter_type=encounter_type,
+            allow_retreat=allow_retreat,
+        )
+        note = "Resumed mission battle." if resumed else "Hostile forces engage your squad."
         await self.render_battle(interaction, battle, note=note)
 
     async def render_battle(
@@ -160,15 +187,15 @@ class BattleRuntimeService:
         if message is None:
             if interaction.response.is_done():
                 if interaction.message is not None:
-                    await interaction.message.edit(embed=embed, view=view)
+                    await interaction.message.edit(embed=embed, view=view, attachments=[])
                 else:
                     await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             else:
-                await interaction.response.edit_message(embed=embed, view=view)
+                await interaction.response.edit_message(embed=embed, view=view, attachments=[])
         else:
             if not interaction.response.is_done():
                 await interaction.response.defer()
-            await message.edit(embed=embed, view=view)
+            await message.edit(embed=embed, view=view, attachments=[])
         if note:
             if interaction.response.is_done():
                 await interaction.followup.send(note, ephemeral=True)
@@ -254,3 +281,9 @@ class BattleRuntimeService:
             await interaction.response.send_message(str(exc), ephemeral=True)
             return
         await self.render_battle(interaction, battle, note="Retreat ordered.")
+
+    async def return_to_mission(self, interaction: discord.Interaction, player_id: int):
+        if self.mission_runtime_service is None:
+            await interaction.response.send_message("Mission runtime is unavailable.", ephemeral=True)
+            return
+        await self.mission_runtime_service.return_from_battle(interaction, player_id)

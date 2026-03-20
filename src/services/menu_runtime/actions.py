@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from src.domain.combat import EncounterType
 from src.services.menu_runtime.fields import (
     COMPONENT_FIELD_EDIT_CONFIG,
     ITEM_ENUM_ACTIONS,
@@ -22,8 +21,7 @@ class MenuSpecialActionRouter:
     def __init__(self, runtime: "MenuRuntimeService"):
         self.runtime = runtime
         self._handlers = {
-            "scavengingMissionAction": self._start_scavenging_battle,
-            "portalMissionAction": self._start_portal_battle,
+            "missionAction": self._open_mission_menu,
             "spellCreateAction": self._start_spell_create,
             "spellCreateSaveAction": self._save_spell_create,
             "spellCreateCancelAction": self._cancel_spell_create,
@@ -90,15 +88,15 @@ class MenuSpecialActionRouter:
         )
         return self._parent_or_self(menu), False, True
 
-    async def _start_scavenging_battle(
+    async def _open_mission_menu(
         self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage"
     ) -> SpecialActionResult:
-        return await self._start_battle(interface, menu, EncounterType.SCAVENGING)
-
-    async def _start_portal_battle(
-        self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage"
-    ) -> SpecialActionResult:
-        return await self._start_battle(interface, menu, EncounterType.PORTAL)
+        interaction = interface.discord_interaction
+        if self.runtime.mission_runtime_service is None or interaction is None:
+            await interface.send_ephemeral("Mission runtime is only available in Discord right now.")
+            return self._parent_or_self(menu), False, True
+        await self.runtime.mission_runtime_service.show_mission_menu(interaction, interface.user_id)
+        return self._parent_or_self(menu), False, True
 
     async def _start_spell_create(
         self, _interface: "MenuInterface", menu: Menu, original_message: "OriginalMessage"

@@ -17,6 +17,8 @@ class MissionMapGenerationRange:
     connectednessHigh: float = 0.25
     deadEndLikelihoodLow: float = 0.7
     deadEndLikelihoodHigh: float = 0.7
+    nodeJitterFractionLow: float = 0.45
+    nodeJitterFractionHigh: float = 0.45
 
     def __post_init__(self):
         self.totalNodesLow = clamp_non_negative_int(self.totalNodesLow, 60) or 1
@@ -39,6 +41,11 @@ class MissionMapGenerationRange:
         if self.deadEndLikelihoodHigh < self.deadEndLikelihoodLow:
             self.deadEndLikelihoodHigh = self.deadEndLikelihoodLow
 
+        self.nodeJitterFractionLow = clamp_fraction(self.nodeJitterFractionLow, 0.45)
+        self.nodeJitterFractionHigh = clamp_fraction(self.nodeJitterFractionHigh, self.nodeJitterFractionLow)
+        if self.nodeJitterFractionHigh < self.nodeJitterFractionLow:
+            self.nodeJitterFractionHigh = self.nodeJitterFractionLow
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "totalNodesLow": self.totalNodesLow,
@@ -49,6 +56,8 @@ class MissionMapGenerationRange:
             "connectednessHigh": self.connectednessHigh,
             "deadEndLikelihoodLow": self.deadEndLikelihoodLow,
             "deadEndLikelihoodHigh": self.deadEndLikelihoodHigh,
+            "nodeJitterFractionLow": self.nodeJitterFractionLow,
+            "nodeJitterFractionHigh": self.nodeJitterFractionHigh,
         }
 
     @classmethod
@@ -64,6 +73,8 @@ class MissionMapGenerationRange:
             connectednessHigh=data.get("connectednessHigh", data.get("connectednessLow", 0.25)),
             deadEndLikelihoodLow=data.get("deadEndLikelihoodLow", 0.7),
             deadEndLikelihoodHigh=data.get("deadEndLikelihoodHigh", data.get("deadEndLikelihoodLow", 0.7)),
+            nodeJitterFractionLow=data.get("nodeJitterFractionLow", 0.45),
+            nodeJitterFractionHigh=data.get("nodeJitterFractionHigh", data.get("nodeJitterFractionLow", 0.45)),
         )
 
     def sample_values(self, rng: random.Random | None = None, seed: int | None = None) -> dict[str, float | int | None]:
@@ -82,6 +93,7 @@ class MissionMapGenerationRange:
             "narrowness": _sample_fraction(self.narrownessLow, self.narrownessHigh),
             "connectedness": _sample_fraction(self.connectednessLow, self.connectednessHigh),
             "dead_end_likelihood": _sample_fraction(self.deadEndLikelihoodLow, self.deadEndLikelihoodHigh),
+            "node_jitter_fraction": _sample_fraction(self.nodeJitterFractionLow, self.nodeJitterFractionHigh),
             "seed": seed,
         }
 
@@ -90,5 +102,6 @@ class MissionMapGenerationRange:
             f"Nodes {self.totalNodesLow}-{self.totalNodesHigh} | "
             f"Narrowness {self.narrownessLow:.2f}-{self.narrownessHigh:.2f} | "
             f"Connectedness {self.connectednessLow:.2f}-{self.connectednessHigh:.2f} | "
-            f"Dead Ends {self.deadEndLikelihoodLow:.2f}-{self.deadEndLikelihoodHigh:.2f}"
+            f"Dead Ends {self.deadEndLikelihoodLow:.2f}-{self.deadEndLikelihoodHigh:.2f} | "
+            f"Jitter {self.nodeJitterFractionLow:.2f}-{self.nodeJitterFractionHigh:.2f}"
         )

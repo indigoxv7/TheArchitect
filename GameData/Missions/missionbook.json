@@ -44,7 +44,9 @@
                 "connectednessLow": 0.25,
                 "connectednessHigh": 0.25,
                 "deadEndLikelihoodLow": 0.7,
-                "deadEndLikelihoodHigh": 0.7
+                "deadEndLikelihoodHigh": 0.7,
+                "nodeJitterFractionLow": 0.45,
+                "nodeJitterFractionHigh": 0.45
             }
         },
         {
@@ -74,7 +76,7 @@
                             "isBoss": false
                         }
                     ],
-                    "clusterProbability": 0.5,
+                    "clusterProbability": 0.4,
                     "clusterProbabilityVariance": 0.0,
                     "levelMin": 0,
                     "levelMax": 0
@@ -90,7 +92,9 @@
                 "connectednessLow": 0.25,
                 "connectednessHigh": 0.25,
                 "deadEndLikelihoodLow": 0.1,
-                "deadEndLikelihoodHigh": 0.1
+                "deadEndLikelihoodHigh": 0.1,
+                "nodeJitterFractionLow": 0.35,
+                "nodeJitterFractionHigh": 0.35
             }
         }
     ]

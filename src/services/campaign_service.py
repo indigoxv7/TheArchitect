@@ -35,6 +35,17 @@ class CampaignService:
     @staticmethod
     def get_campaign_label(campaign: Campaign) -> str:
         return f"{campaign.name} [{campaign.campaignId}]"
+    @staticmethod
+    def _campaign_references_mission(campaign: Campaign, mission_id: str) -> bool:
+        target = str(mission_id or "").strip()
+        if not target:
+            return False
+        if target in getattr(campaign, "startingMissionIds", []):
+            return True
+        for group in getattr(campaign, "unlockGroups", []) or []:
+            if target in getattr(group, "missionIds", []):
+                return True
+        return False
 
     @staticmethod
     def parse_campaign_id_from_label(label: str) -> str:
@@ -252,6 +263,44 @@ class CampaignService:
         changed = self.refresh_player_campaign_progress(player, campaign_id=campaign_id, rebuild=False) or changed
         return changed
 
+
+    def list_unlocked_missions(self, player) -> list[dict[str, object]]:
+        self.ensure_player_progress(player)
+        unlocked: dict[str, set[str]] = {}
+        for campaign in self.list_campaigns():
+            progress = self.get_player_campaign_progress(player, campaign.campaignId, create_if_missing=True)
+            if progress is None:
+                continue
+            for mission_id in getattr(progress, "unlockedMissionIds", []) or []:
+                mission = self.mission_service.get_mission_by_id(mission_id)
+                if mission is None:
+                    continue
+                unlocked.setdefault(mission_id, set()).add(campaign.campaignId)
+
+        result: list[dict[str, object]] = []
+        for mission_id, campaign_ids in unlocked.items():
+            mission = self.mission_service.get_mission_by_id(mission_id)
+            if mission is None:
+                continue
+            result.append(
+                {
+                    "missionId": mission_id,
+                    "mission": mission,
+                    "campaignIds": sorted(campaign_ids),
+                }
+            )
+        return sorted(result, key=lambda entry: (str(getattr(entry["mission"], "name", "")).lower(), entry["missionId"]))
+
+    def mark_mission_completed_everywhere(self, player, mission_id: str) -> bool:
+        target = str(mission_id or "").strip()
+        if not target:
+            return False
+        changed = False
+        for campaign in self.list_campaigns():
+            if not self._campaign_references_mission(campaign, target):
+                continue
+            changed = self.mark_mission_completed(player, campaign.campaignId, target) or changed
+        return changed
     def build_campaignbook_overview(self, max_lines: int = 20) -> str:
         campaigns = self.list_campaigns()
         if not campaigns:
@@ -267,3 +316,4 @@ class CampaignService:
             lines.append(f"... and {len(campaigns) - max_lines} more")
 
         return "\n".join(lines)
+

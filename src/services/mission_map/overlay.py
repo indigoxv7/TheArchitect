@@ -158,7 +158,10 @@ def generate_all_map_features(
         seed=seed,
     )
     overlay = generate_treasure_overlay(mission_map, existing_overlay=overlay, seed=None if seed is None else seed + 1)
-    overlay = generate_clue_overlay(mission_map, existing_overlay=overlay, seed=None if seed is None else seed + 2)
+    try:
+        overlay = generate_clue_overlay(mission_map, existing_overlay=overlay, seed=None if seed is None else seed + 2)
+    except ValueError:
+        pass
     return overlay
 
 

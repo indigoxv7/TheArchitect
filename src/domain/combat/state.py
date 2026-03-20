@@ -176,6 +176,9 @@ class BattleState:
     mission_objective: MissionObjective = field(default_factory=lambda: EliminationObjective(1.0))
     mission_statistics: MissionStatistics = field(default_factory=MissionStatistics)
     mission_objective_status: MissionObjectiveStatus = MissionObjectiveStatus.IN_PROGRESS
+    origin_type: str = ""
+    origin_mission_node_id: int | None = None
+    origin_resolution_applied: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -210,6 +213,9 @@ class BattleState:
             "mission_objective": self.mission_objective.to_dict(),
             "mission_statistics": self.mission_statistics.to_dict(),
             "mission_objective_status": self.mission_objective_status.name,
+            "origin_type": self.origin_type,
+            "origin_mission_node_id": self.origin_mission_node_id,
+            "origin_resolution_applied": bool(self.origin_resolution_applied),
         }
 
     @classmethod
@@ -276,4 +282,11 @@ class BattleState:
                 data.get("mission_objective_status"),
                 MissionObjectiveStatus.IN_PROGRESS,
             ),
+            origin_type=str(data.get("origin_type", "") or ""),
+            origin_mission_node_id=(
+                int(data.get("origin_mission_node_id"))
+                if data.get("origin_mission_node_id", None) not in (None, "")
+                else None
+            ),
+            origin_resolution_applied=bool(data.get("origin_resolution_applied", False)),
         )

@@ -27,6 +27,7 @@ class GameContext:
 
     # Battle runtime state
     active_battles: dict[int, object] = field(default_factory=dict)
+    active_missions: dict[int, object] = field(default_factory=dict)
 
     # Menu runtime state
     menus_by_name: dict[str, object] = field(default_factory=dict)

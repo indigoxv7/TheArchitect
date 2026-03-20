@@ -182,6 +182,42 @@ class TestCampaignService(unittest.TestCase):
             self.assertEqual(progress.appliedUnlockIds, [])
             self.assertEqual(progress.unlockedMissionIds, [prologue.missionId])
 
+    def test_unlocked_missions_are_deduped_and_complete_everywhere(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, mission_service, campaign_service, _campaignbook_path = self._build_services(temp_dir)
+            prologue = self._create_simple_mission(mission_service, "Prologue")
+            shared = self._create_simple_mission(mission_service, "Shared Mission")
+
+            first = campaign_service.create_campaign_from_dict(
+                {
+                    "name": "First Arc",
+                    "startingMissionIds": [prologue.missionId, shared.missionId],
+                    "unlockGroups": [],
+                }
+            )
+            second = campaign_service.create_campaign_from_dict(
+                {
+                    "name": "Second Arc",
+                    "startingMissionIds": [shared.missionId],
+                    "unlockGroups": [],
+                }
+            )
+
+            player = Player(102, characters=[Character(name="Hero", level=3)])
+            campaign_service.ensure_player_progress(player)
+
+            unlocked = campaign_service.list_unlocked_missions(player)
+            unlocked_ids = [entry["missionId"] for entry in unlocked]
+            self.assertEqual(unlocked_ids.count(shared.missionId), 1)
+
+            shared_entry = next(entry for entry in unlocked if entry["missionId"] == shared.missionId)
+            self.assertEqual(shared_entry["campaignIds"], sorted([first.campaignId, second.campaignId]))
+
+            changed = campaign_service.mark_mission_completed_everywhere(player, shared.missionId)
+            self.assertTrue(changed)
+            self.assertIn(shared.missionId, player.GetCampaignProgress(first.campaignId).completedMissionIds)
+            self.assertIn(shared.missionId, player.GetCampaignProgress(second.campaignId).completedMissionIds)
+
 
 if __name__ == "__main__":
     unittest.main()

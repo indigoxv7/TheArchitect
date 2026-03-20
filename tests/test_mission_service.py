@@ -127,6 +127,8 @@ class TestMissionService(unittest.TestCase):
                         "connectednessHigh": 0.45,
                         "deadEndLikelihoodLow": 0.5,
                         "deadEndLikelihoodHigh": 0.85,
+                        "nodeJitterFractionLow": 0.2,
+                        "nodeJitterFractionHigh": 0.4,
                     },
                     "objective": {
                         "objectiveType": "DELIVERY",
@@ -180,6 +182,8 @@ class TestMissionService(unittest.TestCase):
             self.assertEqual(mission.mapGenerationRange.totalNodesHigh, 60)
             self.assertAlmostEqual(mission.mapGenerationRange.narrownessLow, 0.3)
             self.assertAlmostEqual(mission.mapGenerationRange.deadEndLikelihoodHigh, 0.85)
+            self.assertAlmostEqual(mission.mapGenerationRange.nodeJitterFractionLow, 0.2)
+            self.assertAlmostEqual(mission.mapGenerationRange.nodeJitterFractionHigh, 0.4)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbability, 1.0)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbabilityVariance, 0.0)
             self.assertEqual(mission.allegianceConfigs[0].unitOptions[0].eliteChance, 0.35)
@@ -205,6 +209,8 @@ class TestMissionService(unittest.TestCase):
                         "connectednessHigh": 0.8,
                         "deadEndLikelihoodLow": 0.15,
                         "deadEndLikelihoodHigh": 0.25,
+                        "nodeJitterFractionLow": 0.05,
+                        "nodeJitterFractionHigh": 0.15,
                     },
                     "allegianceConfigs": [
                         {
@@ -232,6 +238,8 @@ class TestMissionService(unittest.TestCase):
             self.assertEqual(updated.mapGenerationRange.totalNodesLow, 20)
             self.assertEqual(updated.mapGenerationRange.totalNodesHigh, 24)
             self.assertAlmostEqual(updated.mapGenerationRange.connectednessHigh, 0.8)
+            self.assertAlmostEqual(updated.mapGenerationRange.nodeJitterFractionLow, 0.05)
+            self.assertAlmostEqual(updated.mapGenerationRange.nodeJitterFractionHigh, 0.15)
             self.assertEqual(updated.allegianceConfigs[0].powerPointCap, 40)
             self.assertEqual(updated.allegianceConfigs[0].unitOptions[0].capacityMin, 2)
             self.assertAlmostEqual(updated.allegianceConfigs[0].unitOptions[0].eliteChance, 0.6)
@@ -287,6 +295,8 @@ class TestMissionService(unittest.TestCase):
             self.assertEqual(loaded.mapGenerationRange.totalNodesLow, 20)
             self.assertEqual(loaded.mapGenerationRange.totalNodesHigh, 24)
             self.assertAlmostEqual(loaded.mapGenerationRange.deadEndLikelihoodLow, 0.15)
+            self.assertAlmostEqual(loaded.mapGenerationRange.nodeJitterFractionLow, 0.05)
+            self.assertAlmostEqual(loaded.mapGenerationRange.nodeJitterFractionHigh, 0.15)
             self.assertEqual(len(loaded.allegianceConfigs), 1)
             self.assertEqual(loaded.allegianceConfigs[0].unitOptions[0].unitId, goblin_unit.unitId)
             self.assertEqual(loaded.objective.objectiveType.name, "ASSASSINATION")

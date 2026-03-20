@@ -142,4 +142,7 @@ class BattleMissionTrackingMixin:
             self.player_service.persist_player(player)
         if record_memory:
             self._append_memory_event(battle, battle.result_summary or f"Battle ends: {battle.outcome.name}.")
+        mission_runtime = getattr(self, "mission_runtime_service", None)
+        if mission_runtime is not None:
+            mission_runtime.apply_battle_resolution(battle)
         self.clear_battle(battle.player_id)

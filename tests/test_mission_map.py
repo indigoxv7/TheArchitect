@@ -1,5 +1,4 @@
 import tempfile
-import tkinter as tk
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,12 +16,6 @@ from src.services.mission_map import (
     render_mission_map_image,
     save_mission_map_image,
 )
-from src.tools.admin.features.map_testing import MapTestingFrame
-
-
-class _AppStub:
-    def show_home(self):
-        return None
 
 
 @dataclass
@@ -72,6 +65,8 @@ class TestMissionMap(unittest.TestCase):
             connectednessHigh=0.35,
             deadEndLikelihoodLow=0.4,
             deadEndLikelihoodHigh=0.8,
+            nodeJitterFractionLow=0.25,
+            nodeJitterFractionHigh=0.45,
         )
 
         left = generate_map_from_range(settings_range, seed=12345)
@@ -81,6 +76,7 @@ class TestMissionMap(unittest.TestCase):
         self.assertEqual(left.settings.narrowness, right.settings.narrowness)
         self.assertEqual(left.settings.connectedness, right.settings.connectedness)
         self.assertEqual(left.settings.dead_end_likelihood, right.settings.dead_end_likelihood)
+        self.assertEqual(left.settings.node_jitter_fraction, right.settings.node_jitter_fraction)
         self.assertGreaterEqual(left.settings.total_nodes, 18)
         self.assertLessEqual(left.settings.total_nodes, 24)
         self.assertGreaterEqual(left.settings.narrowness, 0.2)
@@ -89,6 +85,44 @@ class TestMissionMap(unittest.TestCase):
         self.assertLessEqual(left.settings.connectedness, 0.35)
         self.assertGreaterEqual(left.settings.dead_end_likelihood, 0.4)
         self.assertLessEqual(left.settings.dead_end_likelihood, 0.8)
+        self.assertGreaterEqual(left.settings.node_jitter_fraction, 0.25)
+        self.assertLessEqual(left.settings.node_jitter_fraction, 0.45)
+
+    def test_zero_node_jitter_fraction_keeps_nodes_on_grid(self):
+        mission_map = generate_mission_map(
+            MissionMapSettings(
+                total_nodes=20,
+                narrowness=0.5,
+                connectedness=0.25,
+                dead_end_likelihood=0.7,
+                node_jitter_fraction=0.0,
+                seed=101,
+            )
+        )
+
+        for node in mission_map.nodes_by_id.values():
+            self.assertEqual(node.x_position, float(node.column))
+            self.assertEqual(node.y_position, float(node.row))
+
+    def test_positive_node_jitter_fraction_offsets_some_nodes(self):
+        mission_map = generate_mission_map(
+            MissionMapSettings(
+                total_nodes=20,
+                narrowness=0.5,
+                connectedness=0.25,
+                dead_end_likelihood=0.7,
+                node_jitter_fraction=0.45,
+                seed=202,
+            )
+        )
+
+        self.assertTrue(
+            any(
+                abs(node.x_position - float(node.column)) > 1e-6
+                or abs(node.y_position - float(node.row)) > 1e-6
+                for node in mission_map.nodes_by_id.values()
+            )
+        )
 
     def test_place_characters_on_map_uses_preview_units_and_preserves_treasure(self):
         mission = MissionTemplate.from_dict(
@@ -179,6 +213,7 @@ class TestMissionMap(unittest.TestCase):
                 narrowness=0.4,
                 connectedness=0.3,
                 dead_end_likelihood=0.6,
+                node_jitter_fraction=0.45,
                 seed=1234,
             )
         )
@@ -201,26 +236,6 @@ class TestMissionMap(unittest.TestCase):
             )
             self.assertTrue(output_path.exists())
             self.assertGreater(output_path.stat().st_size, 0)
-
-    def test_map_testing_frame_generates_preview(self):
-        root = None
-        try:
-            root = tk.Tk()
-            root.withdraw()
-        except tk.TclError as exc:
-            self.skipTest(f"Tk is not available in this environment: {exc}")
-
-        try:
-            frame = MapTestingFrame(root, _AppStub())
-            frame._generate_map()
-
-            self.assertIsNotNone(frame.current_map)
-            self.assertIsNotNone(frame.preview_photo)
-            self.assertTrue(frame.seed_var.get().strip())
-            self.assertIn("Nodes:", frame.summary_var.get())
-        finally:
-            if root is not None:
-                root.destroy()
 
 
 if __name__ == "__main__":

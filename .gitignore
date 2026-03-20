@@ -163,3 +163,6 @@ GameData/PlayerMemory/*.sqlite-wal
 
 GameData/ActiveBattles/*
 !GameData/ActiveBattles/.gitkeep
+
+GameData/ActiveMissions/*
+!GameData/ActiveMissions/.gitkeep

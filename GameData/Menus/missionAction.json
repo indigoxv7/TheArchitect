@@ -1,0 +1,9 @@
+{
+    "myEmoji": "\ud83c\udf0c",
+    "myOptionText": "Mission",
+    "uniqueName": "missionAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "bodyText": "Browse unlocked missions and prepare your squad.",
+    "parentName": "mainMenu"
+}

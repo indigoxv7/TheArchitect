@@ -381,6 +381,77 @@ class BattleSetupMixin:
         self._append_memory_event(battle, f"{battle.encounter.name} begins.")
         return battle, False
 
+    def start_or_resume_mission_battle(
+        self,
+        player_id: int,
+        mission_id: str,
+        mission_name: str,
+        node_id: int,
+        enemy_characters: list[dict[str, object]],
+        encounter_type: EncounterType,
+        allow_retreat: bool,
+    ) -> tuple[BattleState, bool]:
+        existing = self.get_active_battle(player_id)
+        if existing is not None and existing.phase != BattlePhase.RESOLVED:
+            return existing, True
+
+        player = self.player_service.get_player_sync(player_id)
+        if player is None:
+            raise ValueError(f"Player {player_id} does not exist.")
+        if not enemy_characters:
+            raise ValueError("Mission node battle requires at least one hostile character.")
+
+        encounter = EncounterDefinition(
+            encounter_id=f"mission_{str(mission_id or '').strip()}_{int(node_id)}",
+            encounter_type=encounter_type,
+            name=f"{mission_name} - Node {int(node_id)}",
+            terrain="Mission Node",
+            width=max(3, min(5, len(enemy_characters) + 1)),
+            total_lines=6,
+            objective_text="Defeat the hostile force at this location.",
+            allow_retreat=bool(allow_retreat),
+            enemy_entries=[],
+            reinforcements=[],
+            player_front_line=3,
+            enemy_front_line=4,
+        )
+        enemy_units = []
+        for index, entry in enumerate(enemy_characters):
+            character = entry.get("character")
+            if character is None:
+                continue
+            enemy_units.append(
+                self._character_to_unit(
+                    character,
+                    team=BattleTeam.ENEMY,
+                    unit_id=f"mission_enemy_{int(node_id)}_{index}",
+                    template_character_id="",
+                    name_override=str(getattr(character, "name", "Enemy") or "Enemy"),
+                    notable=True,
+                    is_boss=bool(entry.get("is_boss", False)),
+                    is_elite=bool(entry.get("is_elite", False)),
+                )
+            )
+        if not enemy_units:
+            raise ValueError("Mission node battle requires at least one valid hostile character.")
+
+        battle = self._build_battle_from_encounter(
+            player,
+            encounter,
+            mission_menu_name="missionAction",
+            mission_id=str(mission_id or ""),
+            mission_name=str(mission_name or encounter.name or "Mission"),
+            mission_objective=EliminationObjective(requiredEliminationFraction=1.0),
+            battle_id=f"mission_{int(player_id)}_{str(mission_id or '').strip()}_{int(node_id)}",
+            enemy_unit_overrides=enemy_units,
+            enemy_stack_overrides=[],
+            origin_type="mission_node",
+            origin_mission_node_id=int(node_id),
+        )
+        self.save_battle(battle)
+        self._append_memory_event(battle, f"{battle.encounter.name} begins.")
+        return battle, False
+
     def _build_battle_from_encounter(
         self,
         player,
@@ -390,17 +461,23 @@ class BattleSetupMixin:
         mission_name: str = "",
         mission_objective: MissionObjective | None = None,
         mission_statistics: MissionStatistics | None = None,
+        battle_id: str = "",
+        enemy_unit_overrides: list[CombatUnitState] | None = None,
+        enemy_stack_overrides: list[EnemyStackState] | None = None,
+        origin_type: str = "",
+        origin_mission_node_id: int | None = None,
     ) -> BattleState:
         ally_units = self._build_ally_units(player)
         if not ally_units:
             raise ValueError("No characters are selected in the player's mission party.")
 
-        enemy_units: list[CombatUnitState] = []
-        enemy_stacks: list[EnemyStackState] = []
-        for entry in encounter.enemy_entries:
-            spawned_units, spawned_stacks = self._spawn_enemy_entry(entry)
-            enemy_units.extend(spawned_units)
-            enemy_stacks.extend(spawned_stacks)
+        enemy_units: list[CombatUnitState] = list(enemy_unit_overrides or [])
+        enemy_stacks: list[EnemyStackState] = list(enemy_stack_overrides or [])
+        if enemy_unit_overrides is None and enemy_stack_overrides is None:
+            for entry in encounter.enemy_entries:
+                spawned_units, spawned_stacks = self._spawn_enemy_entry(entry)
+                enemy_units.extend(spawned_units)
+                enemy_stacks.extend(spawned_stacks)
 
         total_lines = max(4, int(encounter.total_lines))
         player_front = max(0, min(total_lines - 2, int(encounter.player_front_line)))
@@ -412,7 +489,7 @@ class BattleSetupMixin:
         stats = mission_statistics if mission_statistics is not None else MissionStatistics()
         battle = BattleState(
             player_id=int(player.discordID),
-            battle_id=f"{encounter.encounter_type.name.lower()}_{int(player.discordID)}",
+            battle_id=str(battle_id or f"{encounter.encounter_type.name.lower()}_{int(player.discordID)}"),
             encounter=encounter,
             phase=BattlePhase.ORDERS,
             outcome=BattleOutcome.ONGOING,
@@ -432,6 +509,9 @@ class BattleSetupMixin:
             mission_objective=objective,
             mission_statistics=stats,
             mission_objective_status=MissionObjectiveStatus.IN_PROGRESS,
+            origin_type=str(origin_type or ""),
+            origin_mission_node_id=(int(origin_mission_node_id) if origin_mission_node_id is not None else None),
+            origin_resolution_applied=False,
         )
         self._solve_formations(battle)
         self._initialize_mission_statistics(battle)

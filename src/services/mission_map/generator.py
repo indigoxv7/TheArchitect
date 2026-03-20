@@ -58,7 +58,50 @@ def pick_grid_dimensions(total_nodes: int, narrowness: float) -> tuple[int, int]
     return best_dimensions
 
 
-def choose_distinct_rows(row_count: int, total_rows: int, rng: random.Random) -> list[int]:
+def _column_outerness(column_index: int, column_count: int) -> float:
+    if column_count <= 1:
+        return 1.0
+    center_column = (column_count - 1) / 2.0
+    max_distance = max(0.5, center_column)
+    return abs(column_index - center_column) / max_distance
+
+
+def _edge_rounding_penalty(row_index: int, total_rows: int, column_index: int, column_count: int) -> float:
+    if total_rows <= 2:
+        return 0.0
+
+    outerness = _column_outerness(column_index, column_count)
+    if row_index in (0, total_rows - 1):
+        return 0.8 * outerness
+    if total_rows >= 5 and row_index in (1, total_rows - 2):
+        return 0.3 * outerness
+    return 0.0
+
+
+def _choose_row(
+    available_rows: set[int],
+    desired_row: float,
+    total_rows: int,
+    rng: random.Random,
+    column_index: int,
+    column_count: int,
+) -> int:
+    return min(
+        available_rows,
+        key=lambda row_index: (
+            abs(row_index - desired_row) + _edge_rounding_penalty(row_index, total_rows, column_index, column_count),
+            rng.random(),
+        ),
+    )
+
+
+def choose_distinct_rows(
+    row_count: int,
+    total_rows: int,
+    rng: random.Random,
+    column_index: int = 0,
+    column_count: int = 1,
+) -> list[int]:
     if row_count <= 0 or row_count > total_rows:
         raise ValueError("row_count must be between 1 and total_rows.")
 
@@ -66,19 +109,17 @@ def choose_distinct_rows(row_count: int, total_rows: int, rng: random.Random) ->
         return list(range(total_rows))
 
     if row_count == 1:
-        return [rng.randrange(total_rows)]
+        desired_row = (total_rows - 1) / 2.0
+        return [_choose_row(set(range(total_rows)), desired_row, total_rows, rng, column_index, column_count)]
 
     target_rows = [index * (total_rows - 1) / (row_count - 1) for index in range(row_count)]
     available_rows = set(range(total_rows))
     selected_rows: list[int] = []
 
     for target_row in target_rows:
-        desired_row = int(round(target_row + rng.uniform(-0.25, 0.25)))
-        desired_row = max(0, min(total_rows - 1, desired_row))
-        chosen_row = min(
-            available_rows,
-            key=lambda row_index: (abs(row_index - desired_row), rng.random()),
-        )
+        desired_row = target_row + rng.uniform(-0.25, 0.25)
+        desired_row = max(0.0, min(float(total_rows - 1), desired_row))
+        chosen_row = _choose_row(available_rows, desired_row, total_rows, rng, column_index, column_count)
         selected_rows.append(chosen_row)
         available_rows.remove(chosen_row)
 
@@ -120,6 +161,8 @@ class MissionMapNode:
     node_id: int
     column: int
     row: int
+    x_position: float
+    y_position: float
 
 
 @dataclass
@@ -136,6 +179,8 @@ class MissionMapSettings:
     max_extra_edges_degree_cap: int = 4
     allow_skip_edges: bool = False
     max_column_step: int = 1
+    node_separation: float = 1.0
+    node_jitter_fraction: float = 0.45
 
     def __post_init__(self) -> None:
         if self.total_nodes <= 0:
@@ -154,6 +199,10 @@ class MissionMapSettings:
             raise ValueError("max_extra_edges_degree_cap should be >= 2.")
         if self.allow_skip_edges and self.max_column_step < 2:
             raise ValueError("max_column_step must be >= 2 when allow_skip_edges is enabled.")
+        if self.node_separation <= 0.0:
+            raise ValueError("node_separation must be positive.")
+        if not (0.0 <= self.node_jitter_fraction <= 1.0):
+            raise ValueError("node_jitter_fraction must be in [0, 1].")
 
 
 @dataclass
@@ -241,12 +290,21 @@ class MissionMapGenerator:
 
         next_node_id = 0
         for column_index, node_count in enumerate(node_counts_by_column):
-            row_indices = choose_distinct_rows(node_count, row_count, self.rng)
+            row_indices = choose_distinct_rows(
+                node_count,
+                row_count,
+                self.rng,
+                column_index=column_index,
+                column_count=column_count,
+            )
             for row_index in row_indices:
+                x_position, y_position = self._build_node_position(column_index, row_index)
                 node = MissionMapNode(
                     node_id=next_node_id,
                     column=column_index,
                     row=row_index,
+                    x_position=x_position,
+                    y_position=y_position,
                 )
                 nodes_by_id[node.node_id] = node
                 adjacency_by_node[node.node_id] = set()
@@ -319,6 +377,12 @@ class MissionMapGenerator:
         )
 
         return mission_map
+
+    def _build_node_position(self, column_index: int, row_index: int) -> tuple[float, float]:
+        jitter_distance = self.settings.node_separation * self.settings.node_jitter_fraction
+        x_position = (column_index * self.settings.node_separation) + self.rng.uniform(-jitter_distance, jitter_distance)
+        y_position = (row_index * self.settings.node_separation) + self.rng.uniform(-jitter_distance, jitter_distance)
+        return x_position, y_position
 
     def _choose_start_node(
         self,

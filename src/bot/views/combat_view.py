@@ -34,6 +34,13 @@ class CombatView(discord.ui.View):
         self.add_item(HoldButton(runtime, player_id, row=2))
 
 
+class ResolvedBattleView(discord.ui.View):
+    def __init__(self, runtime, battle):
+        super().__init__(timeout=86400)
+        if str(getattr(battle, "origin_type", "") or "") == "mission_node":
+            self.add_item(ReturnToMissionButton(runtime, int(battle.player_id), row=0))
+
+
 class TabButton(discord.ui.Button):
     def __init__(self, runtime, player_id: int, tab_name: str, row: int = 0):
         style = discord.ButtonStyle.secondary
@@ -137,3 +144,13 @@ class ConsumableSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await self.runtime.use_consumable(interaction, self.player_id, self.values[0])
+
+
+class ReturnToMissionButton(discord.ui.Button):
+    def __init__(self, runtime, player_id: int, row: int = 0):
+        super().__init__(label="Return to Mission", style=discord.ButtonStyle.primary, row=row)
+        self.runtime = runtime
+        self.player_id = player_id
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.runtime.return_to_mission(interaction, self.player_id)
