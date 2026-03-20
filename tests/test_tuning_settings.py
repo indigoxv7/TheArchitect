@@ -12,7 +12,7 @@ from src.config.tuning import (
     configure_tuning_directory,
     get_tuning_registry,
 )
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attributes
 from src.domain.combat_timing import ExertionLevel, action_interval_seconds
 from src.services.damage_calculator import DamageCalculator

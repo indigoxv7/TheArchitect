@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from src.domain.race import CreatureSize
+from src.domain.Race import CreatureSize
 
 
 class CommanderStance(Enum):

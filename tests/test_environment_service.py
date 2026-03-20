@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.environment import CompatibilitySelectionMode, IncompatibilityMode
+from src.domain.Environment import CompatibilitySelectionMode, IncompatibilityMode
 from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.config.tuning import battle_factor
-from src.domain.character import HealthState
+from src.domain.Character import HealthState
 from src.domain.main_character import MainCharacter
 from src.domain.mission import MissionObjectiveStatus
 from src.domain.combat.enums import BattleOutcome, BattlePhase

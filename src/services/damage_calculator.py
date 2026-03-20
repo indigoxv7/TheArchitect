@@ -5,7 +5,7 @@ import math
 import random
 
 from src.config.tuning import battle_factor, character_stat_factor
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import HitLocation
 from src.domain.items import Weapon
 

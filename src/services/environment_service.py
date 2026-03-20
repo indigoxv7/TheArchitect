@@ -1,6 +1,6 @@
 import re
 
-from src.domain.environment import (
+from src.domain.Environment import (
     Biome,
     Climate,
     EnvironmentEffect,

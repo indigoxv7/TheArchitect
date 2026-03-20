@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attributes
-from src.domain.race import CreatureSize, Race
-from src.domain.spells import Spell
+from src.domain.Race import CreatureSize, Race
+from src.domain.Spells import Spell
 from src.domain.gear_options import GearOptions
 
 

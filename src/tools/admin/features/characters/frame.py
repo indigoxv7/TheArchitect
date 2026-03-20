@@ -2,7 +2,7 @@ import json
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.character import HealthState
+from src.domain.Character import HealthState
 from src.domain.main_character import CharacterInfo, HobbyInterestLevel, LLMControlProfile, MainCharacter
 from src.domain.character_util import FriendlyFireTolerance
 from src.domain.character_io import character_from_state, character_to_state

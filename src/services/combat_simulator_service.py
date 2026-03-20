@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.config.tuning import battle_factor, misc_factor
-from src.domain.character import Character, HealthState
+from src.domain.Character import Character, HealthState
 from src.domain.character_util import ConsumableKind, HitLocation
 from src.domain.items import Consumable, Weapon
-from src.domain.spells import Spell
+from src.domain.Spells import Spell
 from src.domain.character_io import character_from_state
 from src.domain.combat_timing import (
     CombatRuntimeState,

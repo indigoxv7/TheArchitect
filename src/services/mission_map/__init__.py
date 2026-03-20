@@ -5,6 +5,15 @@ from src.services.mission_map.generator import (
     MissionMapSettings,
     generate_mission_map,
 )
+from src.services.mission_map.overlay import (
+    MissionMapOverlay,
+    build_map_settings_from_range,
+    generate_all_map_features,
+    generate_clue_overlay,
+    generate_map_from_range,
+    generate_treasure_overlay,
+    place_characters_on_map,
+)
 from src.services.mission_map.visualizer import render_mission_map_image, save_mission_map_image
 
 __all__ = [
@@ -12,7 +21,14 @@ __all__ = [
     "MissionMapGenerator",
     "MissionMapNode",
     "MissionMapSettings",
+    "MissionMapOverlay",
+    "build_map_settings_from_range",
+    "generate_all_map_features",
+    "generate_clue_overlay",
+    "generate_map_from_range",
     "generate_mission_map",
+    "generate_treasure_overlay",
+    "place_characters_on_map",
     "render_mission_map_image",
     "save_mission_map_image",
 ]

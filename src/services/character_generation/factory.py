@@ -3,10 +3,10 @@ from __future__ import annotations
 import copy
 import random
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import BodyPart
 from src.domain.main_character import CharacterInfo, MainCharacter
-from src.domain.race import Race
+from src.domain.Race import Race
 from src.services.character_generation.attributes import apply_build_modifier, randomize_attributes_point_buy
 from src.services.character_generation.names import generate_character_name, is_placeholder_main_character_name
 from src.services.character_generation.traits import generate_character_info, generate_hobbies

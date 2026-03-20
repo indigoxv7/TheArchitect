@@ -3,10 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attributes, BodyPart
 from src.domain.main_character import CharacterInfo, HobbyInterestLevel, MainCharacter
-from src.domain.race import Race
+from src.domain.Race import Race
 from src.services.character_service import CharacterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService

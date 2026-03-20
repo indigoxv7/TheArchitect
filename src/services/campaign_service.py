@@ -1,6 +1,6 @@
 import re
 
-from src.domain.campaign import Campaign, CampaignProgress
+from src.domain.Campaign import Campaign, CampaignProgress
 from src.persistence.campaignbook_store import CampaignbookStore
 from src.services.game_context import GameContext
 

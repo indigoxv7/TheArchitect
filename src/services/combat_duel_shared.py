@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.config.tuning import battle_factor, character_stat_factor
-from src.domain.character import Character, HealthState
+from src.domain.Character import Character, HealthState
 from src.domain.character_util import HitLocation
 from src.domain.items import Weapon
 from src.domain.combat_timing import (

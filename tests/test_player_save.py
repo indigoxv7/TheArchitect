@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.campaign import CampaignProgress
-from src.domain.character import Character
+from src.domain.Campaign import CampaignProgress
+from src.domain.Character import Character
 from src.domain.player_functions import Player, load_player
 
 

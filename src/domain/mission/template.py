@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.domain.mission.map_generation import MissionMapGenerationRange
 from src.domain.mission.objectives import MissionObjective, MissionObjectiveStatus
 from src.domain.mission.statistics import MissionStatistics
 from src.domain.mission.values import (
@@ -121,6 +122,7 @@ class MissionTemplate:
     allegianceConfigs: list[MissionAllegianceConfig] = field(default_factory=list)
     biomeId: str = ""
     portalMission: bool = True
+    mapGenerationRange: MissionMapGenerationRange = field(default_factory=MissionMapGenerationRange)
     missionId: str = ""
 
     def __post_init__(self):
@@ -131,6 +133,11 @@ class MissionTemplate:
         ]
         self.biomeId = clean_text(self.biomeId)
         self.portalMission = bool(self.portalMission)
+        self.mapGenerationRange = (
+            self.mapGenerationRange
+            if isinstance(self.mapGenerationRange, MissionMapGenerationRange)
+            else MissionMapGenerationRange.from_dict(self.mapGenerationRange)
+        )
         self.missionId = str(self.missionId or "")
 
     @staticmethod
@@ -157,6 +164,7 @@ class MissionTemplate:
             "allegianceConfigs": [entry.to_dict() for entry in self.allegianceConfigs],
             "biomeId": self.biomeId,
             "portalMission": self.portalMission,
+            "mapGenerationRange": self.mapGenerationRange.to_dict(),
         }
 
     @classmethod
@@ -178,5 +186,6 @@ class MissionTemplate:
             allegianceConfigs=allegiance_configs,
             biomeId=clean_text(data.get("biomeId", "")),
             portalMission=bool(data.get("portalMission", True)),
+            mapGenerationRange=MissionMapGenerationRange.from_dict(data.get("mapGenerationRange")),
             missionId=str(data.get("missionId", "") or ""),
         )

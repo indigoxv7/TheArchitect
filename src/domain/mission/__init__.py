@@ -13,6 +13,7 @@ from src.domain.mission.objectives import (
     ScavengeObjective,
     SurvivalObjective,
 )
+from src.domain.mission.map_generation import MissionMapGenerationRange
 from src.domain.mission.statistics import MissionStatistics
 from src.domain.mission.template import MissionAllegianceConfig, MissionTemplate, MissionUnitOption
 
@@ -24,6 +25,7 @@ __all__ = [
     "EliminationObjective",
     "EscortObjective",
     "MissionAllegianceConfig",
+    "MissionMapGenerationRange",
     "MissionObjective",
     "MissionObjectiveStatus",
     "MissionObjectiveType",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.domain.character import Buff
+from src.domain.Character import Buff
 from src.domain.character_util import (
     Achievement,
     Affinities,

@@ -118,6 +118,16 @@ class TestMissionService(unittest.TestCase):
                 {
                     "name": "Ruined Crossing",
                     "biomeId": wetlands.biomeId,
+                    "mapGenerationRange": {
+                        "totalNodesLow": 44,
+                        "totalNodesHigh": 60,
+                        "narrownessLow": 0.3,
+                        "narrownessHigh": 0.6,
+                        "connectednessLow": 0.2,
+                        "connectednessHigh": 0.45,
+                        "deadEndLikelihoodLow": 0.5,
+                        "deadEndLikelihoodHigh": 0.85,
+                    },
                     "objective": {
                         "objectiveType": "DELIVERY",
                         "requiredItemId": delivery_item.itemId,
@@ -166,6 +176,10 @@ class TestMissionService(unittest.TestCase):
             self.assertEqual(len(mission.allegianceConfigs), 2)
             self.assertEqual(mission.biomeId, wetlands.biomeId)
             self.assertTrue(mission.portalMission)
+            self.assertEqual(mission.mapGenerationRange.totalNodesLow, 44)
+            self.assertEqual(mission.mapGenerationRange.totalNodesHigh, 60)
+            self.assertAlmostEqual(mission.mapGenerationRange.narrownessLow, 0.3)
+            self.assertAlmostEqual(mission.mapGenerationRange.deadEndLikelihoodHigh, 0.85)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbability, 1.0)
             self.assertEqual(mission.allegianceConfigs[1].clusterProbabilityVariance, 0.0)
             self.assertEqual(mission.allegianceConfigs[0].unitOptions[0].eliteChance, 0.35)
@@ -182,6 +196,16 @@ class TestMissionService(unittest.TestCase):
                         "requiredBossesDefeated": 2,
                     },
                     "portalMission": False,
+                    "mapGenerationRange": {
+                        "totalNodesLow": 20,
+                        "totalNodesHigh": 24,
+                        "narrownessLow": 0.1,
+                        "narrownessHigh": 0.2,
+                        "connectednessLow": 0.6,
+                        "connectednessHigh": 0.8,
+                        "deadEndLikelihoodLow": 0.15,
+                        "deadEndLikelihoodHigh": 0.25,
+                    },
                     "allegianceConfigs": [
                         {
                             "allegianceId": raiders.allegianceId,
@@ -205,6 +229,9 @@ class TestMissionService(unittest.TestCase):
             )
             self.assertFalse(updated.portalMission)
             self.assertEqual(updated.biomeId, ruins.biomeId)
+            self.assertEqual(updated.mapGenerationRange.totalNodesLow, 20)
+            self.assertEqual(updated.mapGenerationRange.totalNodesHigh, 24)
+            self.assertAlmostEqual(updated.mapGenerationRange.connectednessHigh, 0.8)
             self.assertEqual(updated.allegianceConfigs[0].powerPointCap, 40)
             self.assertEqual(updated.allegianceConfigs[0].unitOptions[0].capacityMin, 2)
             self.assertAlmostEqual(updated.allegianceConfigs[0].unitOptions[0].eliteChance, 0.6)
@@ -257,6 +284,9 @@ class TestMissionService(unittest.TestCase):
             self.assertIsNotNone(loaded)
             self.assertFalse(loaded.portalMission)
             self.assertEqual(loaded.biomeId, ruins.biomeId)
+            self.assertEqual(loaded.mapGenerationRange.totalNodesLow, 20)
+            self.assertEqual(loaded.mapGenerationRange.totalNodesHigh, 24)
+            self.assertAlmostEqual(loaded.mapGenerationRange.deadEndLikelihoodLow, 0.15)
             self.assertEqual(len(loaded.allegianceConfigs), 1)
             self.assertEqual(loaded.allegianceConfigs[0].unitOptions[0].unitId, goblin_unit.unitId)
             self.assertEqual(loaded.objective.objectiveType.name, "ASSASSINATION")

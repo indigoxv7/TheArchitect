@@ -1,13 +1,33 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.mission import MissionTemplate
+from PIL import ImageTk
+
+from src.domain.mission import MissionMapGenerationRange, MissionTemplate
+from src.services.mission_map import (
+    MissionMapOverlay,
+    generate_all_map_features,
+    generate_clue_overlay,
+    generate_map_from_range,
+    generate_treasure_overlay,
+    place_characters_on_map,
+    render_mission_map_image,
+)
 from src.services.mission_unit_populator import MissionUnitPopulator
 from src.tools.admin.shared.character_viewer import ReadonlyCharacterViewer
-from .dialogs import MissionAllegianceConfigDialog, MissionObjectiveDialog, _objective_description
+from .dialogs import (
+    MissionAllegianceConfigDialog,
+    MissionObjectiveDialog,
+    _objective_description,
+    _safe_float,
+    _safe_int,
+)
 
 
 class MissionEditorFrame(ttk.Frame):
+    MAP_PREVIEW_WIDTH = 860
+    MAP_PREVIEW_HEIGHT = 420
+
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
@@ -17,6 +37,29 @@ class MissionEditorFrame(ttk.Frame):
         self.unit_populator = MissionUnitPopulator(self.app.unit_service, self.app.power_rating_service)
         self.population_preview = None
         self.preview_units = []
+        self.current_map = None
+        self.current_map_overlay = MissionMapOverlay()
+        self.map_preview_photo = None
+        self.map_summary_var = tk.StringVar(value="Generate a map preview to inspect mission layout.")
+        map_defaults = MissionMapGenerationRange()
+        self.map_range_vars = {
+            "totalNodes": {
+                "low": tk.StringVar(value=str(map_defaults.totalNodesLow)),
+                "high": tk.StringVar(value=str(map_defaults.totalNodesHigh)),
+            },
+            "narrowness": {
+                "low": tk.StringVar(value=str(map_defaults.narrownessLow)),
+                "high": tk.StringVar(value=str(map_defaults.narrownessHigh)),
+            },
+            "connectedness": {
+                "low": tk.StringVar(value=str(map_defaults.connectednessLow)),
+                "high": tk.StringVar(value=str(map_defaults.connectednessHigh)),
+            },
+            "deadEndLikelihood": {
+                "low": tk.StringVar(value=str(map_defaults.deadEndLikelihoodLow)),
+                "high": tk.StringVar(value=str(map_defaults.deadEndLikelihoodHigh)),
+            },
+        }
 
         top = ttk.Frame(self)
         top.pack(fill=tk.X, pady=(0, 8))
@@ -110,6 +153,41 @@ class MissionEditorFrame(ttk.Frame):
         preview_scrollbar.configure(command=self.preview_listbox.yview)
         self.preview_listbox.bind("<Double-Button-1>", lambda _evt: self._view_selected_preview_unit())
 
+        map_frame = ttk.LabelFrame(self, text="Map Generator Settings")
+        map_frame.pack(fill=tk.BOTH, expand=False, pady=6)
+
+        map_header = ttk.Frame(map_frame)
+        map_header.pack(fill=tk.X, padx=6, pady=(6, 2))
+        ttk.Label(map_header, text="Field", width=20).pack(side=tk.LEFT)
+        ttk.Label(map_header, text="Low", width=12).pack(side=tk.LEFT)
+        ttk.Label(map_header, text="High", width=12).pack(side=tk.LEFT)
+        ttk.Label(map_header, text="Notes").pack(side=tk.LEFT, padx=8)
+
+        for label, key, hint in [
+            ("Total Nodes", "totalNodes", "Integer range"),
+            ("Narrowness", "narrowness", "0.0 to 1.0"),
+            ("Connectedness", "connectedness", "0.0 to 1.0"),
+            ("Dead End Likelihood", "deadEndLikelihood", "0.0 to 1.0"),
+        ]:
+            row = ttk.Frame(map_frame)
+            row.pack(fill=tk.X, padx=6, pady=2)
+            ttk.Label(row, text=label, width=20).pack(side=tk.LEFT)
+            ttk.Entry(row, textvariable=self.map_range_vars[key]["low"], width=12).pack(side=tk.LEFT)
+            ttk.Entry(row, textvariable=self.map_range_vars[key]["high"], width=12).pack(side=tk.LEFT, padx=(6, 0))
+            ttk.Label(row, text=hint).pack(side=tk.LEFT, padx=8)
+
+        map_actions = ttk.Frame(map_frame)
+        map_actions.pack(fill=tk.X, padx=6, pady=(8, 4))
+        ttk.Button(map_actions, text="Preview Map", command=self._generate_map_preview).pack(side=tk.LEFT)
+        ttk.Button(map_actions, text="Place Characters", command=self._place_characters_on_map).pack(side=tk.LEFT, padx=6)
+        ttk.Button(map_actions, text="Generate Treasure", command=self._generate_treasure_on_map).pack(side=tk.LEFT, padx=6)
+        ttk.Button(map_actions, text="Generate Clues", command=self._generate_clues_on_map).pack(side=tk.LEFT, padx=6)
+        ttk.Button(map_actions, text="Generate All", command=self._generate_all_map_features).pack(side=tk.LEFT, padx=6)
+
+        ttk.Label(map_frame, textvariable=self.map_summary_var, justify=tk.LEFT).pack(fill=tk.X, padx=6, pady=(0, 6))
+        self.map_preview_label = ttk.Label(map_frame)
+        self.map_preview_label.pack(fill=tk.BOTH, expand=True, padx=6, pady=(0, 6))
+
         self.summary = tk.Text(self, height=14, wrap=tk.WORD)
         self.summary.pack(fill=tk.BOTH, expand=False, pady=6)
         ttk.Button(self, text="Save Mission", command=self._save).pack(fill=tk.X, pady=8)
@@ -123,7 +201,9 @@ class MissionEditorFrame(ttk.Frame):
         self.portal_mission_var.set(True)
         self.objective_label_var.set("<No Objective>")
         self.allegiance_configs_draft = []
+        self._load_map_generation_range(MissionMapGenerationRange())
         self._clear_population_preview()
+        self._reset_map_preview_state(clear_map=True)
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -201,7 +281,9 @@ class MissionEditorFrame(ttk.Frame):
         self.objective_draft = dict(mission_data.get("objective", {}) or {})
         self.objective_label_var.set(_objective_description(self.objective_draft))
         self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]
+        self._load_map_generation_range(mission_data.get("mapGenerationRange"))
         self._clear_population_preview()
+        self._reset_map_preview_state(clear_map=True)
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -255,6 +337,7 @@ class MissionEditorFrame(ttk.Frame):
             f"Mission ID: {self.current_mission_id or '<Unsaved>'}",
             f"Biome: {biome_text}",
             f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}",
+            f"Map Generation: {self._map_generation_summary_text()}",
             f"Objective: {_objective_description(self.objective_draft)}",
             "",
             "Mission Allegiances:",
@@ -350,6 +433,7 @@ class MissionEditorFrame(ttk.Frame):
                 "name": str(self.name_var.get() or "").strip() or "Mission Preview",
                 "biomeId": self._selected_biome_id(),
                 "portalMission": bool(self.portal_mission_var.get()),
+                "mapGenerationRange": self._build_map_generation_range_payload(),
                 "objective": objective_payload,
                 "allegianceConfigs": list(self.allegiance_configs_draft),
             }
@@ -418,6 +502,7 @@ class MissionEditorFrame(ttk.Frame):
     def _clear_population_preview(self):
         self.population_preview = None
         self.preview_units = []
+        self._clear_character_and_clue_overlays()
         if hasattr(self, "preview_summary") and hasattr(self, "preview_listbox"):
             self._refresh_population_preview()
 
@@ -428,6 +513,7 @@ class MissionEditorFrame(ttk.Frame):
         try:
             preview_template = self._build_preview_template()
             self.population_preview = self.unit_populator.populate(preview_template)
+            self._clear_character_and_clue_overlays()
             self._refresh_population_preview()
         except Exception as exc:
             messagebox.showerror("Mission Editor", f"Failed to generate mission units: {exc}")
@@ -438,6 +524,151 @@ class MissionEditorFrame(ttk.Frame):
             return None
         index = int(selection[0])
         return self.preview_units[index] if 0 <= index < len(self.preview_units) else None
+
+    def _load_map_generation_range(self, payload):
+        map_range = payload if isinstance(payload, MissionMapGenerationRange) else MissionMapGenerationRange.from_dict(payload)
+        self.map_range_vars["totalNodes"]["low"].set(str(map_range.totalNodesLow))
+        self.map_range_vars["totalNodes"]["high"].set(str(map_range.totalNodesHigh))
+        self.map_range_vars["narrowness"]["low"].set(str(map_range.narrownessLow))
+        self.map_range_vars["narrowness"]["high"].set(str(map_range.narrownessHigh))
+        self.map_range_vars["connectedness"]["low"].set(str(map_range.connectednessLow))
+        self.map_range_vars["connectedness"]["high"].set(str(map_range.connectednessHigh))
+        self.map_range_vars["deadEndLikelihood"]["low"].set(str(map_range.deadEndLikelihoodLow))
+        self.map_range_vars["deadEndLikelihood"]["high"].set(str(map_range.deadEndLikelihoodHigh))
+
+    def _build_map_generation_range_payload(self):
+        return {
+            "totalNodesLow": max(1, _safe_int(self.map_range_vars["totalNodes"]["low"].get().strip() or 60, 60)),
+            "totalNodesHigh": max(1, _safe_int(self.map_range_vars["totalNodes"]["high"].get().strip() or 60, 60)),
+            "narrownessLow": _safe_float(self.map_range_vars["narrowness"]["low"].get().strip() or 0.5, 0.5),
+            "narrownessHigh": _safe_float(self.map_range_vars["narrowness"]["high"].get().strip() or 0.5, 0.5),
+            "connectednessLow": _safe_float(self.map_range_vars["connectedness"]["low"].get().strip() or 0.25, 0.25),
+            "connectednessHigh": _safe_float(self.map_range_vars["connectedness"]["high"].get().strip() or 0.25, 0.25),
+            "deadEndLikelihoodLow": _safe_float(self.map_range_vars["deadEndLikelihood"]["low"].get().strip() or 0.7, 0.7),
+            "deadEndLikelihoodHigh": _safe_float(self.map_range_vars["deadEndLikelihood"]["high"].get().strip() or 0.7, 0.7),
+        }
+
+    def _build_map_generation_range(self) -> MissionMapGenerationRange:
+        return MissionMapGenerationRange.from_dict(self._build_map_generation_range_payload())
+
+    def _map_generation_summary_text(self) -> str:
+        return self._build_map_generation_range().summary()
+
+    def _reset_map_preview_state(self, clear_map: bool = False):
+        if clear_map:
+            self.current_map = None
+            self.map_preview_photo = None
+        self.current_map_overlay = MissionMapOverlay()
+        self._render_current_map_preview()
+
+    def _clear_character_and_clue_overlays(self):
+        self.current_map_overlay.unitsByNode = {}
+        self.current_map_overlay.clueTargetNodeByNode = {}
+        self._render_current_map_preview()
+
+    def _render_current_map_preview(self):
+        if self.current_map is None:
+            self.map_preview_photo = None
+            self.map_preview_label.configure(image="")
+            self.map_summary_var.set("Generate a map preview to inspect mission layout.")
+            return
+
+        image = render_mission_map_image(
+            self.current_map,
+            width=self.MAP_PREVIEW_WIDTH,
+            height=self.MAP_PREVIEW_HEIGHT,
+            overlay=self.current_map_overlay,
+        )
+        self.map_preview_photo = ImageTk.PhotoImage(image)
+        self.map_preview_label.configure(image=self.map_preview_photo)
+        self.map_summary_var.set(
+            "\n".join(
+                [
+                    f"Seed: {self.current_map.settings.seed}",
+                    f"Actual Settings: nodes {self.current_map.settings.total_nodes}, narrowness {self.current_map.settings.narrowness:.2f}, connectedness {self.current_map.settings.connectedness:.2f}, dead ends {self.current_map.settings.dead_end_likelihood:.2f}",
+                    f"Characters: {self.current_map_overlay.totalPlacedCharacters} across {len(self.current_map_overlay.characterCountByNode)} nodes",
+                    f"Treasure: {len(self.current_map_overlay.nanoByNode)} nodes, {self.current_map_overlay.totalNano} Nano total",
+                    f"Clues: {len(self.current_map_overlay.clueTargetNodeByNode)} nodes",
+                ]
+            )
+        )
+
+    def _ensure_current_map(self) -> bool:
+        if self.current_map is not None:
+            return True
+        self._generate_map_preview()
+        return self.current_map is not None
+
+    def _ensure_population_preview(self) -> bool:
+        if self.population_preview is not None:
+            return True
+        self._generate_population_preview()
+        return self.population_preview is not None
+
+    def _generate_map_preview(self):
+        try:
+            self.current_map = generate_map_from_range(self._build_map_generation_range())
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate mission map: {exc}")
+            return
+        self.current_map_overlay = MissionMapOverlay()
+        self._render_current_map_preview()
+
+    def _place_characters_on_map(self):
+        if not self._ensure_population_preview() or not self._ensure_current_map():
+            return
+        try:
+            self.current_map_overlay = place_characters_on_map(
+                self.current_map,
+                self._build_preview_template(),
+                self.population_preview,
+                existing_overlay=self.current_map_overlay,
+            )
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to place characters on the map: {exc}")
+            return
+        self._render_current_map_preview()
+
+    def _generate_treasure_on_map(self):
+        if not self._ensure_current_map():
+            return
+        try:
+            self.current_map_overlay = generate_treasure_overlay(
+                self.current_map,
+                existing_overlay=self.current_map_overlay,
+            )
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate treasure: {exc}")
+            return
+        self._render_current_map_preview()
+
+    def _generate_clues_on_map(self):
+        if not self._ensure_current_map():
+            return
+        try:
+            self.current_map_overlay = generate_clue_overlay(
+                self.current_map,
+                existing_overlay=self.current_map_overlay,
+            )
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate clues: {exc}")
+            return
+        self._render_current_map_preview()
+
+    def _generate_all_map_features(self):
+        if not self._ensure_population_preview() or not self._ensure_current_map():
+            return
+        try:
+            self.current_map_overlay = generate_all_map_features(
+                self.current_map,
+                self._build_preview_template(),
+                self.population_preview,
+                existing_overlay=self.current_map_overlay,
+            )
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate mission map features: {exc}")
+            return
+        self._render_current_map_preview()
 
     def _view_selected_preview_unit(self):
         populated_unit = self._selected_preview_unit()
@@ -451,6 +682,7 @@ class MissionEditorFrame(ttk.Frame):
             "name": str(self.name_var.get() or "").strip(),
             "biomeId": self._selected_biome_id(),
             "portalMission": bool(self.portal_mission_var.get()),
+            "mapGenerationRange": self._build_map_generation_range_payload(),
             "objective": dict(self.objective_draft),
             "allegianceConfigs": list(self.allegiance_configs_draft),
         }
@@ -476,6 +708,8 @@ class MissionEditorFrame(ttk.Frame):
             self.objective_draft = dict(mission_data.get("objective", {}) or {})
             self.objective_label_var.set(_objective_description(self.objective_draft))
             self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]
+            self._load_map_generation_range(mission_data.get("mapGenerationRange"))
+            self._reset_map_preview_state(clear_map=True)
             self._refresh_allegiance_listbox()
             self._refresh_summary()
         except Exception as exc:

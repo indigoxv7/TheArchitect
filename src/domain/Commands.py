@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attribute
 from src.domain.player_functions import Player
 

@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 
 from src.config.tuning import battle_factor, character_stat_factor, misc_factor, misc_factor_int
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import (
     Attribute,
     Attributes,
@@ -18,7 +18,7 @@ from src.domain.character_util import (
     ItemType,
 )
 from src.domain.items import Armor, Consumable, Gear, Item, Weapon
-from src.domain.spells import Spell
+from src.domain.Spells import Spell
 from src.domain.combat_timing import (
     CombatRuntimeState,
     accuracy_bonus_for_exertion,

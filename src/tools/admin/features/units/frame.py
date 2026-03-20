@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.race import CreatureSize
+from src.domain.Race import CreatureSize
 from src.tools.admin.shared.pickers import CharacterSelectDialog, SpellSelectDialog
 from src.tools.admin.shared.gear_options import GearOptionsEditorDialog, normalize_gear_options_payload
 from .dialogs import AttributeBoundsEditorDialog

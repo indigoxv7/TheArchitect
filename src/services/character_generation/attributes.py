@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 
 from src.domain.character_util import Attributes
-from src.domain.race import Race
+from src.domain.Race import Race
 from src.services.character_generation.data import ATTRIBUTE_FIELDS, BUILD_MODIFIERS
 
 

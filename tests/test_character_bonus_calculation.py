@@ -1,6 +1,6 @@
 import unittest
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Achievement, Attribute, AttributeBonus, Attributes, Bonus, BonusType
 
 

@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 
 from src.domain.items import Gear
 from src.domain.mission import MissionTemplate, MissionUnitOption
-from src.domain.race import Race
-from src.domain.unit import Unit
+from src.domain.Race import Race
+from src.domain.Unit import Unit
 from src.services.character_generation import generate_character_from_race
 
 

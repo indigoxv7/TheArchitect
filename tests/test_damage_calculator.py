@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attributes, EquipSlot, HitLocation, ItemType
 from src.domain.items import Armor, Gear, Weapon
 from src.services.damage_calculator import DamageCalculator

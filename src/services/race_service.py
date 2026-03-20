@@ -1,6 +1,6 @@
 import re
 
-from src.domain.race import Race
+from src.domain.Race import Race
 from src.persistence.racebook_store import RacebookStore
 from src.services.game_context import GameContext
 

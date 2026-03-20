@@ -1,5 +1,5 @@
 {
-    "format_version": 3,
+    "format_version": 4,
     "missions": [
         {
             "missionId": "GoblinAssassinAssassin1",
@@ -35,7 +35,17 @@
                 }
             ],
             "biomeId": "Jungle0",
-            "portalMission": true
+            "portalMission": true,
+            "mapGenerationRange": {
+                "totalNodesLow": 60,
+                "totalNodesHigh": 60,
+                "narrownessLow": 0.5,
+                "narrownessHigh": 0.5,
+                "connectednessLow": 0.25,
+                "connectednessHigh": 0.25,
+                "deadEndLikelihoodLow": 0.7,
+                "deadEndLikelihoodHigh": 0.7
+            }
         },
         {
             "missionId": "GoblinEliminationlvl00",
@@ -64,14 +74,24 @@
                             "isBoss": false
                         }
                     ],
-                    "clusterProbability": 0.2,
+                    "clusterProbability": 0.5,
                     "clusterProbabilityVariance": 0.0,
                     "levelMin": 0,
                     "levelMax": 0
                 }
             ],
             "biomeId": "Jungle0",
-            "portalMission": true
+            "portalMission": true,
+            "mapGenerationRange": {
+                "totalNodesLow": 20,
+                "totalNodesHigh": 25,
+                "narrownessLow": 0.3,
+                "narrownessHigh": 0.4,
+                "connectednessLow": 0.25,
+                "connectednessHigh": 0.25,
+                "deadEndLikelihoodLow": 0.1,
+                "deadEndLikelihoodHigh": 0.1
+            }
         }
     ]
 }

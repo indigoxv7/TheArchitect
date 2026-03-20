@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from src.domain.character_util import Attributes
-from src.domain.race import CreatureSize
+from src.domain.Race import CreatureSize
 from src.tools.admin.shared.gear_options import (
     build_gear_options_summary,
     default_gear_options_payload,

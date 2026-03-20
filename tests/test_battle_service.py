@@ -3,12 +3,12 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.main_character import MainCharacter
 from src.domain.mission import MissionObjectiveStatus
 from src.domain.character_util import Attributes
 from src.domain.items import Gear
-from src.domain.race import CreatureSize, Race
+from src.domain.Race import CreatureSize, Race
 from src.domain.combat import (
     BattleOutcome,
     BattlePhase,

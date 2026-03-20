@@ -118,7 +118,7 @@ class MissionService:
 
     def save_missionbook(self):
         payload = {
-            "format_version": 3,
+            "format_version": 4,
             "missions": [mission.to_dict() for mission in self.list_missions()],
         }
         self.store.save(payload)

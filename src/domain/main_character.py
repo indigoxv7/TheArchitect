@@ -1,7 +1,7 @@
 import copy
 import enum
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import CharacterStatistics
 
 

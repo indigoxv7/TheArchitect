@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.campaign import CampaignUnlockGroup
+from src.domain.Campaign import CampaignUnlockGroup
 from src.tools.admin.shared.pickers import MissionSelectDialog
 from .dialogs import CampaignUnlockGroupDialog
 

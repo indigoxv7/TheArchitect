@@ -1,4 +1,4 @@
-from src.domain.spells import Spell
+from src.domain.Spells import Spell
 from src.persistence.spellbook_store import SpellbookStore
 from src.services.game_context import GameContext
 

@@ -5,7 +5,7 @@ from typing import Any, Callable
 from src.domain.general_skills import GeneralSkills
 from src.domain.items import Gear, Item
 from src.domain.main_character import CharacterInfo, HobbyInterestLevel, LLMControlProfile
-from src.domain.spells import Spell
+from src.domain.Spells import Spell
 from src.domain.character_io.common import _enum_from_name
 
 

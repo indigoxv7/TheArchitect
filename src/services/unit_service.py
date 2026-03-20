@@ -1,7 +1,7 @@
 import re
 
-from src.domain.race import Race
-from src.domain.unit import Unit
+from src.domain.Race import Race
+from src.domain.Unit import Unit
 from src.persistence.unitbook_store import UnitbookStore
 from src.services.game_context import GameContext
 

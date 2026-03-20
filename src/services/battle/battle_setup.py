@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from src.domain.character_util import Attributes
 from src.domain.items import Gear, Weapon
-from src.domain.race import CreatureSize
+from src.domain.Race import CreatureSize
 from src.domain.combat.encounter import EncounterEnemyEntry
 from src.domain.combat.enums import BattleTeam, CombatRole, lane_width_for_size
 from src.domain.combat_timing import (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from src.domain.character import Character, HealthState
+from src.domain.Character import Character, HealthState
 from src.domain.character_util import FriendlyFireTolerance
 from src.domain.items import Item
 from src.domain.main_character import CharacterInfo, LLMControlProfile, MainCharacter

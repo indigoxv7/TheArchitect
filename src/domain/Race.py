@@ -3,10 +3,10 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Callable
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.character_util import Attributes
 from src.domain.items import Weapon
-from src.domain.spells import Spell
+from src.domain.Spells import Spell
 from src.domain.gear_options import GearOptions
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.domain.race import CreatureSize
+from src.domain.Race import CreatureSize
 from src.domain.combat.enums import BattleTeam, CombatRole, enum_from_name, lane_width_for_size
 from src.domain.combat_timing import (
     ExertionLevel,

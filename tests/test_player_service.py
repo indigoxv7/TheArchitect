@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.domain.character import Character
+from src.domain.Character import Character
 from src.domain.player_functions import Player, save_player
 from src.services.game_context import GameContext
 from src.services.player_service import PlayerService
