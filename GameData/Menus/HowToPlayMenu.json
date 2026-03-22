@@ -1,12 +1,13 @@
-﻿{
-    "myEmoji":  "🌟",
-    "myOptionText":  "How to play",
-    "uniqueName":  "HowToPlayMenu",
-    "Options":  [
-                    "mainMenu"
-                ],
-    "menuState":  "DEFAULT",
-    "imageURL":  "https://media.discordapp.net/attachments/886469391548559372/1274239069127180338/Portal.png?ex=66c1871c\u0026is=66c0359c\u0026hm=d3c39e8d6175df24827f2da43b294f65ec5f5017da0e04d8330557ceffee82cb\u0026=\u0026format=webp\u0026quality=lossless\u0026width=1920\u0026height=555",
-    "bodyText":  "The apocalypse has begun. It\u0027s a harsh place out here, and to protect yourself and those around you, you\u0027ll need to form a **Faction.**\n\nOnly problem is that costs $nanoEmoji **Nano.** Lots of it.\n\nSo before you can do that, you\u0027ll need to go on missions to get stronger and gather resources.\n\nThere are two types of missions. **Scavenging Missions**, in which you will face off against roaming monsters and bandits on earth, and **Portal Missions**, in which you enter a scenario in another world and must complete the objective given to you by the architect.\n\nStart with **Scavenging Missions**. They give fewer rewards, but you at least have a chance to run if it gets too dangerous. There is no escape if you fail a **Portal Mission**.\n\nCheck your **Character**\u0027s gear before you start and make sure you\u0027re bringing your best stuff.\n\n# Good luck!",
-    "parentName":  "newPlayerMenu"
+{
+    "myEmoji": "🌟",
+    "myOptionText": "How to play",
+    "uniqueName": "HowToPlayMenu",
+    "Options": [
+        "mainMenu",
+        "customizePlayerAction"
+    ],
+    "menuState": "DEFAULT",
+    "imageURL": "https://media.discordapp.net/attachments/886469391548559372/1274239069127180338/Portal.png?ex=66c1871c&is=66c0359c&hm=d3c39e8d6175df24827f2da43b294f65ec5f5017da0e04d8330557ceffee82cb&=&format=webp&quality=lossless&width=1920&height=555",
+    "bodyText": "The apocalypse has begun, and you are stepping into a dangerous world. Before you dive in, you can use **Customize Player** to shape the roleplay version of your character that other main characters can remember.\n\nOnce you are ready, head to the **Main Menu** and start taking on **Missions** to gain strength, gather resources, and push your campaign forward.\n\nCheck your squad's gear before you deploy, and take on challenges that fit your current strength.\n\n# Good luck!",
+    "parentName": "newPlayerMenu"
 }

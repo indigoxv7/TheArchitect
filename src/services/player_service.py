@@ -21,6 +21,7 @@ from src.domain.items import Armor, Consumable, Item, Weapon
 from src.domain.main_character import MainCharacter
 from src.domain.player_functions import Player, load_player
 from src.persistence.roster_store import ExistingPlayersRosterStore
+from src.services.character_generation import generate_main_character_from_scratch
 from src.services.game_context import GameContext
 
 
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class PlayerService:
+    PLAYER_CHARACTER_INSTANCE_ID = "__player_avatar__"
+
     def __init__(
         self,
         bot,
@@ -221,6 +224,57 @@ class PlayerService:
                 player.SetAutoSaveEnabled(True)
         return True
 
+    @staticmethod
+    def _coerce_player_character_name(preferred_name: str | None, fallback_name: str | None = None) -> str:
+        for raw_value in (preferred_name, fallback_name):
+            candidate = str(raw_value or "").strip()
+            if candidate and candidate != "PlayerName":
+                return candidate
+        return "Player"
+
+    def _build_player_character(self, preferred_name: str | None = None, fallback_name: str | None = None):
+        resolved_name = self._coerce_player_character_name(preferred_name, fallback_name)
+        race = self.context.all_races.get("Human1")
+        try:
+            player_character = generate_main_character_from_scratch(name=resolved_name, race=race)
+        except Exception:
+            player_character = MainCharacter(name=resolved_name)
+        player_character.name = resolved_name
+        player_character.playerInstanceId = self.PLAYER_CHARACTER_INSTANCE_ID
+        return player_character
+
+    def ensure_player_character(self, player: Player, preferred_name: str | None = None) -> bool:
+        migrated = False
+        current = getattr(player, "playerCharacter", None)
+        if current is None:
+            player.playerCharacter = self._build_player_character(preferred_name, getattr(player, "playerName", ""))
+            return True
+
+        if not isinstance(current, MainCharacter):
+            current = MainCharacter.from_character(current)
+            player.playerCharacter = current
+            migrated = True
+
+        current.EnsureRuntimeDefaults()
+        if str(getattr(current, "playerInstanceId", "") or "").strip() != self.PLAYER_CHARACTER_INSTANCE_ID:
+            current.playerInstanceId = self.PLAYER_CHARACTER_INSTANCE_ID
+            migrated = True
+
+        if not str(getattr(current, "name", "") or "").strip():
+            current.name = self._coerce_player_character_name(preferred_name, getattr(player, "playerName", ""))
+            migrated = True
+
+        if not str(getattr(current, "race", "") or "").strip():
+            current.race = "Human1"
+            migrated = True
+
+        return migrated
+
+    def randomize_player_character(self, player: Player, preferred_name: str | None = None):
+        player.playerCharacter = self._build_player_character(preferred_name, getattr(player, "playerName", ""))
+        self.persist_player(player)
+        return player.playerCharacter
+
     async def get_name_from_id(self, guild_obj, discord_id: int) -> str:
         cached_name = self._cached_name_from_id(guild_obj, discord_id)
         if cached_name:
@@ -405,9 +459,9 @@ class PlayerService:
         new_player.AttachSavePath(player_save_path, enableAutoSave=False)
         self.context.existing_players[discord_id] = True
         self.save_existing_players_roster(self.existing_players_roster_path)
-        self.sync_player_name(
-            new_player, nickname or await self.get_name_from_id(self.context.guild, discord_id), persist=False
-        )
+        resolved_name = nickname or await self.get_name_from_id(self.context.guild, discord_id)
+        self.sync_player_name(new_player, resolved_name, persist=False)
+        self.ensure_player_character(new_player, preferred_name=resolved_name)
         new_player.isNewPlayer = True
         new_player.SetAutoSaveEnabled(True)
         new_player.Save()
@@ -419,7 +473,9 @@ class PlayerService:
         new_player.AttachSavePath(player_save_path, enableAutoSave=False)
         self.context.existing_players[discord_id] = True
         self.save_existing_players_roster(self.existing_players_roster_path)
-        self.sync_player_name(new_player, self._cached_name_from_id(self.context.guild, discord_id), persist=False)
+        resolved_name = self._cached_name_from_id(self.context.guild, discord_id)
+        self.sync_player_name(new_player, resolved_name, persist=False)
+        self.ensure_player_character(new_player, preferred_name=resolved_name)
         new_player.isNewPlayer = True
         new_player.SetAutoSaveEnabled(True)
         new_player.Save()
@@ -451,7 +507,8 @@ class PlayerService:
             player.AttachSavePath(player_save_path, enableAutoSave=True)
             nickname = await self.get_name_from_id(self.context.guild, discord_id)
             name_changed = self.sync_player_name(player, nickname, persist=False)
-            if migrated or name_changed:
+            player_character_changed = self.ensure_player_character(player, preferred_name=nickname)
+            if migrated or name_changed or player_character_changed:
                 player.Save()
             self.context.player_cache[discord_id] = player
             return player
@@ -488,10 +545,10 @@ class PlayerService:
 
         migrated = self._normalize_loaded_player(player)
         player.AttachSavePath(player_save_path, enableAutoSave=True)
-        name_changed = self.sync_player_name(
-            player, self._cached_name_from_id(self.context.guild, discord_id), persist=False
-        )
-        if migrated or name_changed:
+        cached_name = self._cached_name_from_id(self.context.guild, discord_id)
+        name_changed = self.sync_player_name(player, cached_name, persist=False)
+        player_character_changed = self.ensure_player_character(player, preferred_name=cached_name)
+        if migrated or name_changed or player_character_changed:
             player.Save()
         self.context.existing_players[discord_id] = True
         self.context.player_cache[discord_id] = player
@@ -503,6 +560,7 @@ class PlayerService:
             raise ValueError("Player must have a valid discordID before saving.")
 
         self._normalize_loaded_player(player)
+        self.ensure_player_character(player, preferred_name=getattr(player, "playerName", ""))
         player_save_path = self.get_player_save_path(discord_id)
         player.AttachSavePath(player_save_path, enableAutoSave=getattr(player, "_auto_save_enabled", True))
         player.Save()
@@ -512,6 +570,9 @@ class PlayerService:
 
     def list_player_main_characters(self, player: Player) -> list:
         result = []
+        player_character = getattr(player, "playerCharacter", None)
+        if isinstance(player_character, MainCharacter):
+            result.append(player_character)
         for character in getattr(player, "characters", []) or []:
             if isinstance(character, MainCharacter):
                 result.append(character)

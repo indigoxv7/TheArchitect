@@ -63,11 +63,17 @@ class TestMenuRuntime(unittest.TestCase):
         self.assertIn("partyMembers", main_menu_options)
         self.assertEqual(menus["character0"].menuState, MenuState.CHARACTER)
 
-    def test_main_menu_mission_actions_use_real_emojis(self):
+    def test_main_menu_mission_button_uses_real_emoji(self):
         menus = load_menus_from_directory("GameData/Menus")
 
-        self.assertEqual(menus["scavengingMissionAction"].myEmoji, "🏚️")
-        self.assertEqual(menus["portalMissionAction"].myEmoji, "🌌")
+        self.assertEqual(menus["missionAction"].myEmoji, "\U0001f30c")
+
+    def test_how_to_play_menu_exposes_customize_player_action(self):
+        menus = load_menus_from_directory("GameData/Menus")
+
+        option_names = [option.uniqueName for option in menus["HowToPlayMenu"].Options]
+        self.assertIn("mainMenu", option_names)
+        self.assertIn("customizePlayerAction", option_names)
 
     def test_visible_children_comes_from_service(self):
         sample_player = Player(1)

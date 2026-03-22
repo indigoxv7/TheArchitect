@@ -1,0 +1,9 @@
+﻿{
+    "myEmoji": "🧍",
+    "myOptionText": "Customize Player",
+    "uniqueName": "customizePlayerAction",
+    "Options": [],
+    "menuState": "DEFAULT",
+    "bodyText": "Customize your player-facing main character for roleplay and memory context.",
+    "parentName": "HowToPlayMenu"
+}

@@ -1,0 +1,296 @@
+# Procedural Location-Node Generation for Text-Based Maps
+
+## What makes a generated location feel coherent and memorable
+
+Procedural content generation (PCG) is commonly defined as the automatic or computer-assisted generation of game content (for example: levels, landscapes, items, rules, quests). citeturn23view0 Procedurally generating *locations* (nodes on a world map) becomes much easier to do well when each node is treated as a small, self-consistent “designed artifact,” not just a pile of random descriptors. The key is to decide what the player is supposed to *get* from the node (emotionally and tactically), then have your variables serve that goal (instead of the other way around). citeturn22view0
+
+A practical way to translate “what the node should feel like” into “what variables to roll” is to borrow the MDA perspective: mechanics → dynamics → aesthetics. The MDA paper defines **mechanics** as the data/algorithms, **dynamics** as run-time behavior emerging from mechanics + player input, and **aesthetics** as the emotional responses you want to evoke. citeturn22view0 For a node generator, this implies:
+
+- A node should not only describe *what is there*, but also imply *what can happen there* (risk, opportunity, choice, discovery, tension, relief), because player experience is driven by behavior and interaction, not just scenery. citeturn22view0  
+- Variables are more useful when they encode **affordances** (climbable, flammable, edible, sacred, patrol-route, flooded-at-night), because they naturally convert into both text description *and* gameplay options. citeturn22view0turn24view0
+
+The implication for your system design is: treat “Biome / Terrain / Climate” as *context priors*, then generate a *node role* (what this place does for the player), and finally fill that role using feature categories whose variables affect (a) description, (b) interactions, and (c) downstream content (encounters, loot, quests, faction activity). citeturn23view0turn22view0
+
+## Best practices from PCG and text generation research
+
+A recurring theme in PCG research is **controllability**: you want high variety, but within guardrails that preserve intent and playability. One “design-space” approach frames generators around an explicit description of what outputs are allowed (constraints), rather than letting the design space be an accidental byproduct of ad-hoc randomization. citeturn19view1 This matters for location nodes because “random cool stuff” tends to create contradictions (e.g., *frozen lava*, *a bustling market in a dead wasteland*, *a pristine cathedral in a swamp with no dry land*) unless you encode constraints or repair steps.
+
+A closely related best practice is to represent *meaningful semantics* for world objects. In research on semantic game worlds, “object semantics” is described as information beyond the raw model—physical attributes (mass/material), and functional information (how you can interact with an object)—and the paper argues that semantic information helps guide layout and can enable richer gameplay possibilities. citeturn24view0 In a text game, you don’t have meshes—but you can absolutely have semantics, and it’s arguably *more* important because semantics are what turn prose into actionable player choices.
+
+From interactive fiction practice, procedural text generation is framed as the ability to describe complex world-model states or story events without hand-authoring every possible variation. citeturn20view3 Two takeaways are especially relevant for your node system:
+
+- **Separate world state from surface text.** Generate a structured node model first, then render it into prose. This keeps your descriptions consistent with the state of the world (and makes persistence possible). citeturn20view3  
+- **Include metadata/tags and salience rules.** One described approach combines templating + generative grammar + selection of the most salient line given world state, with metadata indexing so lines can be selected appropriately. citeturn20view4 This is directly applicable to generating node descriptions: tags become your “query language” for pulling the right descriptive fragments.
+
+For narrative variability, the “storylets” model is one widely discussed way to assemble narrative from discrete modules whose availability depends on game state; the idea is that the game and player together shape which modules appear, rather than following a fixed branch tree. citeturn19view0 If you treat each location node as (or containing) a mini storylet—preconditions, content, effects—you get replayable narrative without losing coherence.
+
+Finally, research on evaluation methods emphasizes that you should *measure what your generator actually produces*, because generators often develop hidden biases and “holes” in what they can output. Expressive range analysis is described as a qualitative visual assessment of a generator’s generative space that helps you understand what types of content are producible and how the generator is biased. citeturn19view3 Even for a text game, you can log node “feature vectors” and look for overrepresented combinations, missing combinations, and accidental sameness.
+
+## A location-node schema that scales
+
+The schema below is designed so you can add categories over time without rewriting the generator. It also explicitly supports your plan: variables + likelihoods + mixable factors.
+
+At a high level, generate in two phases:
+
+- **Synthesis phase:** create a structured *NodeModel* using weighted choices + constraints/repair.  
+- **Rendering phase:** turn NodeModel into prose using templates/grammars and tag-driven text fragments. citeturn20view3turn20view4
+
+A minimal NodeModel that stays extensible looks like this (illustrative, not prescriptive):
+
+```json
+{
+  "setting_context": {
+    "biome_tags": ["goblin", "jungle", "fungal"],
+    "terrain_tags": ["dense_undergrowth", "low_visibility"],
+    "climate_tags": ["hot", "humid", "wet"]
+  },
+  "node_role": {
+    "primary_aesthetic": "discovery",
+    "gameplay_role": "resource_stop",
+    "intensity": 0.6,
+    "rarity_tier": "uncommon"
+  },
+  "features": [
+    {"category": "hydrology", "tags": ["blackwater_stream"], "metrics": {"depth": 0.4}},
+    {"category": "structure", "tags": ["ruined_watchtower", "wood"], "metrics": {"integrity": 0.3}},
+    {"category": "fauna", "tags": ["territorial_monkeys"], "metrics": {"threat": 0.5}}
+  ],
+  "affordances": ["hide", "forage", "scout_high_ground", "crossing_risky"],
+  "state": {
+    "persistent_flags": ["recently_raided"],
+    "timers": {"flood_stage": "rising"}
+  },
+  "hooks": [
+    {"type": "lore", "tags": ["goblin_totem_warning"]},
+    {"type": "quest_seed", "tags": ["missing_scout"] }
+  ]
+}
+```
+
+This approach is aligned with the idea that game content is most useful when it can drive interaction and experience (not just description). citeturn22view0 It also matches the IF-oriented recommendation to have a richly described world model first, then generate text from it. citeturn20view3turn20view4
+
+Two additional structural practices tend to pay off quickly:
+
+- **Tag vocabulary as a “semantic API.”** Treat tags as your stable interface between generation, constraints, and writing. The semantics literature explicitly motivates capturing information beyond surface appearance—including functional information about interaction. citeturn24view0  
+- **Preconditions and effects for reactivity.** If every generated node can optionally include storylet-like modules with preconditions and state effects, the world becomes meaningfully reactive rather than merely shuffled. citeturn19view0
+
+## Variables for your existing categories
+
+Below are variables that typically increase variety *without* exploding complexity. They’re written to be usable as numeric ranges, enums, and tag sets.
+
+### Biome variables
+
+Think of **Biome** as “what kind of world is this, ecologically and culturally?”—a container of priors and allowed tag families.
+
+**Identity and coherence**
+- **Biome archetype tags**: e.g., `jungle`, `swamp-jungle`, `cloudforest`, `mangrove`, `fungal`, `cursed`, `fae-touched`, `volcanic`.  
+- **Civilization pressure**: none → ruins-only → active frontier → established (drives structures, roads, factions).  
+- **Mythic saturation**: mundane → strange → supernatural-law-breaking (gates “anomaly” categories).  
+- **Ecological stability**: stable → disturbed → collapsing → blooming (affects scarcity, hazards, creature behavior).
+
+**Life and danger priors**
+- **Threat profile**: predator-heavy vs disease-heavy vs environmental-heavy.  
+- **Lifeform layers present**: canopy / midstory / understory / ground / water / fungus-mat.  
+- **Territoriality index**: how likely creatures/factions claim nodes and react.
+
+**Resource identity**
+- **Signature resources**: herbs, resins, spores, rare insects, gemstones, relic-metal, etc.  
+- **Decay rate**: how fast organic structures rot; strongly affects “ruin textures” and mood.
+
+### Terrain variables
+
+Terrain is “local physical shape and traversal.” It is where you get most of your “node uniqueness” cheaply.
+
+**Landform and passability**
+- **Elevation band**: lowland / ridge / escarpment / sinkhole / plateau / river terrace.  
+- **Slope roughness**: flat → broken → cliffy.  
+- **Ground stability**: firm / muddy / sinking / hollow / brittle / root-bound.  
+- **Passability**: open → slow → crawl → impassable without tool/skill.
+
+**Visibility and navigation**
+- **Sightline distance** (very small in dense jungle): drives surprise, ambush probability, “lostness.”  
+- **Landmark prominence**: none → subtle → obvious (supports navigation text and map readability).  
+- **Soundscape occlusion**: muffled / echoing / carrying (useful for threat foreshadowing).
+
+**Surface detail**
+- **Undergrowth density**: sparse → tangled → wall-of-green.  
+- **Canopy openness**: closed → dappled → open (affects heat, wetness, mood, creatures).  
+- **Micro-obstacles**: fallen logs, thorn curtains, vine bridges, ant hills, bone heaps, etc. (select 1–3).
+
+### Climate variables
+
+Climate is your “time-dependent modifier engine.”
+
+**Baselines**
+- **Temperature level** plus **diurnal swing** (stable heat vs punishing midday).  
+- **Humidity** (sticky vs fog-saturated).  
+- **Precipitation cadence**: constant drizzle vs afternoon storms vs monsoon pulses.
+
+**Events and extremes**
+- **Storm frequency** and **storm type**: thunder, windburst, hail-spores, acid rain (fantastical).  
+- **Flood regime**: none / seasonal / flash-flood / tidal.  
+- **Fog regime**: none / morning / persistent / event-driven.
+
+**Seasonality**
+- **Season strength**: none → mild → strong.  
+- **Transition hazards**: mold bloom week, mating season aggression, leech migration, etc.
+
+## New categories that meaningfully multiply node variety
+
+To keep this actionable, the categories below are chosen because they (a) produce distinctive prose, (b) imply interactions, and (c) create combinatorial variety *while remaining constrainable by tags and priors*. Where possible, each category suggests a small core set of “high leverage” variables.
+
+### Geology and substrate
+
+This category makes locations feel grounded and supports distinctive hazards/loot.
+
+Key variables: **material** (basalt/limestone/clay/peat/crystal), **soil chemistry** (acidic/alkaline/toxic), **cave likelihood**, **erosion form** (karst, pillars, scree), **fossil/ancient layer likelihood**.
+
+### Hydrology and wetness
+
+Wetness is one of the biggest differentiators in jungle-like biomes.
+
+Key variables: **water presence** (none/stream/river/pool/marsh), **flow speed**, **water clarity**, **fordability**, **water hazard** (leeches, undertow, parasites), **bridge likelihood** (natural or artificial).
+
+### Flora and growth behavior
+
+Instead of just “there are trees,” model how plants behave.
+
+Key variables: **dominant plant motif** (vines/bamboo/giant ferns/mangroves/fungal towers), **plant hostility** (thorns, adhesive sap, spore bursts), **edibility/medicine**, **flammability**, **light level** (bioluminescent undergrowth vs dark).
+
+### Fauna and signs
+
+A useful trick is to separate **presence** from **signs**.
+
+Key variables: **fauna tier** (minor/standard/apex/mythic), **activity** (sleeping/hunting/migrating/nesting), **sign density** (tracks, scat, calls), **behavioral lens** (skittish/territorial/curious), **domesticated probability** (ties to factions/structures).
+
+### Factions and ownership
+
+Ownership is what turns “random place” into “place with consequences.”
+
+Key variables: **owner** (none/faction A/faction B), **claim strength** (weak/contested/strong), **patrol frequency**, **rules of engagement**, **ritual markers** (totems, boundary charms), **trade presence**.
+
+### Artificial structures
+
+This is your explicit example category; it benefits from being multi-variable and semantically rich.
+
+Key variables: **presence chance**, **structure type** (shrine, fort, lab, bridge, mine, garden, prison, observatory), **builder culture**, **age**, **integrity** (whole → shattered), **occupation** (empty/hostile/neutral/friendly), **functionality** (still working? partially? dangerous?), **materials**, **hidden layers** (sub-basement, secret crawlspace), **attached infrastructure** (road, aqueduct, pylons), **story scars** (burn marks, siege signs, strange repairs).
+
+This is a natural place to apply “semantic” fields (what the structure is *for*, what you can *do* with it), consistent with the argument that richer object semantics enable richer gameplay and layout reasoning. citeturn24view0
+
+### Anomalies and metaphysics
+
+Because you are text-only, you can push variety hard here, but it needs constraints so it doesn’t shatter tone.
+
+Key variables: **anomaly presence**, **domain** (time, gravity, memory, sound, color, language, luck), **radius**, **predictability**, **cost**, **who benefits**, **visible tells** (frost on vines in heat, reversed shadows).
+
+### Node dynamics and change over time
+
+This is the category that makes revisits interesting and reduces the feeling of “static random tables.”
+
+Key variables: **decay rate**, **regrowth rate**, **recent events** (fire, raid, flood, ritual), **clock triggers** (night-only predators, dawn-mist shrine), **state transitions** (bridge collapses after three crossings).
+
+The experience-driven PCG perspective explicitly motivates adjusting content based on the user experience model and tailoring content to needs/preferences. citeturn19view2 You can implement a lightweight version by tracking player choices (combat-seeking, cautious, lore-hungry) and shifting the distribution of node dynamics accordingly.
+
+## Probability, constraint, and “quality control” techniques that keep nodes interesting
+
+### Weighted variety with explicit constraints
+
+If you do only one “best practice” upgrade, make it this: define **hard constraints** and **soft preferences** and run a “repair” pass.
+
+- The design-space approach to PCG emphasizes making the design space explicit and then producing artifacts within it (rather than relying on an implicit space that emerges from procedures). citeturn19view1  
+- Constraints can be simple (mutual exclusions, requirements, min/max counts) or solver-based. Even without a full constraint solver, a generate–test–repair loop captures the spirit of explicit design-space control. citeturn19view1turn26view0  
+
+A practical middle-ground is: **roll → validate → reroll only what broke**. That mirrors approaches described for constrained generation in other PCG contexts (resample until constraints satisfied; resample only violating parts; or check constraints incrementally). citeturn26view0
+
+### Tags as the bridge between generation and writing
+
+You want every major feature to produce:
+
+- **world tags** (for constraints and future logic), and  
+- **text tags** (for selecting description fragments).
+
+This mirrors IF practice of indexing generated lines with metadata and selecting the most salient option given state. citeturn20view4
+
+If you use a grammar-based renderer, a lightweight and battle-tested approach is a text-expansion grammar library (e.g., Tracery is described as a text-expansion library where you write grammar objects and get generative stories). citeturn4view1 The important design point is not the tool—it’s the **layering**: your grammar expansions should be conditional on NodeModel tags.
+
+### Storylets for reusable narrative hooks
+
+Treat “hooks” as modular storylets:
+
+- **preconditions** (tags/state needed),  
+- **payload** (a beat, a discovery, a choice), and  
+- **effects** (state changes, future tags).
+
+This aligns with the storylets model where narrative is assembled from discrete modules whose availability depends on game state. citeturn19view0 For location nodes, this lets you generate places that “mean something” without generating full linear plots.
+
+### Debugging and variety auditing with expressive range thinking
+
+Even if you never draw a chart, you should log per-node feature vectors and inspect:
+
+- which tags dominate,
+- which combinations never happen,
+- which combinations happen too often,
+- and where constraints are over-pruning.
+
+This is the spirit of expressive range analysis: understanding what kinds of content a generator produces and where it is biased. citeturn19view3
+
+A simple text-game-friendly metric set is:
+
+- **danger**, **reward**, **weirdness**, **civilization**, **visibility**, **traversal cost**, **narrative density**, **structure presence**.
+
+You can then check distributions and correlations (e.g., “structure presence almost always implies high danger” might be accidental and worth fixing).
+
+## Worked example blueprint for a Goblin Jungle node generator
+
+Assume your setting priors are:
+
+- biome tags: `goblin`, `jungle`
+- terrain tags: `dense_undergrowth`, `vines`, `low_visibility`
+- climate tags: `hot`, `humid`, `wet`
+
+### Node role roll
+
+Pick a role first (because it prevents “everything everywhere” nodes):
+
+- discovery landmark
+- ambush corridor
+- resource oasis
+- lore reveal
+- safe-ish rest pocket
+- traversal puzzle
+
+You can map these roles to desired aesthetics (discovery, challenge, narrative), consistent with MDA’s emphasis on targeting aesthetic experience and understanding how mechanics/dynamics support it. citeturn22view0
+
+### Three example nodes from identical biome/terrain/climate
+
+**A canopy-stitched causeway**  
+World model: a natural vine bridge reinforced with goblin lashings; crossing is possible but noisy and sways; below is a flooded ravine with pale fungus rafts; territorial calls echo.  
+High-leverage variables: `landmark_prominence=high`, `passability=medium`, `hazard=fall_risk`, `faction_claim=weak`, `structure=light_infrastructure`.  
+Text payoff: describes height, sway, the smell of wet rope, lash marks, distant chittering; implies actions (*cross carefully*, *cut lashings*, *scout*, *set bait*).
+
+**A “dry” island that isn’t**  
+World model: a slightly raised hummock with a tempting dry patch; the “soil” is actually a springy mat of roots over a sink; stepping wrong drops you into warm mud with biting larvae; a broken mask hints someone fell here recently.  
+Variables: `ground_stability=deceptive`, `wetness=high`, `microhazard=traplike`, `lore=missing_scout_clue`.  
+This leverages the IF framing: the node describes a complex world-model state (danger and clue) without needing a hand-authored room for every permutation. citeturn20view3
+
+**A ruined watch-post grown inward**  
+World model: a wooden/growth composite: goblin-built platform long abandoned, but now the jungle has grown through it; fungus “lamps” glow in the beams; there’s a vantage point if you climb, but also old spear-traps half-buried.  
+Variables: `structure_presence=yes`, `integrity=low`, `flora=bioluminescent`, `affordance=scout_high_ground`, `trap_chance=medium`.  
+Semantic payoff: you can encode the structure’s *function* (watching), not just its look, which supports interaction-oriented generation. citeturn24view0
+
+### Implementation note that prevents repetition
+
+For text-only games, players notice repetition quickly, so treat any “descriptive fragment pool” (like *jungle smells*, *goblin graffiti*, *rain sounds*) as something you draw from with anti-repetition logic (cooldowns, shuffle bags, or “first-time special” fragments). IF tooling discussion highlights that even simple randomness and cycling is commonly used to diversify atmospheric text and room descriptions. citeturn20view3
+
+### A small set of “always worth it” variables
+
+If you want maximum return for minimum engineering, these variables tend to create the most perceived uniqueness per unit of complexity:
+
+- **node role** (what this node is *for*)
+- **one landmark**
+- **one constraint-shaped hazard**
+- **one faction/ecology sign**
+- **one interactive affordance bundle**
+- **one hook (lore, quest seed, or rumor)**
+
+This is essentially a “structured node storylet”: modular content gated by state and context, assembled into a coherent moment. citeturn19view0turn20view4

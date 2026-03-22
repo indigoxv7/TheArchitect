@@ -22,6 +22,7 @@ class MenuRuntimeService(MenuRuntimeDraftMixin, MenuRuntimeInteractionMixin):
         context: GameContext,
         battle_runtime_service=None,
         mission_runtime_service=None,
+        player_character_runtime_service=None,
     ):
         self.menu_service = menu_service
         self.player_service = player_service
@@ -31,4 +32,5 @@ class MenuRuntimeService(MenuRuntimeDraftMixin, MenuRuntimeInteractionMixin):
         self.context = context
         self.battle_runtime_service = battle_runtime_service
         self.mission_runtime_service = mission_runtime_service
+        self.player_character_runtime_service = player_character_runtime_service
         self._special_action_router = MenuSpecialActionRouter(self)

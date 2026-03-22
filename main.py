@@ -32,6 +32,7 @@ from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.mission_unit_populator import MissionUnitPopulator
 from src.services.nano_reward_service import NanoRewardCalculator
 from src.services.player_service import PlayerService
+from src.services.player_character_runtime_service import PlayerCharacterRuntimeService
 from src.services.power_rating_service import PowerRatingService
 from src.services.race_service import RaceService
 from src.services.spell_service import SpellService
@@ -159,6 +160,10 @@ battle_service = BattleService(
     nano_reward_calculator=nano_reward_calculator,
 )
 battle_runtime_service = BattleRuntimeService(battle_service=battle_service)
+player_character_runtime_service = PlayerCharacterRuntimeService(
+    player_service=player_service,
+    whitelist_service=whitelist_service,
+)
 mission_runtime_service = MissionRuntimeService(
     context=context,
     player_service=player_service,
@@ -184,7 +189,9 @@ menu_runtime_service = MenuRuntimeService(
     context=context,
     battle_runtime_service=battle_runtime_service,
     mission_runtime_service=mission_runtime_service,
+    player_character_runtime_service=player_character_runtime_service,
 )
+player_character_runtime_service.set_menu_runtime_service(menu_runtime_service)
 
 
 def initialize_game():

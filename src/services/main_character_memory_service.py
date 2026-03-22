@@ -104,6 +104,10 @@ class MainCharacterMemoryService:
         if player is None:
             raise ValueError(f"Player {player_id} does not exist.")
 
+        player_character = getattr(player, "playerCharacter", None)
+        if str(getattr(player_character, "playerInstanceId", "") or "") == str(character_instance_id):
+            return player, player_character
+
         for character in getattr(player, "characters", []) or []:
             if str(getattr(character, "playerInstanceId", "") or "") == str(character_instance_id):
                 return player, character
@@ -114,9 +118,14 @@ class MainCharacterMemoryService:
         player = self.player_service.get_player_sync(int(player_id))
         if player is None:
             return []
-        return [
+        result = []
+        player_character = getattr(player, "playerCharacter", None)
+        if isinstance(player_character, MainCharacter):
+            result.append(player_character)
+        result.extend(
             character for character in (getattr(player, "characters", []) or []) if isinstance(character, MainCharacter)
-        ]
+        )
+        return result
 
     def _coerce_scene_frame(self, scene_frame: dict[str, Any]) -> dict[str, Any]:
         frame = dict(scene_frame or {})

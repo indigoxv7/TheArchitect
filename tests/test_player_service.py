@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from src.domain.Character import Character
+from src.domain.main_character import MainCharacter
 from src.domain.player_functions import Player, save_player
 from src.services.game_context import GameContext
 from src.services.player_service import PlayerService
@@ -132,6 +133,38 @@ class TestPlayerService(unittest.TestCase):
             self.assertEqual(loaded.playerName, "Cached Nick")
             payload = json.loads(save_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["player_state"]["__state__"].get("playerName"), "Cached Nick")
+
+    def test_new_players_receive_player_character_and_keep_it_out_of_owned_characters(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, service, _player_saves = self._build_service(temp_dir)
+
+            player = service._create_fresh_player_sync(505, str(Path(temp_dir) / "PlayerSaves" / "505.json"))
+
+            self.assertIsNotNone(player.playerCharacter)
+            self.assertIsInstance(player.playerCharacter, MainCharacter)
+            self.assertEqual(player.playerCharacter.playerInstanceId, service.PLAYER_CHARACTER_INSTANCE_ID)
+            self.assertEqual(player.playerCharacter.name, "Player")
+            self.assertEqual(player.characters, [])
+
+    def test_persisted_player_character_round_trips_without_entering_owned_characters(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, service, _player_saves = self._build_service(temp_dir)
+
+            player = Player(606)
+            player.playerName = "Testing Nick"
+            service.ensure_player_character(player, preferred_name="Testing Nick")
+            service.persist_player(player)
+
+            loaded = service.get_player_sync(606)
+
+            self.assertIsNotNone(loaded)
+            self.assertIsInstance(loaded.playerCharacter, MainCharacter)
+            self.assertEqual(loaded.playerCharacter.playerInstanceId, service.PLAYER_CHARACTER_INSTANCE_ID)
+            self.assertEqual(loaded.playerCharacter.name, "Testing Nick")
+            self.assertEqual(loaded.characters, [])
+            save_path = Path(temp_dir) / "PlayerSaves" / "606.json"
+            payload = json.loads(save_path.read_text(encoding="utf-8"))
+            self.assertIn("playerCharacter", payload["player_state"]["__state__"])
 
 
 if __name__ == "__main__":

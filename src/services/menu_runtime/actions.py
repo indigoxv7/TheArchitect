@@ -22,6 +22,7 @@ class MenuSpecialActionRouter:
         self.runtime = runtime
         self._handlers = {
             "missionAction": self._open_mission_menu,
+            "customizePlayerAction": self._open_player_customization,
             "spellCreateAction": self._start_spell_create,
             "spellCreateSaveAction": self._save_spell_create,
             "spellCreateCancelAction": self._cancel_spell_create,
@@ -96,6 +97,16 @@ class MenuSpecialActionRouter:
             await interface.send_ephemeral("Mission runtime is only available in Discord right now.")
             return self._parent_or_self(menu), False, True
         await self.runtime.mission_runtime_service.show_mission_menu(interaction, interface.user_id)
+        return self._parent_or_self(menu), False, True
+
+    async def _open_player_customization(
+        self, interface: "MenuInterface", menu: Menu, _original_message: "OriginalMessage"
+    ) -> SpecialActionResult:
+        interaction = interface.discord_interaction
+        if self.runtime.player_character_runtime_service is None or interaction is None:
+            await interface.send_ephemeral("Player customization is only available in Discord right now.")
+            return self._parent_or_self(menu), False, True
+        await self.runtime.player_character_runtime_service.open_customization(interaction, interface.user_id)
         return self._parent_or_self(menu), False, True
 
     async def _start_spell_create(

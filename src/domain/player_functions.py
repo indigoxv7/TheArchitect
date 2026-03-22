@@ -1,4 +1,4 @@
-import importlib
+﻿import importlib
 import json
 import os
 import tempfile
@@ -67,6 +67,7 @@ class Player:
         inventory=None,
         missionPartyCharacterIds=None,
         campaignProgressById=None,
+        playerCharacter=None,
         energyRegenRatePerSecond: float = ENERGY_REGEN_RATE_PER_SECOND,
     ):
         object.__setattr__(self, "_auto_save_enabled", False)
@@ -94,6 +95,7 @@ class Player:
             str(entry or "").strip() for entry in (missionPartyCharacterIds or []) if str(entry or "").strip()
         ]
         self.campaignProgressById = self._normalize_campaign_progress_map(campaignProgressById)
+        self.playerCharacter = playerCharacter
 
         self.intChoice = 0
 
@@ -181,6 +183,11 @@ class Player:
         if not hasattr(self, "campaignProgressById") or self.campaignProgressById is None:
             self.campaignProgressById = {}
         self.campaignProgressById = self._normalize_campaign_progress_map(self.campaignProgressById)
+        if not hasattr(self, "playerCharacter"):
+            self.playerCharacter = None
+        ensure_player_character_defaults = getattr(self.playerCharacter, "EnsureRuntimeDefaults", None)
+        if callable(ensure_player_character_defaults):
+            ensure_player_character_defaults()
 
         for character in self.characters:
             ensure_defaults = getattr(character, "EnsureRuntimeDefaults", None)
@@ -384,3 +391,5 @@ def load_player(filename: str) -> Player:
     player._ensure_runtime_defaults()
     player.AttachSavePath(filename, enableAutoSave=True)
     return player
+
+
