@@ -4,6 +4,7 @@ import math
 
 from src.config.tuning import character_stat_factor
 from src.domain.main_character import MainCharacter
+from src.domain.character_util import NormalizeUnitDisplayName
 from src.domain.combat.enums import BattleTeam
 from src.domain.combat.state import BattleState
 from src.domain.combat_timing import (
@@ -32,7 +33,8 @@ class BattleEntityRuntimeMixin:
 
     @staticmethod
     def _entity_name(entity) -> str:
-        return str(getattr(entity, "name", "Entity") or "Entity")
+        raw_name = str(getattr(entity, "name", "Entity") or "Entity")
+        return NormalizeUnitDisplayName(raw_name) or raw_name
 
     @staticmethod
     def _entity_health(entity) -> float:
@@ -146,6 +148,8 @@ class BattleEntityRuntimeMixin:
         return None
 
     def _tracked_main_character(self, battle: BattleState, entity) -> MainCharacter | None:
+        if not bool(getattr(battle, "record_external_effects", True)):
+            return None
         if getattr(entity, "team", BattleTeam.ALLY) != BattleTeam.ALLY:
             return None
         character_instance_id = str(getattr(entity, "character_instance_id", "") or "")

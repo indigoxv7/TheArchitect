@@ -147,7 +147,7 @@ class BattleService(
             "recent_triggers": [trigger.message for trigger in (recent_summary.triggers if recent_summary else [])],
             "allies": [
                 {
-                    "name": unit.name,
+                    "name": self._entity_name(unit),
                     "health": round(unit.health, 1),
                     "max_health": round(unit.max_health, 1),
                     "state": unit.health_state,
@@ -159,7 +159,7 @@ class BattleService(
             ],
             "enemies": [
                 {
-                    "name": unit.name,
+                    "name": self._entity_name(unit),
                     "health": round(self._entity_health(unit), 1),
                     "max_health": round(self._entity_max_health(unit), 1),
                     "state": unit.health_state,

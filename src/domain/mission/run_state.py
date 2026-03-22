@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from src.domain.mission.node_events import MissionNodeEvent
 from src.domain.mission.objectives import MissionObjectiveStatus
 from src.domain.mission.statistics import MissionStatistics
 
@@ -141,6 +142,8 @@ class MissionRunState:
     missionObjectiveStatus: MissionObjectiveStatus = MissionObjectiveStatus.IN_PROGRESS
     campaignIds: list[str] = field(default_factory=list)
     pendingBattleNodeId: int | None = None
+    pendingNodeEvents: list[MissionNodeEvent] = field(default_factory=list)
+    missionCountRecorded: bool = False
     lastBattleSummary: str = ""
     resultSummary: str = ""
 
@@ -186,6 +189,12 @@ class MissionRunState:
                 self.missionObjectiveStatus = MissionObjectiveStatus.IN_PROGRESS
         self.campaignIds = [str(entry or "").strip() for entry in self.campaignIds or [] if str(entry or "").strip()]
         self.pendingBattleNodeId = int(self.pendingBattleNodeId) if self.pendingBattleNodeId is not None else None
+        self.pendingNodeEvents = [
+            entry if isinstance(entry, MissionNodeEvent) else MissionNodeEvent.from_dict(entry)
+            for entry in (self.pendingNodeEvents or [])
+            if entry is not None
+        ]
+        self.missionCountRecorded = bool(self.missionCountRecorded)
         self.lastBattleSummary = str(self.lastBattleSummary or "")
         self.resultSummary = str(self.resultSummary or "")
 
@@ -225,6 +234,8 @@ class MissionRunState:
             "missionObjectiveStatus": self.missionObjectiveStatus.name,
             "campaignIds": list(self.campaignIds),
             "pendingBattleNodeId": self.pendingBattleNodeId,
+            "pendingNodeEvents": [entry.to_dict() for entry in self.pendingNodeEvents],
+            "missionCountRecorded": bool(self.missionCountRecorded),
             "lastBattleSummary": self.lastBattleSummary,
             "resultSummary": self.resultSummary,
         }
@@ -262,6 +273,8 @@ class MissionRunState:
                 if data.get("pendingBattleNodeId", None) not in (None, "")
                 else None
             ),
+            pendingNodeEvents=data.get("pendingNodeEvents", []),
+            missionCountRecorded=bool(data.get("missionCountRecorded", False)),
             lastBattleSummary=str(data.get("lastBattleSummary", "") or ""),
             resultSummary=str(data.get("resultSummary", "") or ""),
         )

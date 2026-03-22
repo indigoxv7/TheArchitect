@@ -83,6 +83,12 @@ class MissionResultView(discord.ui.View):
             self.add_item(AcknowledgeMissionResultButton(runtime, player_id, label=label, row=0))
 
 
+class MissionNodeEventView(discord.ui.View):
+    def __init__(self, runtime, player_id: int):
+        super().__init__(timeout=86400)
+        self.add_item(ContinueNodeEventButton(runtime, player_id, row=0))
+
+
 class MissionChoiceButton(discord.ui.Button):
     def __init__(self, runtime, player_id: int, entry: dict[str, object], row: int = 1):
         mission = entry["mission"]
@@ -180,6 +186,16 @@ class AcknowledgeMissionResultButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         await self.runtime.acknowledge_result(interaction, self.player_id)
+
+
+class ContinueNodeEventButton(discord.ui.Button):
+    def __init__(self, runtime, player_id: int, row: int = 0):
+        super().__init__(label="Continue", style=discord.ButtonStyle.primary, row=row)
+        self.runtime = runtime
+        self.player_id = int(player_id)
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.runtime.advance_node_event(interaction, self.player_id)
 
 
 class PageButton(discord.ui.Button):

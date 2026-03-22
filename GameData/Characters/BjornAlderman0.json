@@ -100,7 +100,7 @@
                 "interestLevel": "Passionate"
             }
         ],
-        "description": "A middle aged woodsman with short brown hair and beard.",
+        "description": "A middle aged history teacher with short brown hair and beard.",
         "portraitURL": "https://static.wikia.nocookie.net/bannersaga_wikickstart/images/b/b2/Saga1_Hero_Icon_Rook.png/revision/latest?cb=20140312162120",
         "footerImageURL": "https://media.discordapp.net/attachments/886469391548559372/1480267501437980863/image.png",
         "characterInfo": {
@@ -113,7 +113,7 @@
             "hairColor": "black",
             "eyeColor": "brown",
             "distinguishingMarks": "birthmark",
-            "distinguishingMarksLocation": "",
+            "distinguishingMarksLocation": "hand",
             "background": "suburban middle-class",
             "occupation": "healthcare or education worker",
             "job": "Secondary School Teacher",

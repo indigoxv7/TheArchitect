@@ -1,4 +1,5 @@
 from enum import Enum
+import re
 
 DEFAULT_DURABILITY = 100
 
@@ -103,14 +104,16 @@ def AffinityFormula(affinity: float, factor: float):
 
 
 def AbbreviateNumber(number: int) -> str:
-    if abs(number) >= 1_000_000_000_000:
-        return f"{number / 1_000_000_000_000:.1f}T"
-    elif abs(number) >= 1_000_000_000:
-        return f"{number / 1_000_000_000:.1f}B"
-    elif abs(number) >= 1_000_000:
-        return f"{number / 1_000_000:.1f}M"
-    else:
-        return str(number)
+    from src.services.nano_display_service import format_nano
+
+    return format_nano(number)
+
+
+def NormalizeUnitDisplayName(name: str) -> str:
+    text = str(name or "").strip()
+    if not text:
+        return ""
+    return re.sub(r"\s+\d+$", "", text).strip()
 
 
 class ItemPower:
@@ -327,7 +330,7 @@ class CharacterStatistics:
         normalized_units_killed: dict[str, int] = {}
         if isinstance(unitsKilled, dict):
             for key, value in unitsKilled.items():
-                name = str(key or "").strip()
+                name = NormalizeUnitDisplayName(str(key or "").strip())
                 if not name:
                     continue
                 try:
@@ -335,7 +338,7 @@ class CharacterStatistics:
                 except Exception:
                     count = 0
                 if count > 0:
-                    normalized_units_killed[name] = count
+                    normalized_units_killed[name] = normalized_units_killed.get(name, 0) + count
         self.unitsKilled = normalized_units_killed
 
     def record_damage_done(self, amount: float):
@@ -362,7 +365,7 @@ class CharacterStatistics:
         if count <= 0:
             return
         self.kills += count
-        name = str(unit_name or "").strip() or "Unknown Unit"
+        name = NormalizeUnitDisplayName(str(unit_name or "").strip()) or "Unknown Unit"
         self.unitsKilled[name] = self.unitsKilled.get(name, 0) + count
         if is_boss:
             self.bossesKilled += count

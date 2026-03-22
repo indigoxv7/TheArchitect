@@ -137,8 +137,6 @@ class BattleMissionTrackingMixin:
                 if battle.outcome == BattleOutcome.DEFEAT and source.health <= 0:
                     state_name = "DEAD"
                 source.healthState = HealthState[state_name]
-                if isinstance(source, MainCharacter):
-                    source.stats.missionCount = int(getattr(source.stats, "missionCount", 0) or 0) + 1
             self.player_service.persist_player(player)
         if record_memory:
             self._append_memory_event(battle, battle.result_summary or f"Battle ends: {battle.outcome.name}.")

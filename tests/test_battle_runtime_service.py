@@ -79,7 +79,7 @@ class TestBattleRuntimeService(unittest.TestCase):
         self.assertTrue(interaction.response.deferred)
         self.assertTrue(called['response_done_during_render'])
         self.assertIs(called['battle'], battle)
-        self.assertEqual(called['note'], 'Resolved exchange 4.')
+        self.assertIsNone(called['note'])
 
 
 if __name__ == '__main__':

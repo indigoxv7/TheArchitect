@@ -51,6 +51,7 @@ class CombatUnitState:
     offhand_item_id: str = ""
     inventory_item_ids: list[str] = field(default_factory=list)
     spell_names: list[str] = field(default_factory=list)
+    character_state: dict[str, Any] = field(default_factory=dict)
     status_tokens: list[str] = field(default_factory=list)
     notable: bool = True
 
@@ -96,6 +97,7 @@ class CombatUnitState:
             "offhand_item_id": self.offhand_item_id,
             "inventory_item_ids": list(self.inventory_item_ids),
             "spell_names": list(self.spell_names),
+            "character_state": dict(self.character_state),
             "status_tokens": list(self.status_tokens),
             "notable": bool(self.notable),
         }
@@ -147,6 +149,7 @@ class CombatUnitState:
             offhand_item_id=str(data.get("offhand_item_id", "") or ""),
             inventory_item_ids=[str(item) for item in data.get("inventory_item_ids", []) or []],
             spell_names=[str(item) for item in data.get("spell_names", []) or []],
+            character_state=dict(data.get("character_state", {}) or {}),
             status_tokens=[str(item) for item in data.get("status_tokens", []) or []],
             notable=bool(data.get("notable", True)),
         )

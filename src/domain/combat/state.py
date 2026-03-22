@@ -179,6 +179,7 @@ class BattleState:
     origin_type: str = ""
     origin_mission_node_id: int | None = None
     origin_resolution_applied: bool = False
+    record_external_effects: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -216,6 +217,7 @@ class BattleState:
             "origin_type": self.origin_type,
             "origin_mission_node_id": self.origin_mission_node_id,
             "origin_resolution_applied": bool(self.origin_resolution_applied),
+            "record_external_effects": bool(self.record_external_effects),
         }
 
     @classmethod
@@ -289,4 +291,5 @@ class BattleState:
                 else None
             ),
             origin_resolution_applied=bool(data.get("origin_resolution_applied", False)),
+            record_external_effects=bool(data.get("record_external_effects", True)),
         )

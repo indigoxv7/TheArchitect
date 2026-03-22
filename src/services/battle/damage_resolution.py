@@ -4,6 +4,7 @@ import copy
 from typing import Any
 
 from src.config.tuning import character_stat_factor
+from src.domain.character_io import character_from_state
 from src.domain.Character import Character, HealthState
 from src.domain.character_util import Attributes, EquipSlot, HitLocation, ItemType
 from src.domain.items import Weapon
@@ -23,11 +24,22 @@ from src.domain.combat_timing import (
 )
 from src.domain.combat.units import EnemyStackState
 from src.services.combat_loadout_service import select_active_character_weapon
+from src.services.nano_display_service import format_nano
 
 
 class BattleDamageResolutionMixin:
     def _character_snapshot_for_entity(self, battle: BattleState, entity) -> Character:
-        if getattr(entity, "team", BattleTeam.ALLY) == BattleTeam.ALLY and getattr(entity, "character_instance_id", ""):
+        serialized_state = getattr(entity, "character_state", None)
+        if isinstance(serialized_state, dict) and serialized_state:
+            try:
+                source = character_from_state(
+                    serialized_state,
+                    item_resolver=self.item_service.get_item_by_id,
+                    error_item=self.context.error_item,
+                )
+            except Exception:
+                source = None
+        elif getattr(entity, "team", BattleTeam.ALLY) == BattleTeam.ALLY and getattr(entity, "character_instance_id", ""):
             source = self._player_source_character(battle.player_id, getattr(entity, "character_instance_id", ""))
         else:
             source = self._template_character(
@@ -204,11 +216,14 @@ class BattleDamageResolutionMixin:
 
     def _format_nano_reward_message(self, target_entity, nano_reward: int, count: int) -> str:
         unit_type = self._entity_name(target_entity)
+        reward_text = format_nano(nano_reward)
         if int(count or 0) <= 1:
-            return f"You have killed a {unit_type}. For your effort, you have received {int(nano_reward):,} nano."
-        return f"You have killed {int(count)} {unit_type}(s). For your effort, you have received {int(nano_reward):,} nano."
+            return f"You have killed a {unit_type}. For your effort, you have received {reward_text} nano."
+        return f"You have killed {int(count)} {unit_type}(s). For your effort, you have received {reward_text} nano."
 
     def _award_nano_for_enemy_kill(self, battle: BattleState, target_entity, count: int):
+        if not bool(getattr(battle, "record_external_effects", True)):
+            return None
         if self.nano_reward_calculator is None or int(count or 0) <= 0:
             return None
         if getattr(target_entity, "team", BattleTeam.ALLY) != BattleTeam.ENEMY:

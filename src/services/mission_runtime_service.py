@@ -11,6 +11,7 @@ from src.bot.views.mission_view import (
     MissionActiveView,
     MissionCharacterSummaryView,
     MissionMenuView,
+    MissionNodeEventView,
     MissionPreparationView,
     MissionResultView,
 )
@@ -18,6 +19,8 @@ from src.domain.Allegiance import AllegianceRelationship
 from src.domain.character_io import character_from_state, character_to_state
 from src.domain.combat import BattleOutcome, EncounterType
 from src.domain.mission import (
+    MissionNodeEvent,
+    MissionNodeEventType,
     MissionNodeState,
     MissionNodeUnitState,
     MissionObjectiveStatus,
@@ -35,6 +38,7 @@ from src.services.mission_map import (
     render_mission_map_image,
 )
 from src.services.mission_map.generator import generate_mission_map
+from src.services.nano_display_service import format_nano
 
 
 @dataclass
@@ -331,12 +335,103 @@ class MissionRuntimeService:
         if neutral:
             lines.append(f"- Neutral units: {neutral}")
         if not node_state.treasureCollected and int(node_state.nanoAmount or 0) > 0:
-            lines.append(f"- Nano cache: {int(node_state.nanoAmount)}")
+            lines.append(f"- Nano cache: {format_nano(node_state.nanoAmount)}")
         if not node_state.clueResolved and node_state.clueTargetNodeId is not None:
             lines.append("- A clue is present here.")
         if len(lines) == 1:
             lines.append("- Quiet node.")
         return "\n".join(lines)
+
+    def _append_node_event(
+        self,
+        state: MissionRunState,
+        event_type: MissionNodeEventType,
+        title: str,
+        description: str,
+    ):
+        state.pendingNodeEvents.append(
+            MissionNodeEvent(
+                eventType=event_type,
+                title=str(title or ""),
+                description=str(description or ""),
+            )
+        )
+
+    def _collect_node_events(self, player, state: MissionRunState, node_state: MissionNodeState) -> str:
+        notes: list[str] = []
+        if not node_state.treasureCollected and int(node_state.nanoAmount or 0) > 0:
+            amount = int(node_state.nanoAmount or 0)
+            player.nano = int(getattr(player, "nano", 0) or 0) + amount
+            node_state.treasureCollected = True
+            self.player_service.persist_player(player)
+            self._append_node_event(
+                state,
+                MissionNodeEventType.TREASURE,
+                "Treasure Found",
+                f"You found {format_nano(amount)} nano at this location.",
+            )
+
+        if not node_state.clueResolved and node_state.clueTargetNodeId is not None:
+            target_node_id = self._resolve_clue_target(state, int(node_state.nodeId), int(node_state.clueTargetNodeId))
+            if target_node_id is not None:
+                state.reveal_node(int(target_node_id))
+                self._append_node_event(
+                    state,
+                    MissionNodeEventType.CLUE,
+                    "Clue Found",
+                    f"A clue points toward node {int(target_node_id)}.",
+                )
+            else:
+                self._append_node_event(
+                    state,
+                    MissionNodeEventType.CLUE,
+                    "Clue Found",
+                    "You found a clue, but it does not reveal a new location.",
+                )
+            node_state.clueResolved = True
+
+        non_hostile_units = [unit for unit in node_state.living_unit_states() if not self._is_hostile(unit.allegianceId)]
+        if non_hostile_units:
+            allied_count = sum(1 for unit in non_hostile_units if self._is_ally(unit.allegianceId))
+            neutral_count = len(non_hostile_units) - allied_count
+            if allied_count:
+                notes.append(f"You find {allied_count} allied unit(s) here.")
+            if neutral_count:
+                notes.append(f"You spot {neutral_count} neutral unit(s) here.")
+        return " ".join(notes)
+
+    def _build_node_event_embed(self, state: MissionRunState) -> discord.Embed:
+        event = state.pendingNodeEvents[0]
+        mission = self._mission_template(state)
+        mission_name = state.missionName or (mission.name if mission is not None else "Mission")
+        embed = discord.Embed(title=f"{mission_name} | {event.title}", description=event.description or "")
+        if state.currentNodeId is not None:
+            embed.set_footer(text=f"Node {int(state.currentNodeId)}")
+        return embed
+
+    async def render_node_event(self, interaction: discord.Interaction, state: MissionRunState):
+        if not state.pendingNodeEvents:
+            await self.render_active_mission(interaction, state)
+            return
+        embed = self._build_node_event_embed(state)
+        view = MissionNodeEventView(self, int(state.playerId))
+        await self._edit_message(interaction, embed=embed, view=view)
+
+    async def advance_node_event(self, interaction: discord.Interaction, player_id: int):
+        state = self.get_active_mission(player_id)
+        if state is None:
+            await self.show_mission_menu(interaction, player_id)
+            return
+        if state.pendingNodeEvents:
+            state.pendingNodeEvents.pop(0)
+            self.save_active_mission(state)
+        if state.pendingNodeEvents:
+            await self.render_node_event(interaction, state)
+            return
+        if state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
+            await self.render_mission_result(interaction, state)
+            return
+        await self.render_active_mission(interaction, state)
 
     def _build_active_mission_embed(self, player, state: MissionRunState) -> discord.Embed:
         mission = self._mission_template(state)
@@ -369,6 +464,29 @@ class MissionRuntimeService:
             embed.add_field(name="Latest Event", value=state.lastBattleSummary, inline=False)
         embed.set_image(url=f"attachment://{self.MISSION_IMAGE_FILENAME}")
         return embed
+
+    def _record_completed_mission_count(self, state: MissionRunState, player=None):
+        if state.missionCountRecorded:
+            return
+        if state.status not in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
+            return
+        if player is None:
+            player = self.player_service.get_player_sync(int(state.playerId))
+        if player is None:
+            return
+        selected_ids = set(state.partyState.selectedCharacterInstanceIds)
+        updated = False
+        for character in getattr(player, "characters", []) or []:
+            if self._character_identity(character) not in selected_ids:
+                continue
+            stats = getattr(character, "stats", None)
+            if stats is None:
+                continue
+            stats.missionCount = int(getattr(stats, "missionCount", 0) or 0) + 1
+            updated = True
+        state.missionCountRecorded = True
+        if updated:
+            self.player_service.persist_player(player)
 
     def _build_result_embed(self, state: MissionRunState) -> discord.Embed:
         if state.status == MissionRunStatus.FORCED_RETREAT:
@@ -433,6 +551,9 @@ class MissionRuntimeService:
         state = self.get_active_mission(player_id)
         if state is None:
             await self.show_mission_menu(interaction, player_id)
+            return
+        if state.pendingNodeEvents:
+            await self.render_node_event(interaction, state)
             return
         if state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
             await self.render_mission_result(interaction, state)
@@ -817,34 +938,16 @@ class MissionRuntimeService:
                 await self._start_node_battle(interaction, player, state, node_state, hostile_units)
                 return
 
-            notes: list[str] = []
-            if not node_state.treasureCollected and int(node_state.nanoAmount or 0) > 0:
-                player.nano = int(getattr(player, "nano", 0) or 0) + int(node_state.nanoAmount)
-                node_state.treasureCollected = True
-                notes.append(f"Collected {int(node_state.nanoAmount)} Nano.")
-                self.player_service.persist_player(player)
-
-            if not node_state.clueResolved and node_state.clueTargetNodeId is not None:
-                target_node_id = self._resolve_clue_target(state, int(node_state.nodeId), int(node_state.clueTargetNodeId))
-                if target_node_id is not None:
-                    state.reveal_node(int(target_node_id))
-                    notes.append(f"A clue points toward node {int(target_node_id)}.")
-                node_state.clueResolved = True
-
-            non_hostile_units = [unit for unit in node_state.living_unit_states() if not self._is_hostile(unit.allegianceId)]
-            if non_hostile_units:
-                allied_count = sum(1 for unit in non_hostile_units if self._is_ally(unit.allegianceId))
-                neutral_count = len(non_hostile_units) - allied_count
-                if allied_count:
-                    notes.append(f"You find {allied_count} allied unit(s) here.")
-                if neutral_count:
-                    notes.append(f"You spot {neutral_count} neutral unit(s) here.")
-
+            notes = self._collect_node_events(player, state, node_state)
             if notes:
-                state.lastBattleSummary = " ".join(notes)
+                state.lastBattleSummary = notes
 
         self._refresh_objective_status(state)
+        self._record_completed_mission_count(state, player)
         self.save_active_mission(state)
+        if state.pendingNodeEvents:
+            await self.render_node_event(interaction, state)
+            return
         if state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
             await self.render_mission_result(interaction, state)
             return
@@ -921,6 +1024,7 @@ class MissionRuntimeService:
                 state.resultSummary = "your squad was forced to retreat"
 
         self._refresh_objective_status(state)
+        self._record_completed_mission_count(state, player)
         if state.status == MissionRunStatus.SUCCESS and player is not None:
             self.campaign_service.mark_mission_completed_everywhere(player, state.missionId)
             self.player_service.persist_player(player)
@@ -933,7 +1037,10 @@ class MissionRuntimeService:
         if state is None:
             await self.show_mission_menu(interaction, player_id)
             return
-        if state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
+        if state.pendingNodeEvents:
+            await self.render_node_event(interaction, state)
+            return
+        if state.status == MissionRunStatus.FORCED_RETREAT:
             await self.render_mission_result(interaction, state)
             return
         await self._enter_current_node(interaction, state)
@@ -948,6 +1055,7 @@ class MissionRuntimeService:
         state = self.get_active_mission(player_id)
         if state is not None:
             player = self.player_service.get_player_sync(int(player_id))
+            self._record_completed_mission_count(state, player)
             if state.status == MissionRunStatus.SUCCESS and player is not None:
                 self.campaign_service.mark_mission_completed_everywhere(player, state.missionId)
                 self.player_service.persist_player(player)

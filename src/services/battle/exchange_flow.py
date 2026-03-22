@@ -230,6 +230,7 @@ class BattleExchangeFlowMixin:
         for index in range(max(1, int(simulations))):
             clone = BattleState.from_dict(battle.to_dict())
             clone.phase = BattlePhase.ACTIVE
+            clone.record_external_effects = False
             local_rng = random.Random(1000 + index)
             original_rng = self.damage_calculator._rng
             self.damage_calculator._rng = local_rng

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 from src.domain.player_functions import Player
 from src.persistence.menu_store import MenuStore
 from src.services.game_context import GameContext
+from src.services.nano_display_service import format_nano
 from src.ui.menu import Menu, MenuContext, MenuState
 
 if TYPE_CHECKING:
@@ -224,7 +225,7 @@ class MenuService:
         achievement_draft = menu_state.achievementDraft if hasattr(menu_state, "achievementDraft") else {}
 
         data = {
-            "nano": player.nano,
+            "nano": format_nano(player.nano),
             "playerName": player.playerName,
             "factionTitle": faction_title,
             "achievementTitle": player.achievementTitle,

@@ -293,7 +293,7 @@ class TestCharacterService(unittest.TestCase):
                     "alliesProtected": 1,
                     "bossesKilled": 1,
                     "elitesKilled": 2,
-                    "unitsKilled": {"Goblin Raider": 3},
+                    "unitsKilled": {"Goblin Raider 3": 2, "Goblin Raider 4": 1},
                 },
             }
 

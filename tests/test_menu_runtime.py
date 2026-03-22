@@ -21,7 +21,7 @@ class TestMenuRuntime(unittest.TestCase):
         game.initialize_game()
 
     def test_replace_placeholders_replaces_emoji_tokens(self):
-        player = Player(999, nano=321)
+        player = Player(999, nano=1450)
         player.playerName = "TestPlayer"
 
         text = "Nano $nanoEmoji $nano :nano: {nanoEmoji}"
@@ -31,6 +31,7 @@ class TestMenuRuntime(unittest.TestCase):
         self.assertEqual(replaced.count(nanoEmoji), 3)
         self.assertNotIn("$nanoEmoji", replaced)
         self.assertNotIn(":nano:", replaced)
+        self.assertIn("1.450 K", replaced)
         self.assertNotIn("{nanoEmoji}", replaced)
 
     def test_inventory_placeholder_uses_player_inventory(self):

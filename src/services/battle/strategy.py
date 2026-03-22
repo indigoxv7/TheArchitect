@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 from src.config.tuning import battle_factor, battle_factor_int
 from src.domain.combat.state import BattleState
+
+
+logger = logging.getLogger(__name__)
 
 
 class BattleStrategyMixin:
@@ -40,11 +44,12 @@ class BattleStrategyMixin:
             "recent_highlights": [summary.to_dict() for summary in battle.recent_summaries[-2:]],
         }
         results = []
-        for _ in range(3):
+        for attempt in range(3):
             try:
                 judgment = self.openai_service.judge_combat_strategy(prompt_packet)
                 results.append(judgment)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Combat strategy judge attempt %s failed: %s", attempt + 1, exc, exc_info=True)
                 continue
         if not results:
             return self._neutral_strategy_result("Strategy judge failed, so neutral orders were applied.")

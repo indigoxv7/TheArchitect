@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from src.domain.character_io import character_to_state
 from src.domain.character_util import Attributes
 from src.domain.items import Gear, Weapon
 from src.domain.Race import CreatureSize
@@ -223,6 +224,7 @@ class BattleRosterBuilder:
             offhand_item_id=self.resolve_item_id(getattr(gear, "offhand", None)),
             inventory_item_ids=inventory_item_ids,
             spell_names=self.extract_direct_damage_spells(character),
+            character_state=character_to_state(character),
             notable=notable,
         )
 

@@ -14,6 +14,7 @@ from src.domain.mission.objectives import (
     SurvivalObjective,
 )
 from src.domain.mission.map_generation import MissionMapGenerationRange
+from src.domain.mission.node_events import MissionNodeEvent, MissionNodeEventType
 from src.domain.mission.statistics import MissionStatistics
 from src.domain.mission.template import MissionAllegianceConfig, MissionTemplate, MissionUnitOption
 from src.domain.mission.run_state import (
@@ -34,6 +35,8 @@ __all__ = [
     "MissionAllegianceConfig",
     "MissionMapGenerationRange",
     "MissionNodeState",
+    "MissionNodeEvent",
+    "MissionNodeEventType",
     "MissionNodeUnitState",
     "MissionObjective",
     "MissionObjectiveStatus",

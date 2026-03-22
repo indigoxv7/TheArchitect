@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from src.domain.Character import Character
+from src.domain.character_io import character_to_state
 from src.domain.main_character import MainCharacter
 from src.domain.mission import MissionObjectiveStatus
 from src.domain.character_util import Attributes
@@ -24,6 +25,7 @@ from src.services.encounter_service import EncounterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.nano_reward_service import NanoRewardCalculator
+from src.services.nano_display_service import format_nano
 from src.services.power_rating_service import PowerRatingService
 from src.services.player_service import PlayerService
 from src.services.spell_service import SpellService
@@ -306,6 +308,31 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(battle.cached_orders_signature, battle.orders.signature())
 
+    def test_estimate_victory_odds_does_not_mutate_live_main_character_stats_or_nano(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            player = player_service.get_player_sync(111)
+            hero = player.characters[0]
+            hero.stats.damageDone = 0.0
+            hero.stats.damageTaken = 0.0
+            hero.stats.kills = 0
+            hero.stats.unitsKilled.clear()
+            player.nano = 0
+
+            battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
+
+            odds = battle_service.estimate_victory_odds(battle, simulations=4)
+
+            self.assertGreaterEqual(odds, 0.0)
+            self.assertLessEqual(odds, 1.0)
+            self.assertEqual(hero.stats.damageDone, 0.0)
+            self.assertEqual(hero.stats.damageTaken, 0.0)
+            self.assertEqual(hero.stats.kills, 0)
+            self.assertEqual(hero.stats.unitsKilled, {})
+            self.assertEqual(player.nano, 0)
+
     def test_exchange_advances_battle_time_by_twelve_seconds(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
@@ -368,6 +395,17 @@ class TestBattleService(unittest.TestCase):
 
             self.assertGreater(counts["Hero"], counts["Goblin Raider"])
 
+    def test_battle_snapshot_normalizes_generated_unit_names(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, _player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            battle, _ = battle_service.start_or_resume_battle(111, EncounterType.SCAVENGING)
+            if battle.enemy_units:
+                battle.enemy_units[0].name = "Goblin Raider 3"
+                snapshot = battle_service.build_battle_snapshot(battle)
+                self.assertEqual(snapshot["enemies"][0]["name"], "Goblin Raider")
+
     def test_use_consumable_consumes_inventory_and_heals(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             _context, player_service, _item_service, battle_service, _memory_service, bandage = self._build_services(
@@ -398,6 +436,47 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(battle.orders.strategy_score, 7)
             self.assertAlmostEqual(battle.orders.lane_discipline_modifier, 0.05)
             self.assertEqual(battle.orders.width_control_bonus, 0)
+
+    def test_mission_node_battle_does_not_increment_mission_count_on_battle_finalize(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            player = player_service.get_player_sync(111)
+            hero = player.characters[0]
+            self.assertIsInstance(hero, MainCharacter)
+            hero.stats.missionCount = 0
+
+            encounter = EncounterDefinition(
+                encounter_id="test_mission_count",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Mission Count",
+                terrain="Roadside",
+                width=1,
+                total_lines=5,
+                objective_text="Win.",
+                allow_retreat=True,
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(
+                player,
+                encounter,
+                "missionAction",
+                mission_id="Mission0",
+                origin_type="mission_node",
+                origin_mission_node_id=1,
+            )
+            battle.phase = BattlePhase.RESOLVED
+            battle.outcome = BattleOutcome.VICTORY
+            battle.result_summary = "Victory."
+
+            battle_service._finalize_battle(battle, record_memory=False)
+
+            self.assertEqual(hero.stats.missionCount, 0)
 
     def test_main_character_stats_and_objective_status_update_from_combat(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -444,6 +523,7 @@ class TestBattleService(unittest.TestCase):
             battle.enemy_units[0].health = 10
             battle.enemy_units[0].max_health = 10
             battle.enemy_units[0].is_boss = True
+            battle.enemy_units[0].name = "Goblin Raider 3"
 
             highlights = []
             battle_service._resolve_attack(
@@ -462,6 +542,7 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(hero.stats.kills, 1)
             self.assertEqual(hero.stats.bossesKilled, 1)
             self.assertEqual(hero.stats.unitsKilled.get("Goblin Raider"), 1)
+            self.assertNotIn("Goblin Raider 3", hero.stats.unitsKilled)
             self.assertEqual(battle.mission_statistics.bossesDefeated, 1)
             self.assertEqual(battle.mission_objective_status, MissionObjectiveStatus.SUCCESS)
 
@@ -507,6 +588,79 @@ class TestBattleService(unittest.TestCase):
 
             self.assertEqual(player.nano, expected)
             self.assertTrue(any("received" in line for line in highlights))
+            self.assertTrue(any(f"received {format_nano(expected)} nano" in line for line in highlights))
+
+    def test_mission_enemy_rewards_use_runtime_character_state(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            battle_service.damage_calculator._rng = _DeterministicRng()
+            player = player_service.get_player_sync(111)
+            player.characters[0].level = 1
+
+            encounter = EncounterDefinition(
+                encounter_id="test_runtime_state_reward",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Runtime State Reward",
+                terrain="Roadside",
+                width=1,
+                total_lines=5,
+                objective_text="Win.",
+                allow_retreat=True,
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(player, encounter, "missionAction", mission_id="Mission0")
+
+            template_character = battle_service.character_service.get_character("GoblinRaider0")
+            self.assertIsNotNone(template_character)
+            strong_enemy = Character(
+                name="Goblin Raider",
+                race="Goblin0",
+                level=3,
+                attributes=Attributes(
+                    physicalPower=11,
+                    physicalStamina=10,
+                    physicalResistance=9,
+                    magicPower=7,
+                    magicStamina=6,
+                    magicResistance=6,
+                ),
+                gear=Gear(primaryWeapon=player.characters[0].gear.primaryWeapon),
+            )
+            strong_enemy.health = strong_enemy.GetMaxHealth()
+            strong_enemy.CalculateBonus()
+
+            battle.enemy_units[0].health = 1
+            battle.enemy_units[0].max_health = max(1.0, float(strong_enemy.GetMaxHealth()))
+            battle.enemy_units[0].level = strong_enemy.level
+            battle.enemy_units[0].character_state = character_to_state(strong_enemy)
+
+            runtime_expected = battle_service.nano_reward_calculator.calculate_for_character(
+                strong_enemy,
+                enemy_level=strong_enemy.level,
+                team_highest_level=1,
+                penalized_equipment=False,
+                defeated_count=1,
+            ).totalNano
+            template_expected = battle_service.nano_reward_calculator.calculate_for_character(
+                template_character,
+                enemy_level=strong_enemy.level,
+                team_highest_level=1,
+                penalized_equipment=False,
+                defeated_count=1,
+            ).totalNano
+
+            self.assertNotEqual(runtime_expected, template_expected)
+
+            reward = battle_service._award_nano_for_enemy_kill(battle, battle.enemy_units[0], 1)
+
+            self.assertIsNotNone(reward)
+            self.assertEqual(player.nano, runtime_expected)
 
     def test_penalized_equipment_applies_nano_penalty(self):
         with tempfile.TemporaryDirectory() as temp_dir:

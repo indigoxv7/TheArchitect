@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+
 import discord
 
 from src.bot.views.combat_view import CombatView, ResolvedBattleView
 from src.domain.combat import BattlePhase, EncounterType
+
+
+logger = logging.getLogger(__name__)
 
 
 class StrategyModal(discord.ui.Modal, title="Battle Strategy"):
@@ -25,10 +31,20 @@ class StrategyModal(discord.ui.Modal, title="Battle Strategy"):
         if battle is None:
             await interaction.response.send_message("No active battle to update.", ephemeral=True)
             return
-        judgment = self.runtime.battle_service.apply_strategy(battle, str(self.strategy_text.value or ""))
-        note = f"Strategy scored {judgment['score']}/10."
         if not interaction.response.is_done():
             await interaction.response.defer()
+        try:
+            judgment = await asyncio.to_thread(
+                self.runtime.battle_service.apply_strategy,
+                battle,
+                str(self.strategy_text.value or ""),
+            )
+        except Exception as exc:
+            logger.exception("Failed to apply battle strategy")
+            await interaction.followup.send(f"Strategy judge failed: {exc}", ephemeral=True)
+            await self.runtime.render_battle(interaction, battle, message=self.message)
+            return
+        note = f"Strategy scored {judgment['score']}/10."
         await self.runtime.render_battle(interaction, battle, message=self.message, note=note)
 
 
@@ -211,7 +227,7 @@ class BattleRuntimeService:
             encounter_type=encounter_type,
             allow_retreat=allow_retreat,
         )
-        note = "Resumed mission battle." if resumed else "Hostile forces engage your squad."
+        note = "Resumed mission battle." if resumed else None
         await self.render_battle(interaction, battle, note=note)
 
     async def render_battle(
@@ -260,9 +276,8 @@ class BattleRuntimeService:
         if battle is None:
             return
         await self._defer_if_needed(interaction)
-        summary = self.battle_service.resolve_exchange(battle, persist=True, record_memory=True)
-        note = f"Resolved exchange {summary.exchange_number}."
-        await self.render_battle(interaction, battle, note=note)
+        self.battle_service.resolve_exchange(battle, persist=True, record_memory=True)
+        await self.render_battle(interaction, battle)
 
     async def auto_resolve(self, interaction: discord.Interaction, player_id: int):
         battle = await self._load_owned_battle(interaction, player_id)

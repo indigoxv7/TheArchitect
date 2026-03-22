@@ -47,6 +47,20 @@ class CombatStrategyJudgmentModel(BaseModel):
 
 
 class OpenAINarrativeService:
+    @staticmethod
+    def _coerce_int(value, default: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return int(default)
+
+    @staticmethod
+    def _coerce_float(value, default: float) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float(default)
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -60,6 +74,8 @@ class OpenAINarrativeService:
         self.memory_model = memory_model or os.getenv("OPENAI_MEMORY_MODEL") or "gpt-5-mini"
         self.embedding_model = embedding_model or os.getenv("OPENAI_EMBEDDING_MODEL") or "text-embedding-3-small"
         self.combat_judge_model = combat_judge_model or os.getenv("OPENAI_COMBAT_JUDGE_MODEL") or "gpt-5-mini"
+        self.request_timeout_seconds = self._coerce_float(os.getenv("OPENAI_TIMEOUT_SECONDS"), 20.0)
+        self.max_retries = max(0, self._coerce_int(os.getenv("OPENAI_MAX_RETRIES"), 1))
         self._client: OpenAI | None = None
 
     @staticmethod
@@ -76,7 +92,11 @@ class OpenAINarrativeService:
             api_key = self.resolve_api_key(self._api_key_override)
             if not api_key:
                 raise RuntimeError("OpenAI API key not configured. Set OPENAI_API_KEY or OPEN_AI_API_KEY.")
-            self._client = OpenAI(api_key=api_key)
+            self._client = OpenAI(
+                api_key=api_key,
+                timeout=self.request_timeout_seconds,
+                max_retries=self.max_retries,
+            )
         return self._client
 
     @staticmethod
