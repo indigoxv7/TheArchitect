@@ -59,7 +59,7 @@
             "allegianceConfigs": [
                 {
                     "allegianceId": "Bandit0",
-                    "powerPointCap": 500,
+                    "powerPointCap": 1000,
                     "unitOptions": [
                         {
                             "unitId": "Goblinfighter1",

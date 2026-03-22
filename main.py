@@ -30,6 +30,7 @@ from src.services.menu_runtime import ConsoleMenuInterface as ConsoleMenuInterfa
 from src.services.menu_service import MenuService
 from src.services.openai_narrative_service import OpenAINarrativeService
 from src.services.mission_unit_populator import MissionUnitPopulator
+from src.services.nano_reward_service import NanoRewardCalculator
 from src.services.player_service import PlayerService
 from src.services.power_rating_service import PowerRatingService
 from src.services.race_service import RaceService
@@ -105,6 +106,7 @@ unit_service = UnitService(
 power_rating_service = PowerRatingService(
     spell_service=spell_service, item_service=item_service, race_service=race_service
 )
+nano_reward_calculator = NanoRewardCalculator(power_rating_service=power_rating_service)
 combat_simulator_service = CombatSimulatorService(
     character_service=character_service,
     item_service=item_service,
@@ -154,6 +156,7 @@ battle_service = BattleService(
     active_battle_store=active_battle_store,
     openai_service=openai_narrative_service,
     memory_service=memory_service,
+    nano_reward_calculator=nano_reward_calculator,
 )
 battle_runtime_service = BattleRuntimeService(battle_service=battle_service)
 mission_runtime_service = MissionRuntimeService(

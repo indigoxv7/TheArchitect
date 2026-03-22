@@ -131,6 +131,23 @@ class TestMenuRuntime(unittest.TestCase):
             payload = json.loads(save_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["player_state"]["__state__"].get("playerName"), "Fresh Discord Nick")
 
+    def test_generated_mission_state_keeps_hostile_units_and_starts_active(self):
+        player = game.player_service.get_player_sync(191980469670248448)
+        mission = game.mission_service.get_mission_by_id("GoblinEliminationlvl00")
+
+        self.assertIsNotNone(player)
+        self.assertIsNotNone(mission)
+
+        state = game.mission_runtime_service._generate_state(player, mission, ["TheApocalypseBegins0"])
+
+        self.assertEqual(state.status.name, "ACTIVE")
+        self.assertEqual(state.missionObjectiveStatus.name, "IN_PROGRESS")
+        self.assertGreater(state.missionStatistics.totalStartingEnemies, 0)
+        self.assertGreater(
+            sum(1 for node_state in state.nodeStates if node_state.living_unit_states()),
+            0,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

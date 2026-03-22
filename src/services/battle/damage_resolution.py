@@ -153,15 +153,92 @@ class BattleDamageResolutionMixin:
             return
         attacker.stats.record_spell_cast()
 
+    def _battle_team_highest_level(self, battle: BattleState) -> int:
+        highest = 0
+        for entity in getattr(battle, "ally_units", []) or []:
+            if not bool(getattr(entity, "is_player_owned", False)):
+                continue
+            highest = max(highest, int(getattr(entity, "level", 0) or 0))
+        return highest
+
+    def _resolve_weapon_reference(self, item_like) -> Weapon | None:
+        if isinstance(item_like, Weapon):
+            return item_like
+        item_id = str(getattr(item_like, "itemId", "") or item_like or "").strip()
+        if not item_id:
+            return None
+        return self.item_service.get_weapon(item_id)
+
+    def _character_has_penalized_equipment(self, character) -> bool:
+        gear = getattr(character, "gear", None)
+        if gear is None:
+            return False
+        items = []
+        get_all_equipped = getattr(gear, "GetAllEquipped", None)
+        if callable(get_all_equipped):
+            items.extend(get_all_equipped())
+        items.extend(getattr(gear, "inventory", []) or [])
+        for item in items:
+            weapon = self._resolve_weapon_reference(item)
+            if weapon is not None and bool(getattr(weapon, "penalizedEquipment", False)):
+                return True
+        return False
+
+    def _battle_has_penalized_equipment(self, battle: BattleState) -> bool:
+        if not str(getattr(battle, "mission_id", "") or "").strip() and str(getattr(battle, "origin_type", "") or "") != "mission_node":
+            return False
+        for entity in getattr(battle, "ally_units", []) or []:
+            if not bool(getattr(entity, "is_player_owned", False)):
+                continue
+            character = self._player_source_character(battle.player_id, getattr(entity, "character_instance_id", ""))
+            if character is not None and self._character_has_penalized_equipment(character):
+                return True
+        player = self.player_service.get_player_sync(battle.player_id)
+        if player is None:
+            return False
+        for entry in getattr(player, "inventory", []) or []:
+            weapon = self._resolve_weapon_reference(entry)
+            if weapon is not None and bool(getattr(weapon, "penalizedEquipment", False)):
+                return True
+        return False
+
+    def _format_nano_reward_message(self, target_entity, nano_reward: int, count: int) -> str:
+        unit_type = self._entity_name(target_entity)
+        if int(count or 0) <= 1:
+            return f"You have killed a {unit_type}. For your effort, you have received {int(nano_reward):,} nano."
+        return f"You have killed {int(count)} {unit_type}(s). For your effort, you have received {int(nano_reward):,} nano."
+
+    def _award_nano_for_enemy_kill(self, battle: BattleState, target_entity, count: int):
+        if self.nano_reward_calculator is None or int(count or 0) <= 0:
+            return None
+        if getattr(target_entity, "team", BattleTeam.ALLY) != BattleTeam.ENEMY:
+            return None
+        player = self.player_service.get_player_sync(battle.player_id)
+        if player is None:
+            return None
+        target_character = self._character_snapshot_for_entity(battle, target_entity)
+        reward = self.nano_reward_calculator.calculate_for_character(
+            target_character,
+            enemy_level=int(getattr(target_entity, "level", getattr(target_character, "level", 0)) or 0),
+            team_highest_level=self._battle_team_highest_level(battle),
+            penalized_equipment=self._battle_has_penalized_equipment(battle),
+            defeated_count=int(count or 0),
+        )
+        if reward.totalNano <= 0:
+            return reward
+        player.nano = int(getattr(player, "nano", 0) or 0) + int(reward.totalNano)
+        self.player_service.persist_player(player)
+        return reward
+
     def _record_kill(self, battle: BattleState, attacker_entity, target_entity, count: int):
         attacker = self._tracked_main_character(battle, attacker_entity)
-        if attacker is None:
-            return
-        is_boss = bool(getattr(target_entity, "is_boss", False))
-        is_elite = bool(getattr(target_entity, "is_elite", False))
-        attacker.stats.record_kill(self._entity_name(target_entity), count=count, is_boss=is_boss, is_elite=is_elite)
-        if is_boss:
+        if attacker is not None:
+            is_boss = bool(getattr(target_entity, "is_boss", False))
+            is_elite = bool(getattr(target_entity, "is_elite", False))
+            attacker.stats.record_kill(self._entity_name(target_entity), count=count, is_boss=is_boss, is_elite=is_elite)
+        if bool(getattr(target_entity, "is_boss", False)):
             battle.mission_statistics.bossesDefeated += count
+        return self._award_nano_for_enemy_kill(battle, target_entity, count)
 
     def _resolve_attack(
         self,
@@ -233,11 +310,16 @@ class BattleDamageResolutionMixin:
                 spend_stamina(target, stamina_damage_from_hit(damage_result["damage"]), current_time)
                 self._record_damage_done(battle, attacker, damage_result["damage"])
                 self._record_damage_taken(battle, target, damage_result["damage"])
+                reward = None
                 if damage_result["defeated_units"] > 0:
-                    self._record_kill(battle, attacker, target, damage_result["defeated_units"])
+                    reward = self._record_kill(battle, attacker, target, damage_result["defeated_units"])
                 highlights.append(
                     f"{self._entity_name(attacker)} blasts {self._entity_name(target)} for {damage_result['damage']:.1f} damage."
                 )
+                if reward is not None and int(getattr(reward, "totalNano", 0) or 0) > 0:
+                    highlights.append(
+                        self._format_nano_reward_message(target, reward.totalNano, damage_result["defeated_units"])
+                    )
             else:
                 highlights.append(
                     f"{self._entity_name(attacker)} misses {self._entity_name(target)} with {getattr(spell, 'name', 'a spell')}."
@@ -276,11 +358,16 @@ class BattleDamageResolutionMixin:
             spend_stamina(target, stamina_damage_from_hit(damage_result["damage"]), current_time)
             self._record_damage_done(battle, attacker, damage_result["damage"])
             self._record_damage_taken(battle, target, damage_result["damage"])
+            reward = None
             if damage_result["defeated_units"] > 0:
-                self._record_kill(battle, attacker, target, damage_result["defeated_units"])
+                reward = self._record_kill(battle, attacker, target, damage_result["defeated_units"])
             highlights.append(
                 f"{self._entity_name(attacker)} hits {self._entity_name(target)} for {damage_result['damage']:.1f} damage."
             )
+            if reward is not None and int(getattr(reward, "totalNano", 0) or 0) > 0:
+                highlights.append(
+                    self._format_nano_reward_message(target, reward.totalNano, damage_result["defeated_units"])
+                )
         else:
             highlights.append(f"{self._entity_name(attacker)} fails to injure {self._entity_name(target)}.")
         return True

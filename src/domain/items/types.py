@@ -32,6 +32,7 @@ class Weapon(Item):
         ignoreArmorFraction: float = 0.0,
         penetrationBase: float = 0.0,
         staminaCost: float = 10.0,
+        penalizedEquipment: bool = False,
         itemId: str | None = None,
         powerLevel: float = 0.0,
     ):
@@ -53,6 +54,7 @@ class Weapon(Item):
         self.ignoreArmorFraction = max(0.0, min(1.0, float(ignoreArmorFraction)))
         self.penetrationBase = max(0.0, float(penetrationBase))
         self.staminaCost = max(0.0, float(staminaCost))
+        self.penalizedEquipment = bool(penalizedEquipment)
         representative_power = int(round(max(self.damageMin, self.damageMax, 0.0)))
         self.itemPower = (
             [ItemPower(PowerType.PHYSICAL_ATTACK, representative_power)] if representative_power > 0 else []
@@ -73,7 +75,10 @@ class Weapon(Item):
         return self.itemType == ItemType.RANGED_WEAPON
 
     def refresh_tags(self):
-        self._rebuild_tags([damage_type.name for damage_type in self.damageType])
+        extra_tags = [damage_type.name for damage_type in self.damageType]
+        if self.penalizedEquipment:
+            extra_tags.append('PENALIZED_EQUIPMENT')
+        self._rebuild_tags(extra_tags)
 
     def to_dict(self) -> dict[str, Any]:
         payload = super().to_dict()
@@ -87,6 +92,7 @@ class Weapon(Item):
                     "ignoreArmorFraction": float(self.ignoreArmorFraction),
                     "penetrationBase": float(self.penetrationBase),
                     "staminaCost": float(self.staminaCost),
+                    "penalizedEquipment": bool(self.penalizedEquipment),
                 },
                 "damageType": [damage_type.name for damage_type in self.damageType],
                 "damageMin": _serialize_number(self.damageMin),
@@ -95,6 +101,7 @@ class Weapon(Item):
                 "ignoreArmorFraction": float(self.ignoreArmorFraction),
                 "penetrationBase": float(self.penetrationBase),
                 "staminaCost": float(self.staminaCost),
+                "penalizedEquipment": bool(self.penalizedEquipment),
             }
         )
         return payload
@@ -128,6 +135,7 @@ class Weapon(Item):
                 weapon_stats.get("penetrationBase", data.get("penetrationBase", 0.0)), 0.0
             ),
             staminaCost=cls._coerce_float(weapon_stats.get("staminaCost", data.get("staminaCost", 10.0)), 10.0),
+            penalizedEquipment=bool(weapon_stats.get("penalizedEquipment", data.get("penalizedEquipment", False))),
             itemId=common["itemId"],
             powerLevel=common["powerLevel"],
         )

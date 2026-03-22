@@ -54,6 +54,7 @@ class BattleService(
         damage_calculator: DamageCalculator | None = None,
         openai_service=None,
         memory_service=None,
+        nano_reward_calculator=None,
     ):
         self.context = context
         self.player_service = player_service
@@ -66,6 +67,7 @@ class BattleService(
         self.damage_calculator = damage_calculator if damage_calculator is not None else DamageCalculator()
         self.openai_service = openai_service
         self.memory_service = memory_service
+        self.nano_reward_calculator = nano_reward_calculator
         self.mission_runtime_service = None
         self._rng = random.Random()
         self.roster_builder = BattleRosterBuilder(

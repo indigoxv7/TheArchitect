@@ -34,6 +34,7 @@ class TestItemService(unittest.TestCase):
                 "ignoreArmorFraction": 0.1,
                 "penetrationBase": 7,
                 "staminaCost": 12,
+                "penalizedEquipment": True,
                 "statBonuses": [],
                 "powerLevel": 12.5,
             }
@@ -45,6 +46,7 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(created.slot.name, "PRIMARY_WEAPON")
             self.assertEqual(created.powerLevel, 12.5)
             self.assertEqual(created.staminaCost, 12)
+            self.assertTrue(created.penalizedEquipment)
 
             created_id = created.itemId
             service.edit_item_from_patch(
@@ -90,6 +92,7 @@ class TestItemService(unittest.TestCase):
             self.assertEqual(loaded.ignoreArmorFraction, 0.25)
             self.assertEqual(loaded.penetrationBase, 14)
             self.assertEqual(loaded.staminaCost, 18)
+            self.assertTrue(loaded.penalizedEquipment)
 
     def test_legacy_itembook_without_ids_auto_migrates(self):
         with tempfile.TemporaryDirectory() as temp_dir:

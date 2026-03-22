@@ -23,6 +23,8 @@ from src.services.battle import BattleService
 from src.services.encounter_service import EncounterService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
+from src.services.nano_reward_service import NanoRewardCalculator
+from src.services.power_rating_service import PowerRatingService
 from src.services.player_service import PlayerService
 from src.services.spell_service import SpellService
 from src.services.character_service import CharacterService
@@ -148,6 +150,13 @@ class TestBattleService(unittest.TestCase):
         )
         active_battle_store = ActiveBattleStore(str(active_battles_dir))
         memory_service = _FakeMemoryService()
+        power_rating_service = PowerRatingService(
+            spell_service=spell_service,
+            item_service=item_service,
+            race_service=None,
+            seed=1337,
+        )
+        nano_reward_calculator = NanoRewardCalculator(power_rating_service)
         battle_service = BattleService(
             context=context,
             player_service=player_service,
@@ -159,6 +168,7 @@ class TestBattleService(unittest.TestCase):
             active_battle_store=active_battle_store,
             openai_service=openai_service,
             memory_service=memory_service,
+            nano_reward_calculator=nano_reward_calculator,
         )
         battle_service.initialize()
         return context, player_service, item_service, battle_service, memory_service, bandage
@@ -454,6 +464,102 @@ class TestBattleService(unittest.TestCase):
             self.assertEqual(hero.stats.unitsKilled.get("Goblin Raider"), 1)
             self.assertEqual(battle.mission_statistics.bossesDefeated, 1)
             self.assertEqual(battle.mission_objective_status, MissionObjectiveStatus.SUCCESS)
+
+    def test_kills_award_nano_and_log_it(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            battle_service.damage_calculator._rng = _DeterministicRng()
+            player = player_service.get_player_sync(111)
+            player.characters[0].level = 1
+
+            encounter = EncounterDefinition(
+                encounter_id="test_nano_reward",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Nano Reward",
+                terrain="Roadside",
+                width=1,
+                total_lines=5,
+                objective_text="Win.",
+                allow_retreat=True,
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(player, encounter, "missionAction", mission_id="Mission0")
+            battle.enemy_units[0].health = 1
+            battle.enemy_units[0].max_health = 60
+            battle.enemy_units[0].level = 3
+
+            expected = battle_service.nano_reward_calculator.calculate_for_character(
+                battle_service._character_snapshot_for_entity(battle, battle.enemy_units[0]),
+                enemy_level=battle.enemy_units[0].level,
+                team_highest_level=1,
+                penalized_equipment=False,
+                defeated_count=1,
+            ).totalNano
+
+            highlights = []
+            battle_service._resolve_attack(battle, battle.ally_units[0], battle.enemy_units[0], battle.orders, highlights)
+
+            self.assertEqual(player.nano, expected)
+            self.assertTrue(any("received" in line for line in highlights))
+
+    def test_penalized_equipment_applies_nano_penalty(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            _context, player_service, _item_service, battle_service, _memory_service, _bandage = self._build_services(
+                temp_dir
+            )
+            battle_service.damage_calculator._rng = _DeterministicRng()
+            player = player_service.get_player_sync(111)
+            player.characters[0].level = 1
+            weapon = getattr(player.characters[0].gear, 'primaryWeapon', None)
+            self.assertIsNotNone(weapon)
+            weapon.penalizedEquipment = True
+
+            encounter = EncounterDefinition(
+                encounter_id="test_penalty",
+                encounter_type=EncounterType.SCAVENGING,
+                name="Nano Penalty",
+                terrain="Roadside",
+                width=1,
+                total_lines=5,
+                objective_text="Win.",
+                allow_retreat=True,
+                enemy_entries=[
+                    EncounterEnemyEntry(kind="character", identifier="GoblinRaider0", count=1, use_stack=False)
+                ],
+                player_front_line=2,
+                enemy_front_line=3,
+            )
+            battle = battle_service._build_battle_from_encounter(player, encounter, "missionAction", mission_id="Mission0")
+            battle.enemy_units[0].health = 1
+            battle.enemy_units[0].max_health = 60
+            battle.enemy_units[0].level = 3
+
+            expected = battle_service.nano_reward_calculator.calculate_for_character(
+                battle_service._character_snapshot_for_entity(battle, battle.enemy_units[0]),
+                enemy_level=battle.enemy_units[0].level,
+                team_highest_level=1,
+                penalized_equipment=True,
+                defeated_count=1,
+            ).totalNano
+
+            highlights = []
+            battle_service._resolve_attack(battle, battle.ally_units[0], battle.enemy_units[0], battle.orders, highlights)
+
+            self.assertEqual(player.nano, expected)
+            self.assertTrue(expected > 0)
+            self.assertTrue(expected < battle_service.nano_reward_calculator.calculate_for_character(
+                battle_service._character_snapshot_for_entity(battle, battle.enemy_units[0]),
+                enemy_level=battle.enemy_units[0].level,
+                team_highest_level=1,
+                penalized_equipment=False,
+                defeated_count=1,
+            ).totalNano)
 
 
 if __name__ == "__main__":

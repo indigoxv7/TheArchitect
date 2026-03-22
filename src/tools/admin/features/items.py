@@ -70,6 +70,7 @@ class ItemEditorFrame(ttk.Frame):
             "ignoreArmorFraction": tk.StringVar(value="0.0"),
             "penetrationBase": tk.StringVar(value="0.0"),
             "staminaCost": tk.StringVar(value="10.0"),
+            "penalizedEquipment": tk.BooleanVar(value=False),
             "maxArmor": tk.StringVar(value="0"),
             "currentArmor": tk.StringVar(value="0"),
             "consumableKind": tk.StringVar(value=ConsumableKind.NONE.name),
@@ -103,6 +104,7 @@ class ItemEditorFrame(ttk.Frame):
         self._row_entry(self.weapon_frame, "Ignore Armor Fraction", self.vars["ignoreArmorFraction"])
         self._row_entry(self.weapon_frame, "Penetration Base", self.vars["penetrationBase"])
         self._row_entry(self.weapon_frame, "Stamina Cost", self.vars["staminaCost"])
+        self._row_check(self.weapon_frame, "Penalized Equipment", self.vars["penalizedEquipment"])
 
         self.armor_frame = ttk.LabelFrame(self, text="Armor Stats")
         self._row_entry(self.armor_frame, "Max Armor", self.vars["maxArmor"])
@@ -156,6 +158,12 @@ class ItemEditorFrame(ttk.Frame):
         combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         return combo
 
+    def _row_check(self, parent, label, var):
+        row = ttk.Frame(parent)
+        row.pack(fill=tk.X, pady=2)
+        ttk.Label(row, text=label, width=18).pack(side=tk.LEFT)
+        ttk.Checkbutton(row, variable=var).pack(side=tk.LEFT, anchor=tk.W)
+
     def _clear_filters(self):
         self.search_var.set("")
         self.slot_filter_var.set("All")
@@ -180,6 +188,7 @@ class ItemEditorFrame(ttk.Frame):
             self.vars["ignoreArmorFraction"].set("0.0")
             self.vars["penetrationBase"].set("0.0")
             self.vars["staminaCost"].set("10.0")
+            self.vars["penalizedEquipment"].set(False)
             self.vars["maxArmor"].set("0")
             self.vars["currentArmor"].set("0")
             self.vars["consumableKind"].set(ConsumableKind.NONE.name)
@@ -255,6 +264,7 @@ class ItemEditorFrame(ttk.Frame):
             self.vars["ignoreArmorFraction"].set(str(data.get("ignoreArmorFraction", 0.0)))
             self.vars["penetrationBase"].set(str(data.get("penetrationBase", 0.0)))
             self.vars["staminaCost"].set(str(data.get("staminaCost", 10.0)))
+            self.vars["penalizedEquipment"].set(bool(data.get("penalizedEquipment", False)))
             self.vars["maxArmor"].set(str(data.get("maxArmor", 0)))
             self.vars["currentArmor"].set(str(data.get("currentArmor", data.get("durability", 0))))
             self.vars["consumableKind"].set(data.get("consumableKind", ConsumableKind.NONE.name))
@@ -331,6 +341,7 @@ class ItemEditorFrame(ttk.Frame):
                     "ignoreArmorFraction": _safe_float(self.vars["ignoreArmorFraction"].get(), 0.0),
                     "penetrationBase": _safe_float(self.vars["penetrationBase"].get(), 0.0),
                     "staminaCost": _safe_float(self.vars["staminaCost"].get(), 10.0),
+                    "penalizedEquipment": bool(self.vars["penalizedEquipment"].get()),
                 }
             )
         elif item_class == "Armor":

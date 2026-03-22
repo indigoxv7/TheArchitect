@@ -1,0 +1,6 @@
+{
+    "nano_per_power_point": 4000.0,
+    "level_difference_multiplier": 5.0,
+    "modern_weapon_penalty_multiplier": 0.05,
+    "minimum_nano_reward": 0
+}

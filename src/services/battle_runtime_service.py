@@ -40,6 +40,41 @@ class BattleRuntimeService:
     def set_mission_runtime_service(self, mission_runtime_service):
         self.mission_runtime_service = mission_runtime_service
 
+    async def _defer_if_needed(self, interaction: discord.Interaction):
+        if interaction.response.is_done():
+            return
+        try:
+            await interaction.response.defer()
+        except discord.InteractionResponded:
+            return
+
+    async def _edit_battle_message(
+        self,
+        interaction: discord.Interaction,
+        *,
+        embed: discord.Embed,
+        view: discord.ui.View,
+        message: discord.Message | None = None,
+    ):
+        kwargs = {"embed": embed, "view": view, "attachments": []}
+        if message is not None:
+            await self._defer_if_needed(interaction)
+            await message.edit(**kwargs)
+            return
+        if interaction.response.is_done():
+            if interaction.message is not None:
+                await interaction.message.edit(**kwargs)
+            else:
+                await interaction.followup.send(**kwargs, ephemeral=True)
+            return
+        try:
+            await interaction.response.edit_message(**kwargs)
+        except discord.NotFound:
+            if interaction.message is not None:
+                await interaction.message.edit(**kwargs)
+            else:
+                await interaction.followup.send(**kwargs, ephemeral=True)
+
     def _is_active_tab(self, player_id: int, tab_name: str) -> bool:
         battle = self.battle_service.get_active_battle(player_id)
         return battle is not None and str(getattr(battle, "active_tab", "Orders") or "Orders") == str(
@@ -184,18 +219,7 @@ class BattleRuntimeService:
     ):
         embed = self.build_embed(battle)
         view = self.build_view(battle)
-        if message is None:
-            if interaction.response.is_done():
-                if interaction.message is not None:
-                    await interaction.message.edit(embed=embed, view=view, attachments=[])
-                else:
-                    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-            else:
-                await interaction.response.edit_message(embed=embed, view=view, attachments=[])
-        else:
-            if not interaction.response.is_done():
-                await interaction.response.defer()
-            await message.edit(embed=embed, view=view, attachments=[])
+        await self._edit_battle_message(interaction, embed=embed, view=view, message=message)
         if note:
             if interaction.response.is_done():
                 await interaction.followup.send(note, ephemeral=True)
@@ -235,6 +259,7 @@ class BattleRuntimeService:
         battle = await self._load_owned_battle(interaction, player_id)
         if battle is None:
             return
+        await self._defer_if_needed(interaction)
         summary = self.battle_service.resolve_exchange(battle, persist=True, record_memory=True)
         note = f"Resolved exchange {summary.exchange_number}."
         await self.render_battle(interaction, battle, note=note)
@@ -243,6 +268,7 @@ class BattleRuntimeService:
         battle = await self._load_owned_battle(interaction, player_id)
         if battle is None:
             return
+        await self._defer_if_needed(interaction)
         battle = self.battle_service.auto_resolve(battle, persist=True)
         await self.render_battle(interaction, battle, note="Battle auto-resolved.")
 

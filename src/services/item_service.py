@@ -221,6 +221,7 @@ class ItemService:
                 "ignoreArmorFraction": payload.get("ignoreArmorFraction", 0.0),
                 "penetrationBase": payload.get("penetrationBase", 0.0),
                 "staminaCost": payload.get("staminaCost", 10.0),
+                "penalizedEquipment": bool(payload.get("penalizedEquipment", False)),
             }
         elif item_class == "armor" or item_type == "ARMOR":
             current_armor = payload.get("currentArmor", payload.get("durability", 0.0))

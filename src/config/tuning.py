@@ -12,6 +12,7 @@ BATTLE_FACTORS_CATEGORY = "battle_factors"
 CHARACTER_STAT_FACTORS_CATEGORY = "character_stat_factors"
 FACTION_STAT_FACTORS_CATEGORY = "faction_stat_factors"
 MISC_CATEGORY = "misc"
+NANO_REWARDS_CATEGORY = "nano_rewards"
 
 
 def _field(key: str, label: str, default, description: str, value_type: str = "float") -> dict[str, Any]:
@@ -313,6 +314,38 @@ TUNING_SCHEMA: dict[str, dict[str, Any]] = {
                 "Food Healing Multiplier",
                 0.80,
                 "Healing multiplier applied to food-based recovery effects in combat calculations.",
+            ),
+        ],
+    },
+    NANO_REWARDS_CATEGORY: {
+        "title": "Nano rewards",
+        "description": "Scaling values for nano rewards earned by defeating enemies in battle.",
+        "filename": "nano_rewards.json",
+        "fields": [
+            _field(
+                "nano_per_power_point",
+                "Nano Per Power Point",
+                4000.0,
+                "Base nano reward granted for each enemy power point defeated.",
+            ),
+            _field(
+                "level_difference_multiplier",
+                "Level Difference Multiplier",
+                5.0,
+                "Reward multiplier applied per level when an enemy is above the team's highest level.",
+            ),
+            _field(
+                "modern_weapon_penalty_multiplier",
+                "Modern Weapon Penalty Mult",
+                0.05,
+                "Reward multiplier applied when the mission party starts with penalized equipment.",
+            ),
+            _field(
+                "minimum_nano_reward",
+                "Minimum Nano Reward",
+                0,
+                "Lower clamp on a single nano reward payout.",
+                value_type="int",
             ),
         ],
     },
@@ -774,3 +807,11 @@ def misc_factor(key: str, default: float = 0.0) -> float:
 
 def misc_factor_int(key: str, default: int = 0) -> int:
     return _registry.get_int(MISC_CATEGORY, key, default)
+
+
+def nano_reward_factor(key: str, default: float = 0.0) -> float:
+    return _registry.get_float(NANO_REWARDS_CATEGORY, key, default)
+
+
+def nano_reward_factor_int(key: str, default: int = 0) -> int:
+    return _registry.get_int(NANO_REWARDS_CATEGORY, key, default)

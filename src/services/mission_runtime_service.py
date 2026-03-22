@@ -544,14 +544,24 @@ class MissionRuntimeService:
         mission_map = generate_mission_map(build_map_settings_from_range(mission.mapGenerationRange, seed=seed))
         populated = self.mission_unit_populator.populate(mission, seed=seed)
         overlay = generate_all_map_features(mission_map, mission, populated, seed=seed)
-        unit_metadata = {id(entry.character): entry for entry in populated.generatedUnits}
+        unit_metadata: dict[int, object] = {}
+        for entry in populated.generatedUnits:
+            unit_metadata[id(entry)] = entry
+            character = getattr(entry, "character", None)
+            if character is not None:
+                unit_metadata[id(character)] = entry
         node_states: list[MissionNodeState] = []
         for node_id in sorted(mission_map.nodes_by_id.keys()):
             units = []
-            for index, character in enumerate(overlay.unitsByNode.get(node_id, []) or []):
-                metadata = unit_metadata.get(id(character))
+            for index, overlay_entry in enumerate(overlay.unitsByNode.get(node_id, []) or []):
+                metadata = unit_metadata.get(id(overlay_entry))
                 if metadata is None:
                     continue
+                character = getattr(overlay_entry, "character", None)
+                if character is None:
+                    character = getattr(metadata, "character", None)
+                if character is None:
+                    character = overlay_entry
                 runtime_unit_id = f"{metadata.allegianceId}_{metadata.unitId}_{int(node_id)}_{index}"
                 units.append(
                     MissionNodeUnitState(
