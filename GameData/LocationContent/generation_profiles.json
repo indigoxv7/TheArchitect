@@ -1,0 +1,24 @@
+[
+    {
+        "generationProfileId": "BalancedLocal0",
+        "name": "Balanced Local",
+        "description": "Default structured generation tuned for local descriptions first.",
+        "rendererMode": "LOCAL_PRIMARY_OPENAI_CACHE",
+        "roleWeights": {
+            "Landmark0": 1.0,
+            "AmbushCorridor0": 1.0,
+            "ResourceStop0": 0.9,
+            "LoreReveal0": 0.9,
+            "TraversalPuzzle0": 0.8,
+            "SafePocket0": 0.6
+        },
+        "minFeatures": 1,
+        "maxFeatures": 3,
+        "minHooks": 0,
+        "maxHooks": 2,
+        "antiRepetitionStrength": 0.5,
+        "hazardBias": 1.0,
+        "affordanceBias": 1.0,
+        "hookBias": 1.0
+    }
+]

@@ -58,7 +58,7 @@ RACEBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Races", "racebook.json")
 UNITBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Units", "unitbook.json")
 MISSIONBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Missions", "missionbook.json")
 CAMPAIGNBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Campaigns", "campaignbook.json")
-ENVIRONMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "Environment", "environmentbook.json")
+ENVIRONMENTBOOK_PATH = os.path.join(GAME_DATA_DIRECTORY, "LocationContent")
 PLAYER_MEMORY_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "PlayerMemory")
 PLAYER_MEMORY_DB_PATH = os.path.join(PLAYER_MEMORY_DIRECTORY, "player_memory.sqlite")
 ACTIVE_BATTLES_DIRECTORY = os.path.join(GAME_DATA_DIRECTORY, "ActiveBattles")
@@ -174,6 +174,8 @@ mission_runtime_service = MissionRuntimeService(
     mission_unit_populator=mission_unit_populator,
     active_mission_store=active_mission_store,
     battle_runtime_service=battle_runtime_service,
+    openai_service=openai_narrative_service,
+    memory_service=memory_service,
 )
 battle_runtime_service.set_mission_runtime_service(mission_runtime_service)
 battle_service.set_mission_runtime_service(mission_runtime_service)
@@ -284,5 +286,6 @@ if __name__ == "__main__":
         memory_service=memory_service,
         power_rating_service=power_rating_service,
         combat_simulator_service=combat_simulator_service,
+        openai_service=openai_narrative_service,
     )
     bot.run(TOKEN)

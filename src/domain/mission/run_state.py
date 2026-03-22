@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from src.domain.location_content import GeneratedNodeContent, SettingContext
 from src.domain.mission.node_events import MissionNodeEvent
 from src.domain.mission.objectives import MissionObjectiveStatus
 from src.domain.mission.statistics import MissionStatistics
@@ -89,6 +90,7 @@ class MissionNodeState:
     clueTargetNodeId: int | None = None
     treasureCollected: bool = False
     clueResolved: bool = False
+    nodeContentState: GeneratedNodeContent | None = None
 
     def living_unit_states(self) -> list[MissionNodeUnitState]:
         return [unit for unit in self.unitStates if not unit.defeated]
@@ -101,12 +103,14 @@ class MissionNodeState:
             "clueTargetNodeId": self.clueTargetNodeId,
             "treasureCollected": bool(self.treasureCollected),
             "clueResolved": bool(self.clueResolved),
+            "nodeContentState": self.nodeContentState.to_dict() if self.nodeContentState is not None else None,
         }
 
     @classmethod
     def from_dict(cls, data: Any) -> "MissionNodeState":
         if not isinstance(data, dict):
             raise ValueError("Mission node state data must be a dictionary.")
+        node_content_raw = data.get("nodeContentState")
         return cls(
             nodeId=int(data.get("nodeId", 0) or 0),
             unitStates=[
@@ -122,6 +126,11 @@ class MissionNodeState:
             ),
             treasureCollected=bool(data.get("treasureCollected", False)),
             clueResolved=bool(data.get("clueResolved", False)),
+            nodeContentState=(
+                GeneratedNodeContent.from_dict(node_content_raw)
+                if isinstance(node_content_raw, dict)
+                else None
+            ),
         )
 
 
@@ -146,6 +155,7 @@ class MissionRunState:
     missionCountRecorded: bool = False
     lastBattleSummary: str = ""
     resultSummary: str = ""
+    settingContextState: SettingContext | None = None
 
     def __post_init__(self):
         self.playerId = int(self.playerId)
@@ -197,6 +207,8 @@ class MissionRunState:
         self.missionCountRecorded = bool(self.missionCountRecorded)
         self.lastBattleSummary = str(self.lastBattleSummary or "")
         self.resultSummary = str(self.resultSummary or "")
+        if self.settingContextState is not None and not isinstance(self.settingContextState, SettingContext):
+            self.settingContextState = SettingContext.from_dict(self.settingContextState)
 
     def get_node(self, node_id: int) -> MissionNodeState | None:
         target = int(node_id)
@@ -238,6 +250,7 @@ class MissionRunState:
             "missionCountRecorded": bool(self.missionCountRecorded),
             "lastBattleSummary": self.lastBattleSummary,
             "resultSummary": self.resultSummary,
+            "settingContextState": self.settingContextState.to_dict() if self.settingContextState is not None else None,
         }
 
     @classmethod
@@ -277,4 +290,9 @@ class MissionRunState:
             missionCountRecorded=bool(data.get("missionCountRecorded", False)),
             lastBattleSummary=str(data.get("lastBattleSummary", "") or ""),
             resultSummary=str(data.get("resultSummary", "") or ""),
+            settingContextState=(
+                SettingContext.from_dict(data.get("settingContextState", {}))
+                if isinstance(data.get("settingContextState"), dict)
+                else None
+            ),
         )

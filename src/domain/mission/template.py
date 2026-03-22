@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -6,12 +6,7 @@ from typing import Any
 from src.domain.mission.map_generation import MissionMapGenerationRange
 from src.domain.mission.objectives import MissionObjective, MissionObjectiveStatus
 from src.domain.mission.statistics import MissionStatistics
-from src.domain.mission.values import (
-    clean_text,
-    clamp_fraction,
-    clamp_non_negative_int,
-    coerce_optional_int,
-)
+from src.domain.mission.values import clean_text, clamp_fraction, clamp_non_negative_int, coerce_optional_int
 
 
 @dataclass
@@ -48,11 +43,9 @@ class MissionUnitOption:
     def from_dict(cls, data: dict[str, Any]) -> "MissionUnitOption":
         if not isinstance(data, dict):
             raise ValueError("Mission unit option data must be a dictionary.")
-
         unit_id = clean_text(data.get("unitId", ""))
         if not unit_id:
             raise ValueError("Mission unit option must include a unitId.")
-
         return cls(
             unitId=unit_id,
             capacityMin=data.get("capacityMin"),
@@ -98,11 +91,9 @@ class MissionAllegianceConfig:
     def from_dict(cls, data: dict[str, Any]) -> "MissionAllegianceConfig":
         if not isinstance(data, dict):
             raise ValueError("Mission allegiance config data must be a dictionary.")
-
         allegiance_id = clean_text(data.get("allegianceId", ""))
         if not allegiance_id:
             raise ValueError("Mission allegiance config must include an allegianceId.")
-
         unit_options = [MissionUnitOption.from_dict(raw_entry) for raw_entry in data.get("unitOptions", []) or []]
         return cls(
             allegianceId=allegiance_id,
@@ -121,6 +112,10 @@ class MissionTemplate:
     objective: MissionObjective
     allegianceConfigs: list[MissionAllegianceConfig] = field(default_factory=list)
     biomeId: str = ""
+    terrainPoolIds: list[str] = field(default_factory=list)
+    climatePoolIds: list[str] = field(default_factory=list)
+    nodeGenerationProfileId: str = ""
+    descriptionPackId: str = ""
     portalMission: bool = True
     mapGenerationRange: MissionMapGenerationRange = field(default_factory=MissionMapGenerationRange)
     missionId: str = ""
@@ -128,16 +123,14 @@ class MissionTemplate:
     def __post_init__(self):
         self.name = str(self.name or "")
         self.objective = self._coerce_objective(self.objective)
-        self.allegianceConfigs = [
-            entry for entry in (self.allegianceConfigs or []) if isinstance(entry, MissionAllegianceConfig)
-        ]
+        self.allegianceConfigs = [entry for entry in (self.allegianceConfigs or []) if isinstance(entry, MissionAllegianceConfig)]
         self.biomeId = clean_text(self.biomeId)
+        self.terrainPoolIds = [clean_text(entry) for entry in (self.terrainPoolIds or []) if clean_text(entry)]
+        self.climatePoolIds = [clean_text(entry) for entry in (self.climatePoolIds or []) if clean_text(entry)]
+        self.nodeGenerationProfileId = clean_text(self.nodeGenerationProfileId)
+        self.descriptionPackId = clean_text(self.descriptionPackId)
         self.portalMission = bool(self.portalMission)
-        self.mapGenerationRange = (
-            self.mapGenerationRange
-            if isinstance(self.mapGenerationRange, MissionMapGenerationRange)
-            else MissionMapGenerationRange.from_dict(self.mapGenerationRange)
-        )
+        self.mapGenerationRange = self.mapGenerationRange if isinstance(self.mapGenerationRange, MissionMapGenerationRange) else MissionMapGenerationRange.from_dict(self.mapGenerationRange)
         self.missionId = str(self.missionId or "")
 
     @staticmethod
@@ -146,14 +139,8 @@ class MissionTemplate:
             return value
         return MissionObjective.from_dict(value)
 
-    def evaluate_objective(
-        self,
-        statistics: MissionStatistics | dict[str, Any] | None,
-        mission_complete: bool = False,
-    ) -> MissionObjectiveStatus:
-        stats = (
-            statistics if isinstance(statistics, MissionStatistics) else MissionStatistics.from_dict(statistics or {})
-        )
+    def evaluate_objective(self, statistics: MissionStatistics | dict[str, Any] | None, mission_complete: bool = False) -> MissionObjectiveStatus:
+        stats = statistics if isinstance(statistics, MissionStatistics) else MissionStatistics.from_dict(statistics or {})
         return self.objective.evaluate(stats, mission_complete=mission_complete)
 
     def to_dict(self) -> dict[str, Any]:
@@ -163,6 +150,10 @@ class MissionTemplate:
             "objective": self.objective.to_dict(),
             "allegianceConfigs": [entry.to_dict() for entry in self.allegianceConfigs],
             "biomeId": self.biomeId,
+            "terrainPoolIds": list(self.terrainPoolIds),
+            "climatePoolIds": list(self.climatePoolIds),
+            "nodeGenerationProfileId": self.nodeGenerationProfileId,
+            "descriptionPackId": self.descriptionPackId,
             "portalMission": self.portalMission,
             "mapGenerationRange": self.mapGenerationRange.to_dict(),
         }
@@ -171,20 +162,20 @@ class MissionTemplate:
     def from_dict(cls, data: dict[str, Any]) -> "MissionTemplate":
         if not isinstance(data, dict):
             raise ValueError("Mission data must be a dictionary.")
-
         name = clean_text(data.get("name", ""))
         if not name:
             raise ValueError("Mission data must include a non-empty name.")
-
         objective = MissionObjective.from_dict(data.get("objective", {}))
-        allegiance_configs = [
-            MissionAllegianceConfig.from_dict(raw_entry) for raw_entry in data.get("allegianceConfigs", []) or []
-        ]
+        allegiance_configs = [MissionAllegianceConfig.from_dict(raw_entry) for raw_entry in data.get("allegianceConfigs", []) or []]
         return cls(
             name=name,
             objective=objective,
             allegianceConfigs=allegiance_configs,
             biomeId=clean_text(data.get("biomeId", "")),
+            terrainPoolIds=data.get("terrainPoolIds", []),
+            climatePoolIds=data.get("climatePoolIds", []),
+            nodeGenerationProfileId=clean_text(data.get("nodeGenerationProfileId", "")),
+            descriptionPackId=clean_text(data.get("descriptionPackId", "")),
             portalMission=bool(data.get("portalMission", True)),
             mapGenerationRange=MissionMapGenerationRange.from_dict(data.get("mapGenerationRange")),
             missionId=str(data.get("missionId", "") or ""),

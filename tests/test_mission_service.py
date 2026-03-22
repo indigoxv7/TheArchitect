@@ -113,11 +113,19 @@ class TestMissionService(unittest.TestCase):
             cult = allegiance_service.create_allegiance_from_dict({"name": "Cult"})
             wetlands = environment_service.create_biome_from_dict({"name": "Wetlands"})
             ruins = environment_service.create_biome_from_dict({"name": "Ruins"})
+            terrain_override = environment_service.create_terrain_from_dict({"name": "Stone Causeway"})
+            climate_override = environment_service.create_climate_from_dict({"name": "Dry Wind", "temperature": "Warm", "humidity": "Dry"})
+            generation_profile = environment_service.get_default_generation_profile()
+            description_pack = environment_service.get_default_description_pack()
 
             mission = mission_service.create_mission_from_dict(
                 {
                     "name": "Ruined Crossing",
                     "biomeId": wetlands.biomeId,
+                    "terrainPoolIds": [terrain_override.terrainId],
+                    "climatePoolIds": [climate_override.climateId],
+                    "nodeGenerationProfileId": generation_profile.generationProfileId,
+                    "descriptionPackId": description_pack.descriptionPackId,
                     "mapGenerationRange": {
                         "totalNodesLow": 44,
                         "totalNodesHigh": 60,
@@ -178,6 +186,10 @@ class TestMissionService(unittest.TestCase):
             self.assertEqual(len(mission.allegianceConfigs), 2)
             self.assertEqual(mission.biomeId, wetlands.biomeId)
             self.assertTrue(mission.portalMission)
+            self.assertEqual(mission.terrainPoolIds, [terrain_override.terrainId])
+            self.assertEqual(mission.climatePoolIds, [climate_override.climateId])
+            self.assertEqual(mission.nodeGenerationProfileId, generation_profile.generationProfileId)
+            self.assertEqual(mission.descriptionPackId, description_pack.descriptionPackId)
             self.assertEqual(mission.mapGenerationRange.totalNodesLow, 44)
             self.assertEqual(mission.mapGenerationRange.totalNodesHigh, 60)
             self.assertAlmostEqual(mission.mapGenerationRange.narrownessLow, 0.3)
@@ -200,6 +212,10 @@ class TestMissionService(unittest.TestCase):
                         "requiredBossesDefeated": 2,
                     },
                     "portalMission": False,
+                    "terrainPoolIds": [],
+                    "climatePoolIds": [],
+                    "nodeGenerationProfileId": "",
+                    "descriptionPackId": "",
                     "mapGenerationRange": {
                         "totalNodesLow": 20,
                         "totalNodesHigh": 24,
@@ -235,6 +251,10 @@ class TestMissionService(unittest.TestCase):
             )
             self.assertFalse(updated.portalMission)
             self.assertEqual(updated.biomeId, ruins.biomeId)
+            self.assertEqual(updated.terrainPoolIds, [])
+            self.assertEqual(updated.climatePoolIds, [])
+            self.assertEqual(updated.nodeGenerationProfileId, "")
+            self.assertEqual(updated.descriptionPackId, "")
             self.assertEqual(updated.mapGenerationRange.totalNodesLow, 20)
             self.assertEqual(updated.mapGenerationRange.totalNodesHigh, 24)
             self.assertAlmostEqual(updated.mapGenerationRange.connectednessHigh, 0.8)
@@ -292,6 +312,10 @@ class TestMissionService(unittest.TestCase):
             self.assertIsNotNone(loaded)
             self.assertFalse(loaded.portalMission)
             self.assertEqual(loaded.biomeId, ruins.biomeId)
+            self.assertEqual(loaded.terrainPoolIds, [])
+            self.assertEqual(loaded.climatePoolIds, [])
+            self.assertEqual(loaded.nodeGenerationProfileId, "")
+            self.assertEqual(loaded.descriptionPackId, "")
             self.assertEqual(loaded.mapGenerationRange.totalNodesLow, 20)
             self.assertEqual(loaded.mapGenerationRange.totalNodesHigh, 24)
             self.assertAlmostEqual(loaded.mapGenerationRange.deadEndLikelihoodLow, 0.15)

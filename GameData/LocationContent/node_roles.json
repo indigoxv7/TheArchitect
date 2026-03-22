@@ -1,0 +1,132 @@
+[
+    {
+        "roleId": "AmbushCorridor0",
+        "name": "Ambush Corridor",
+        "description": "A tense approach where hostiles can control the flow of movement.",
+        "weight": 1.0,
+        "roleTags": [
+            "ambush",
+            "tension"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [],
+        "desiredHazardTags": [
+            "exposed",
+            "chokepoint"
+        ],
+        "desiredHookTypes": [
+            "Encounter",
+            "Clue"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "Landmark0",
+        "name": "Landmark",
+        "description": "A visually distinctive place that anchors orientation.",
+        "weight": 1.0,
+        "roleTags": [
+            "landmark",
+            "discovery"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "observe",
+            "survey"
+        ],
+        "desiredHazardTags": [],
+        "desiredHookTypes": [],
+        "minFeatures": 1,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "LoreReveal0",
+        "name": "Lore Reveal",
+        "description": "A place that hints at history, danger, or a missing story thread.",
+        "weight": 1.0,
+        "roleTags": [
+            "lore",
+            "mystery"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [],
+        "desiredHazardTags": [],
+        "desiredHookTypes": [
+            "Lore",
+            "Clue",
+            "Quest Seed"
+        ],
+        "minFeatures": 1,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "ResourceStop0",
+        "name": "Resource Stop",
+        "description": "A node defined by useful supplies or recoverable valuables.",
+        "weight": 1.0,
+        "roleTags": [
+            "resource",
+            "opportunity"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "forage",
+            "loot"
+        ],
+        "desiredHazardTags": [],
+        "desiredHookTypes": [
+            "Treasure"
+        ],
+        "minFeatures": 1,
+        "maxFeatures": 2
+    },
+    {
+        "roleId": "SafePocket0",
+        "name": "Safe Pocket",
+        "description": "A relatively calm place that offers a breath between risks.",
+        "weight": 1.0,
+        "roleTags": [
+            "relief",
+            "shelter"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "rest",
+            "regroup"
+        ],
+        "desiredHazardTags": [],
+        "desiredHookTypes": [],
+        "minFeatures": 1,
+        "maxFeatures": 2
+    },
+    {
+        "roleId": "TraversalPuzzle0",
+        "name": "Traversal Puzzle",
+        "description": "Movement through the node is the main challenge.",
+        "weight": 1.0,
+        "roleTags": [
+            "traversal",
+            "challenge"
+        ],
+        "requiredTags": [],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "climb",
+            "cross",
+            "sneak"
+        ],
+        "desiredHazardTags": [
+            "fall_risk",
+            "unstable_ground"
+        ],
+        "desiredHookTypes": [],
+        "minFeatures": 2,
+        "maxFeatures": 3
+    }
+]

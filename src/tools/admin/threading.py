@@ -18,6 +18,7 @@ def start_admin_gui_thread(
     memory_service,
     power_rating_service,
     combat_simulator_service,
+    openai_service=None,
 ):
     def _run_gui():
         try:
@@ -36,6 +37,7 @@ def start_admin_gui_thread(
                 memory_service,
                 power_rating_service,
                 combat_simulator_service,
+                openai_service=openai_service,
             )
             app.run()
         except Exception as exc:

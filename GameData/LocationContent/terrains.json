@@ -1,0 +1,66 @@
+[
+    {
+        "terrainId": "FloodedHollow0",
+        "name": "Flooded Hollow",
+        "description": "Standing water, soft mud, and blackwater channels.",
+        "canonicalTags": [
+            "flooded",
+            "marsh"
+        ],
+        "landformTags": [],
+        "traversalTags": [
+            "careful_footing"
+        ],
+        "visibilityTags": [],
+        "wetnessTags": [
+            "waterlogged"
+        ],
+        "obstacleTags": [
+            "sinking_ground"
+        ],
+        "effectIds": []
+    },
+    {
+        "terrainId": "OvergrownPaths0",
+        "name": "Overgrown Paths",
+        "description": "Dense undergrowth and root-choked trails.",
+        "canonicalTags": [
+            "overgrown",
+            "pathways"
+        ],
+        "landformTags": [],
+        "traversalTags": [
+            "slow_travel"
+        ],
+        "visibilityTags": [
+            "broken_sightlines"
+        ],
+        "wetnessTags": [],
+        "obstacleTags": [
+            "roots",
+            "vines"
+        ],
+        "effectIds": []
+    },
+    {
+        "terrainId": "RuinedFoundations0",
+        "name": "Ruined Foundations",
+        "description": "Broken masonry and half-swallowed walls.",
+        "canonicalTags": [
+            "ruins",
+            "masonry"
+        ],
+        "landformTags": [
+            "collapsed_structures"
+        ],
+        "traversalTags": [
+            "uneven_footing"
+        ],
+        "visibilityTags": [
+            "partial_cover"
+        ],
+        "wetnessTags": [],
+        "obstacleTags": [],
+        "effectIds": []
+    }
+]

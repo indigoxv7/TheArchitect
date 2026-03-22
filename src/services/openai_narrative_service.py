@@ -68,12 +68,16 @@ class OpenAINarrativeService:
         memory_model: str | None = None,
         embedding_model: str | None = None,
         combat_judge_model: str | None = None,
+        scene_description_model: str | None = None,
     ):
         self._api_key_override = api_key
         self.turn_model = turn_model or os.getenv("OPENAI_TURN_MODEL") or "gpt-5.2"
         self.memory_model = memory_model or os.getenv("OPENAI_MEMORY_MODEL") or "gpt-5-mini"
         self.embedding_model = embedding_model or os.getenv("OPENAI_EMBEDDING_MODEL") or "text-embedding-3-small"
         self.combat_judge_model = combat_judge_model or os.getenv("OPENAI_COMBAT_JUDGE_MODEL") or "gpt-5-mini"
+        self.scene_description_model = (
+            scene_description_model or os.getenv("OPENAI_SCENE_DESCRIPTION_MODEL") or "gpt-5-mini"
+        )
         self.request_timeout_seconds = self._coerce_float(os.getenv("OPENAI_TIMEOUT_SECONDS"), 20.0)
         self.max_retries = max(0, self._coerce_int(os.getenv("OPENAI_MAX_RETRIES"), 1))
         self._client: OpenAI | None = None
@@ -213,6 +217,32 @@ class OpenAINarrativeService:
             raise RuntimeError("OpenAI reflection did not produce structured output.")
         parsed.tags = self._normalize_tags(parsed.tags)
         return parsed
+
+    def describe_scene(self, prompt_packet: dict[str, Any]) -> str:
+        client = self._get_client()
+        response = client.responses.create(
+            model=self.scene_description_model,
+            reasoning={"effort": "low"},
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Write a short arrival description for a mission node in a fantasy tactics game. "
+                        "Use only the supplied structured packet. Do not invent canon-breaking details. "
+                        "Keep it concise, concrete, and sensory."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(prompt_packet, ensure_ascii=False),
+                },
+            ],
+        )
+        text = getattr(response, "output_text", "") or ""
+        text = str(text).strip()
+        if not text:
+            raise RuntimeError("OpenAI scene description did not produce text output.")
+        return text
 
     def judge_combat_strategy(self, prompt_packet: dict[str, Any]) -> CombatStrategyJudgmentModel:
         client = self._get_client()

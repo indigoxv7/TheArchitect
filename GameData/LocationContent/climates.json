@@ -1,0 +1,60 @@
+[
+    {
+        "climateId": "HotHumid0",
+        "name": "Hot Humid",
+        "temperature": "Hot",
+        "humidity": "Humid",
+        "description": "Oppressive heat and wet air.",
+        "canonicalTags": [
+            "hot",
+            "humid"
+        ],
+        "weatherTags": [
+            "steam_haze"
+        ],
+        "floodTags": [],
+        "fogTags": [],
+        "seasonalityTags": [],
+        "effectIds": []
+    },
+    {
+        "climateId": "StormWet0",
+        "name": "Storm-Wet",
+        "temperature": "Warm",
+        "humidity": "Saturated",
+        "description": "Frequent storms and pooling runoff.",
+        "canonicalTags": [
+            "storm_touched",
+            "wet"
+        ],
+        "weatherTags": [
+            "thunder"
+        ],
+        "floodTags": [
+            "flash_flood"
+        ],
+        "fogTags": [],
+        "seasonalityTags": [],
+        "effectIds": []
+    },
+    {
+        "climateId": "TemperateMist0",
+        "name": "Temperate Mist",
+        "temperature": "Mild",
+        "humidity": "Damp",
+        "description": "Cool air and ground-hugging mist.",
+        "canonicalTags": [
+            "temperate",
+            "misty"
+        ],
+        "weatherTags": [
+            "drizzle"
+        ],
+        "floodTags": [],
+        "fogTags": [
+            "low_fog"
+        ],
+        "seasonalityTags": [],
+        "effectIds": []
+    }
+]

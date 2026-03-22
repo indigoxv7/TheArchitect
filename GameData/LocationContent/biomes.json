@@ -1,0 +1,152 @@
+[
+    {
+        "biomeId": "Jungle0",
+        "name": "Jungle",
+        "description": "Dense, humid growth full of layered cover, territorial signs, and hidden movement lanes.",
+        "terrainCompatibilityMode": "SELECTED",
+        "compatibleTerrainIds": [
+            "OvergrownPaths0",
+            "FloodedHollow0"
+        ],
+        "terrainIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleTerrainIds": [],
+        "climateCompatibilityMode": "SELECTED",
+        "compatibleClimateIds": [
+            "HotHumid0",
+            "StormWet0"
+        ],
+        "climateIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleClimateIds": [],
+        "canonicalBaseTags": [
+            "jungle",
+            "frontier"
+        ],
+        "civilizationPriors": [
+            "encroaching_outposts"
+        ],
+        "threatPriors": [
+            "ambush_predators",
+            "skirmishers"
+        ],
+        "resourcePriors": [
+            "rare_herbs",
+            "fungal_growth"
+        ],
+        "mythicPriors": [
+            "old_spirits"
+        ],
+        "ecologyPriors": [
+            "canopy",
+            "undergrowth"
+        ],
+        "effectIds": []
+    },
+    {
+        "biomeId": "JungleFrontier0",
+        "name": "Jungle Frontier",
+        "description": "Aggressive plant life, territorial inhabitants, and wet heat.",
+        "terrainCompatibilityMode": "SELECTED",
+        "compatibleTerrainIds": [
+            "OvergrownPaths0",
+            "FloodedHollow0"
+        ],
+        "terrainIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleTerrainIds": [],
+        "climateCompatibilityMode": "SELECTED",
+        "compatibleClimateIds": [
+            "HotHumid0",
+            "StormWet0"
+        ],
+        "climateIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleClimateIds": [],
+        "canonicalBaseTags": [
+            "jungle",
+            "frontier"
+        ],
+        "civilizationPriors": [
+            "encroaching_outposts"
+        ],
+        "threatPriors": [
+            "ambush_predators",
+            "skirmishers"
+        ],
+        "resourcePriors": [
+            "rare_herbs",
+            "fungal_growth"
+        ],
+        "mythicPriors": [
+            "old_spirits"
+        ],
+        "ecologyPriors": [
+            "canopy",
+            "undergrowth"
+        ],
+        "effectIds": []
+    },
+    {
+        "biomeId": "OverrunRuins0",
+        "name": "Overrun Ruins",
+        "description": "A broken site where nature and old stone compete for control.",
+        "terrainCompatibilityMode": "SELECTED",
+        "compatibleTerrainIds": [
+            "RuinedFoundations0",
+            "OvergrownPaths0"
+        ],
+        "terrainIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleTerrainIds": [],
+        "climateCompatibilityMode": "ANY",
+        "compatibleClimateIds": [],
+        "climateIncompatibilityMode": "EXPLICIT",
+        "incompatibleClimateIds": [],
+        "canonicalBaseTags": [
+            "ruins",
+            "reclamation"
+        ],
+        "civilizationPriors": [
+            "abandoned_structures"
+        ],
+        "threatPriors": [
+            "scavengers"
+        ],
+        "resourcePriors": [
+            "salvage"
+        ],
+        "mythicPriors": [
+            "forgotten_rites"
+        ],
+        "ecologyPriors": [
+            "reclaimed_stone"
+        ],
+        "effectIds": []
+    },
+    {
+        "biomeId": "Wilderness0",
+        "name": "Wilderness",
+        "description": "Untamed territory shaped by ecology more than civilization.",
+        "terrainCompatibilityMode": "ANY",
+        "compatibleTerrainIds": [],
+        "terrainIncompatibilityMode": "EXPLICIT",
+        "incompatibleTerrainIds": [],
+        "climateCompatibilityMode": "ANY",
+        "compatibleClimateIds": [],
+        "climateIncompatibilityMode": "EXPLICIT",
+        "incompatibleClimateIds": [],
+        "canonicalBaseTags": [
+            "wildlands"
+        ],
+        "civilizationPriors": [
+            "frontier"
+        ],
+        "threatPriors": [
+            "predators"
+        ],
+        "resourcePriors": [
+            "forage"
+        ],
+        "mythicPriors": [],
+        "ecologyPriors": [
+            "dense_growth"
+        ],
+        "effectIds": []
+    }
+]

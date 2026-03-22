@@ -392,6 +392,8 @@ class BattleSetupMixin:
         enemy_characters: list[dict[str, object]],
         encounter_type: EncounterType,
         allow_retreat: bool,
+        terrain_label: str = "Mission Node",
+        context_tags: list[str] | None = None,
     ) -> tuple[BattleState, bool]:
         existing = self.get_active_battle(player_id)
         if existing is not None and existing.phase != BattlePhase.RESOLVED:
@@ -407,7 +409,7 @@ class BattleSetupMixin:
             encounter_id=f"mission_{str(mission_id or '').strip()}_{int(node_id)}",
             encounter_type=encounter_type,
             name=f"{mission_name} - Node {int(node_id)}",
-            terrain="Mission Node",
+            terrain=str(terrain_label or "Mission Node"),
             width=max(3, min(5, len(enemy_characters) + 1)),
             total_lines=6,
             objective_text="Defeat the hostile force at this location.",
@@ -416,6 +418,7 @@ class BattleSetupMixin:
             reinforcements=[],
             player_front_line=3,
             enemy_front_line=4,
+            context_tags=[str(tag or "").strip().lower() for tag in (context_tags or []) if str(tag or "").strip()],
         )
         enemy_units = []
         for index, entry in enumerate(enemy_characters):
@@ -587,3 +590,4 @@ class BattleSetupMixin:
             race_id=race_id,
             name_override=name_override,
         )
+

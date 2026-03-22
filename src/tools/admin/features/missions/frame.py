@@ -4,6 +4,11 @@ from tkinter import messagebox, ttk
 from PIL import ImageTk
 
 from src.domain.mission import MissionMapGenerationRange, MissionTemplate
+from src.services.mission_map.node_content import (
+    apply_overlay_to_node_contents,
+    build_scene_description_prompt_packet,
+    generate_node_content_preview,
+)
 from src.services.mission_map import (
     MissionMapOverlay,
     generate_all_map_features,
@@ -39,8 +44,16 @@ class MissionEditorFrame(ttk.Frame):
         self.preview_units = []
         self.current_map = None
         self.current_map_overlay = MissionMapOverlay()
+        self.current_setting_context = None
+        self.current_node_contents = {}
         self.map_preview_photo = None
         self.map_summary_var = tk.StringVar(value="Generate a map preview to inspect mission layout.")
+        self.sampled_setting_var = tk.StringVar(value="No sampled setting yet.")
+        self.selected_node_var = tk.StringVar(value="")
+        self.generation_profile_var = tk.StringVar(value="<Default>")
+        self.description_pack_var = tk.StringVar(value="<Default>")
+        self._generation_profile_ids_by_label = {}
+        self._description_pack_ids_by_label = {}
         map_defaults = MissionMapGenerationRange()
         self.map_range_vars = {
             "totalNodes": {
@@ -106,6 +119,32 @@ class MissionEditorFrame(ttk.Frame):
         portal_row.pack(fill=tk.X, pady=2)
         ttk.Label(portal_row, text="Portal Mission", width=18).pack(side=tk.LEFT)
         ttk.Checkbutton(portal_row, variable=self.portal_mission_var).pack(side=tk.LEFT)
+
+        terrain_pool_row = ttk.Frame(self)
+        terrain_pool_row.pack(fill=tk.BOTH, expand=False, pady=2)
+        ttk.Label(terrain_pool_row, text="Terrain Pool IDs", width=18).pack(side=tk.LEFT, anchor="n")
+        self.terrain_pool_text = tk.Text(terrain_pool_row, height=3, wrap=tk.WORD)
+        self.terrain_pool_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        climate_pool_row = ttk.Frame(self)
+        climate_pool_row.pack(fill=tk.BOTH, expand=False, pady=2)
+        ttk.Label(climate_pool_row, text="Climate Pool IDs", width=18).pack(side=tk.LEFT, anchor="n")
+        self.climate_pool_text = tk.Text(climate_pool_row, height=3, wrap=tk.WORD)
+        self.climate_pool_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        generation_profile_row = ttk.Frame(self)
+        generation_profile_row.pack(fill=tk.X, pady=2)
+        ttk.Label(generation_profile_row, text="Generation Profile", width=18).pack(side=tk.LEFT)
+        self.generation_profile_pick = ttk.Combobox(generation_profile_row, state="readonly", textvariable=self.generation_profile_var)
+        self.generation_profile_pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.generation_profile_pick.bind("<<ComboboxSelected>>", lambda _evt: self._refresh_summary())
+
+        description_pack_row = ttk.Frame(self)
+        description_pack_row.pack(fill=tk.X, pady=2)
+        ttk.Label(description_pack_row, text="Description Pack", width=18).pack(side=tk.LEFT)
+        self.description_pack_pick = ttk.Combobox(description_pack_row, state="readonly", textvariable=self.description_pack_var)
+        self.description_pack_pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.description_pack_pick.bind("<<ComboboxSelected>>", lambda _evt: self._refresh_summary())
 
         objective_row = ttk.Frame(self)
         objective_row.pack(fill=tk.X, pady=4)
@@ -193,6 +232,30 @@ class MissionEditorFrame(ttk.Frame):
         self.map_preview_label = ttk.Label(map_frame)
         self.map_preview_label.pack(fill=tk.BOTH, expand=True, padx=6, pady=(0, 6))
 
+        node_preview_frame = ttk.LabelFrame(self, text="Node Content Preview")
+        node_preview_frame.pack(fill=tk.BOTH, expand=False, pady=6)
+        ttk.Label(node_preview_frame, textvariable=self.sampled_setting_var, justify=tk.LEFT).pack(fill=tk.X, padx=6, pady=(6, 4))
+
+        node_actions = ttk.Frame(node_preview_frame)
+        node_actions.pack(fill=tk.X, padx=6, pady=(0, 4))
+        ttk.Button(node_actions, text="Generate Node Content", command=self._generate_node_content_preview).pack(side=tk.LEFT)
+        ttk.Button(node_actions, text="Regenerate Selected Node", command=self._regenerate_selected_node_content).pack(side=tk.LEFT, padx=6)
+        ttk.Button(node_actions, text="Generate OpenAI For Selected", command=self._generate_openai_for_selected_node).pack(side=tk.LEFT, padx=6)
+
+        node_pick_row = ttk.Frame(node_preview_frame)
+        node_pick_row.pack(fill=tk.X, padx=6, pady=(0, 4))
+        ttk.Label(node_pick_row, text="Selected Node", width=18).pack(side=tk.LEFT)
+        self.selected_node_pick = ttk.Combobox(node_pick_row, state="readonly", textvariable=self.selected_node_var)
+        self.selected_node_pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.selected_node_pick.bind("<<ComboboxSelected>>", lambda _evt: self._render_selected_node_preview())
+
+        self.node_summary_text = tk.Text(node_preview_frame, height=8, wrap=tk.WORD)
+        self.node_summary_text.pack(fill=tk.X, padx=6, pady=(0, 4))
+        self.node_local_text = tk.Text(node_preview_frame, height=6, wrap=tk.WORD)
+        self.node_local_text.pack(fill=tk.X, padx=6, pady=(0, 4))
+        self.node_openai_text = tk.Text(node_preview_frame, height=6, wrap=tk.WORD)
+        self.node_openai_text.pack(fill=tk.X, padx=6, pady=(0, 6))
+
         self.summary = tk.Text(self, height=14, wrap=tk.WORD)
         self.summary.pack(fill=tk.BOTH, expand=False, pady=6)
         ttk.Button(self, text="Save Mission", command=self._save).pack(fill=tk.X, pady=8)
@@ -206,9 +269,14 @@ class MissionEditorFrame(ttk.Frame):
         self.portal_mission_var.set(True)
         self.objective_label_var.set("<No Objective>")
         self.allegiance_configs_draft = []
+        self._set_text_widget(self.terrain_pool_text, "")
+        self._set_text_widget(self.climate_pool_text, "")
+        self._set_generation_profile_selection("")
+        self._set_description_pack_selection("")
         self._load_map_generation_range(MissionMapGenerationRange())
         self._clear_population_preview()
         self._reset_map_preview_state(clear_map=True)
+        self._clear_node_content_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -249,6 +317,137 @@ class MissionEditorFrame(ttk.Frame):
         self._biome_ids_by_label[label] = biome.biomeId
         self.biome_var.set(label)
 
+    @staticmethod
+    def _set_text_widget(widget, value: str):
+        widget.delete("1.0", tk.END)
+        widget.insert(tk.END, str(value or ""))
+
+    @staticmethod
+    def _parse_id_lines(text: str) -> list[str]:
+        values: list[str] = []
+        seen: set[str] = set()
+        for raw_line in str(text or "").replace(",", "\n").splitlines():
+            line = str(raw_line or "").strip()
+            if not line:
+                continue
+            if line.endswith("]") and "[" in line:
+                line = line[line.rfind("[") + 1 : -1].strip()
+            if not line or line.lower() in seen:
+                continue
+            seen.add(line.lower())
+            values.append(line)
+        return values
+
+    def _refresh_generation_profile_options(self):
+        labels = ["<Default>"]
+        self._generation_profile_ids_by_label = {}
+        for profile in self.app.environment_service.list_generation_profiles():
+            label = self.app.environment_service.get_generation_profile_label(profile)
+            labels.append(label)
+            self._generation_profile_ids_by_label[label] = profile.generationProfileId
+        self.generation_profile_pick["values"] = labels
+        if self.generation_profile_var.get() not in labels:
+            self.generation_profile_var.set("<Default>")
+
+    def _selected_generation_profile_id(self):
+        selected = self.generation_profile_var.get().strip()
+        if not selected or selected == "<Default>":
+            return ""
+        return self._generation_profile_ids_by_label.get(selected, self._parse_id_lines(selected)[0] if self._parse_id_lines(selected) else selected)
+
+    def _set_generation_profile_selection(self, generation_profile_id: str):
+        generation_profile_id = str(generation_profile_id or "").strip()
+        if not generation_profile_id:
+            self.generation_profile_var.set("<Default>")
+            return
+        profile = self.app.environment_service.get_generation_profile_by_id(generation_profile_id)
+        if profile is None:
+            self.generation_profile_var.set("<Default>")
+            return
+        label = self.app.environment_service.get_generation_profile_label(profile)
+        self._generation_profile_ids_by_label[label] = profile.generationProfileId
+        self.generation_profile_var.set(label)
+
+    def _refresh_description_pack_options(self):
+        labels = ["<Default>"]
+        self._description_pack_ids_by_label = {}
+        for pack in self.app.environment_service.list_description_packs():
+            label = self.app.environment_service.get_description_pack_label(pack)
+            labels.append(label)
+            self._description_pack_ids_by_label[label] = pack.descriptionPackId
+        self.description_pack_pick["values"] = labels
+        if self.description_pack_var.get() not in labels:
+            self.description_pack_var.set("<Default>")
+
+    def _selected_description_pack_id(self):
+        selected = self.description_pack_var.get().strip()
+        if not selected or selected == "<Default>":
+            return ""
+        return self._description_pack_ids_by_label.get(selected, self._parse_id_lines(selected)[0] if self._parse_id_lines(selected) else selected)
+
+    def _set_description_pack_selection(self, description_pack_id: str):
+        description_pack_id = str(description_pack_id or "").strip()
+        if not description_pack_id:
+            self.description_pack_var.set("<Default>")
+            return
+        pack = self.app.environment_service.get_description_pack_by_id(description_pack_id)
+        if pack is None:
+            self.description_pack_var.set("<Default>")
+            return
+        label = self.app.environment_service.get_description_pack_label(pack)
+        self._description_pack_ids_by_label[label] = pack.descriptionPackId
+        self.description_pack_var.set(label)
+
+    def _clear_node_content_preview(self):
+        self.current_setting_context = None
+        self.current_node_contents = {}
+        self.sampled_setting_var.set("No sampled setting yet.")
+        self.selected_node_var.set("")
+        self.selected_node_pick["values"] = []
+        for widget in (self.node_summary_text, self.node_local_text, self.node_openai_text):
+            self._set_text_widget(widget, "")
+
+    def _refresh_node_selector(self):
+        values = [str(node_id) for node_id in sorted(self.current_node_contents.keys())]
+        self.selected_node_pick["values"] = values
+        if values and self.selected_node_var.get() not in values:
+            self.selected_node_var.set(values[0])
+        elif not values:
+            self.selected_node_var.set("")
+
+    def _selected_node_id(self):
+        text = str(self.selected_node_var.get() or "").strip()
+        if not text:
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    def _render_selected_node_preview(self):
+        node_id = self._selected_node_id()
+        node_content = self.current_node_contents.get(node_id)
+        if self.current_setting_context is None or node_content is None:
+            for widget in (self.node_summary_text, self.node_local_text, self.node_openai_text):
+                self._set_text_widget(widget, "")
+            return
+        summary_lines = [
+            f"Node {node_id}",
+            f"Scene: {node_content.sceneDisplayName or '<None>'}",
+            f"Battle Terrain: {node_content.battleTerrainLabel or '<None>'}",
+            f"Role: {node_content.roleName} [{node_content.roleId}]",
+            f"Features: {', '.join(feature.name for feature in node_content.featureStates) or '<None>'}",
+            f"Hooks: {', '.join(hook.name for hook in node_content.hookStates) or '<None>'}",
+            f"Hazards: {', '.join(node_content.hazardTags) or '<None>'}",
+            f"Affordances: {', '.join(node_content.affordanceTags) or '<None>'}",
+            f"Canonical Tags: {', '.join(node_content.canonicalTags) or '<None>'}",
+            "Visible Summary:",
+            *(f"- {line}" for line in node_content.visibleSummaryLines[:6]),
+        ]
+        self._set_text_widget(self.node_summary_text, "\n".join(summary_lines))
+        self._set_text_widget(self.node_local_text, node_content.localDescription or "<No local description>")
+        self._set_text_widget(self.node_openai_text, node_content.openAIDescription or "<No OpenAI description cached>")
+
     def _filtered_missions(self):
         query = self.search_var.get().strip().lower()
         return [
@@ -259,6 +458,8 @@ class MissionEditorFrame(ttk.Frame):
 
     def refresh_mission_list(self, reset_form):
         self._refresh_biome_options()
+        self._refresh_generation_profile_options()
+        self._refresh_description_pack_options()
         labels = ["<New Mission>"] + [
             self.app.mission_service.get_mission_label(mission) for mission in self._filtered_missions()
         ]
@@ -283,12 +484,17 @@ class MissionEditorFrame(ttk.Frame):
         self.name_var.set(str(mission.name or ""))
         self._set_biome_selection(mission_data.get("biomeId", ""))
         self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
+        self._set_text_widget(self.terrain_pool_text, "\n".join(mission_data.get("terrainPoolIds", []) or []))
+        self._set_text_widget(self.climate_pool_text, "\n".join(mission_data.get("climatePoolIds", []) or []))
+        self._set_generation_profile_selection(mission_data.get("nodeGenerationProfileId", ""))
+        self._set_description_pack_selection(mission_data.get("descriptionPackId", ""))
         self.objective_draft = dict(mission_data.get("objective", {}) or {})
         self.objective_label_var.set(_objective_description(self.objective_draft))
         self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]
         self._load_map_generation_range(mission_data.get("mapGenerationRange"))
         self._clear_population_preview()
         self._reset_map_preview_state(clear_map=True)
+        self._clear_node_content_preview()
         self._refresh_allegiance_listbox()
         self._refresh_summary()
 
@@ -341,6 +547,10 @@ class MissionEditorFrame(ttk.Frame):
             f"Mission: {self.name_var.get().strip() or '<Unnamed Mission>'}",
             f"Mission ID: {self.current_mission_id or '<Unsaved>'}",
             f"Biome: {biome_text}",
+            f"Terrain Pool IDs: {', '.join(self._parse_id_lines(self.terrain_pool_text.get('1.0', tk.END))) or '<Biome Default>'}",
+            f"Climate Pool IDs: {', '.join(self._parse_id_lines(self.climate_pool_text.get('1.0', tk.END))) or '<Biome Default>'}",
+            f"Generation Profile: {self.generation_profile_var.get().strip() or '<Default>'}",
+            f"Description Pack: {self.description_pack_var.get().strip() or '<Default>'}",
             f"Portal Mission: {'Yes' if self.portal_mission_var.get() else 'No'}",
             f"Map Generation: {self._map_generation_summary_text()}",
             f"Objective: {_objective_description(self.objective_draft)}",
@@ -438,6 +648,10 @@ class MissionEditorFrame(ttk.Frame):
                 "name": str(self.name_var.get() or "").strip() or "Mission Preview",
                 "biomeId": self._selected_biome_id(),
                 "portalMission": bool(self.portal_mission_var.get()),
+                "terrainPoolIds": self._parse_id_lines(self.terrain_pool_text.get("1.0", tk.END)),
+                "climatePoolIds": self._parse_id_lines(self.climate_pool_text.get("1.0", tk.END)),
+                "nodeGenerationProfileId": self._selected_generation_profile_id(),
+                "descriptionPackId": self._selected_description_pack_id(),
                 "mapGenerationRange": self._build_map_generation_range_payload(),
                 "objective": objective_payload,
                 "allegianceConfigs": list(self.allegiance_configs_draft),
@@ -568,12 +782,13 @@ class MissionEditorFrame(ttk.Frame):
             self.current_map = None
             self.map_preview_photo = None
         self.current_map_overlay = MissionMapOverlay()
+        self._clear_node_content_preview()
         self._render_current_map_preview()
 
     def _clear_character_and_clue_overlays(self):
         self.current_map_overlay.unitsByNode = {}
         self.current_map_overlay.clueTargetNodeByNode = {}
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _render_current_map_preview(self):
         if self.current_map is None:
@@ -590,17 +805,84 @@ class MissionEditorFrame(ttk.Frame):
         )
         self.map_preview_photo = ImageTk.PhotoImage(image)
         self.map_preview_label.configure(image=self.map_preview_photo)
+        setting_summary = "No sampled setting yet."
+        if self.current_setting_context is not None:
+            setting_summary = (
+                f"Sampled Setting: {self.current_setting_context.biomeName} | "
+                f"{self.current_setting_context.terrainName} | {self.current_setting_context.climateName}"
+            )
         self.map_summary_var.set(
             "\n".join(
                 [
                     f"Seed: {self.current_map.settings.seed}",
                     f"Actual Settings: nodes {self.current_map.settings.total_nodes}, narrowness {self.current_map.settings.narrowness:.2f}, connectedness {self.current_map.settings.connectedness:.2f}, dead ends {self.current_map.settings.dead_end_likelihood:.2f}, jitter {self.current_map.settings.node_jitter_fraction:.2f}",
+                    setting_summary,
+                    f"Node Content: {len(self.current_node_contents)} nodes generated",
                     f"Characters: {self.current_map_overlay.totalPlacedCharacters} across {len(self.current_map_overlay.characterCountByNode)} nodes",
                     f"Treasure: {len(self.current_map_overlay.nanoByNode)} nodes, {self.current_map_overlay.totalNano} Nano total",
                     f"Clues: {len(self.current_map_overlay.clueTargetNodeByNode)} nodes",
                 ]
             )
         )
+
+    def _refresh_node_content_preview_from_current_state(self):
+        if self.current_map is None:
+            self._clear_node_content_preview()
+            self._render_current_map_preview()
+            return
+        try:
+            setting_context, node_contents = generate_node_content_preview(
+                self.app.environment_service,
+                self.current_map,
+                self._build_preview_template(),
+                seed=self.current_map.settings.seed,
+            )
+            self.current_setting_context = setting_context
+            self.current_node_contents = apply_overlay_to_node_contents(node_contents, self.current_map_overlay)
+            self.sampled_setting_var.set(
+                f"Sampled Setting: {setting_context.biomeName} | {setting_context.terrainName} | {setting_context.climateName}"
+            )
+            self._refresh_node_selector()
+            self._render_selected_node_preview()
+        except Exception as exc:
+            self._clear_node_content_preview()
+            messagebox.showerror("Mission Editor", f"Failed to generate node content preview: {exc}")
+        self._render_current_map_preview()
+
+    def _generate_node_content_preview(self):
+        if not self._ensure_current_map():
+            return
+        self._refresh_node_content_preview_from_current_state()
+
+    def _regenerate_selected_node_content(self):
+        selected_node_id = self._selected_node_id()
+        if not self._ensure_current_map():
+            return
+        self._refresh_node_content_preview_from_current_state()
+        if selected_node_id is not None:
+            self.selected_node_var.set(str(selected_node_id))
+        self._render_selected_node_preview()
+
+    def _generate_openai_for_selected_node(self):
+        node_id = self._selected_node_id()
+        if node_id is None:
+            messagebox.showerror("Mission Editor", "Select a node first.")
+            return
+        if self.current_setting_context is None or node_id not in self.current_node_contents:
+            messagebox.showerror("Mission Editor", "Generate node content first.")
+            return
+        if getattr(self.app, "openai_service", None) is None or not self.app.openai_service.is_configured():
+            messagebox.showerror("Mission Editor", "OpenAI is not configured.")
+            return
+        try:
+            prompt_packet = build_scene_description_prompt_packet(
+                self.current_setting_context,
+                self.current_node_contents[node_id],
+            )
+            self.current_node_contents[node_id].openAIDescription = self.app.openai_service.describe_scene(prompt_packet)
+            self._render_selected_node_preview()
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate OpenAI description: {exc}")
 
     def _ensure_current_map(self) -> bool:
         if self.current_map is not None:
@@ -621,7 +903,7 @@ class MissionEditorFrame(ttk.Frame):
             messagebox.showerror("Mission Editor", f"Failed to generate mission map: {exc}")
             return
         self.current_map_overlay = MissionMapOverlay()
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _place_characters_on_map(self):
         if not self._ensure_population_preview() or not self._ensure_current_map():
@@ -636,7 +918,7 @@ class MissionEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Mission Editor", f"Failed to place characters on the map: {exc}")
             return
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _generate_treasure_on_map(self):
         if not self._ensure_current_map():
@@ -649,7 +931,7 @@ class MissionEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Mission Editor", f"Failed to generate treasure: {exc}")
             return
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _generate_clues_on_map(self):
         if not self._ensure_current_map():
@@ -662,7 +944,7 @@ class MissionEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Mission Editor", f"Failed to generate clues: {exc}")
             return
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _generate_all_map_features(self):
         if not self._ensure_population_preview() or not self._ensure_current_map():
@@ -677,7 +959,7 @@ class MissionEditorFrame(ttk.Frame):
         except Exception as exc:
             messagebox.showerror("Mission Editor", f"Failed to generate mission map features: {exc}")
             return
-        self._render_current_map_preview()
+        self._refresh_node_content_preview_from_current_state()
 
     def _view_selected_preview_unit(self):
         populated_unit = self._selected_preview_unit()
@@ -691,6 +973,10 @@ class MissionEditorFrame(ttk.Frame):
             "name": str(self.name_var.get() or "").strip(),
             "biomeId": self._selected_biome_id(),
             "portalMission": bool(self.portal_mission_var.get()),
+            "terrainPoolIds": self._parse_id_lines(self.terrain_pool_text.get("1.0", tk.END)),
+            "climatePoolIds": self._parse_id_lines(self.climate_pool_text.get("1.0", tk.END)),
+            "nodeGenerationProfileId": self._selected_generation_profile_id(),
+            "descriptionPackId": self._selected_description_pack_id(),
             "mapGenerationRange": self._build_map_generation_range_payload(),
             "objective": dict(self.objective_draft),
             "allegianceConfigs": list(self.allegiance_configs_draft),
@@ -714,6 +1000,10 @@ class MissionEditorFrame(ttk.Frame):
             mission_data = mission.to_dict()
             self._set_biome_selection(mission_data.get("biomeId", ""))
             self.portal_mission_var.set(bool(mission_data.get("portalMission", True)))
+            self._set_text_widget(self.terrain_pool_text, "\n".join(mission_data.get("terrainPoolIds", []) or []))
+            self._set_text_widget(self.climate_pool_text, "\n".join(mission_data.get("climatePoolIds", []) or []))
+            self._set_generation_profile_selection(mission_data.get("nodeGenerationProfileId", ""))
+            self._set_description_pack_selection(mission_data.get("descriptionPackId", ""))
             self.objective_draft = dict(mission_data.get("objective", {}) or {})
             self.objective_label_var.set(_objective_description(self.objective_draft))
             self.allegiance_configs_draft = [dict(entry) for entry in mission_data.get("allegianceConfigs", [])]

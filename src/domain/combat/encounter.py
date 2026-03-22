@@ -82,6 +82,7 @@ class EncounterDefinition:
     reinforcements: list[ReinforcementEntry] = field(default_factory=list)
     player_front_line: int = 0
     enemy_front_line: int = 0
+    context_tags: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -97,6 +98,7 @@ class EncounterDefinition:
             "reinforcements": [entry.to_dict() for entry in self.reinforcements],
             "player_front_line": int(self.player_front_line),
             "enemy_front_line": int(self.enemy_front_line),
+            "context_tags": [str(tag or "").strip().lower() for tag in self.context_tags if str(tag or "").strip()],
         }
 
     @classmethod
@@ -130,4 +132,5 @@ class EncounterDefinition:
             ],
             player_front_line=int(data.get("player_front_line", default_player_front) or default_player_front),
             enemy_front_line=int(data.get("enemy_front_line", default_enemy_front) or default_enemy_front),
+            context_tags=[str(tag or "").strip().lower() for tag in data.get("context_tags", []) or [] if str(tag or "").strip()],
         )

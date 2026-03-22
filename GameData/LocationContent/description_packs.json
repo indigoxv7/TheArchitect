@@ -1,0 +1,80 @@
+[
+    {
+        "descriptionPackId": "DefaultArrival0",
+        "name": "Default Arrival",
+        "description": "Balanced local grammar fragments for mission node arrival text.",
+        "openaiHint": "Describe what the squad notices first on arrival, keep it short and concrete.",
+        "openingFragments": [
+            {
+                "text": "The squad arrives in #terrain#, where #climate# hangs over everything.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "#biome# closes in around the node, shaped by #terrain# and #climate#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "landmarkFragments": [
+            {
+                "text": "Most striking is #landmark#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "At a glance, #landmark# defines the scene.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "atmosphereFragments": [
+            {
+                "text": "The area feels #role_mood#, with signs of #feature_list#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "Everything about the node suggests #role_mood# and #feature_list#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "hazardFragments": [
+            {
+                "text": "The main immediate risk is #hazard#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "affordanceFragments": [
+            {
+                "text": "It also looks like a place to #affordance#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "closingFragments": [
+            {
+                "text": "Whatever happened here, it still feels active.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "The node invites a closer look, but not a careless one.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ]
+    }
+]

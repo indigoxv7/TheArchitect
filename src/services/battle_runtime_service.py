@@ -217,6 +217,8 @@ class BattleRuntimeService:
         enemy_characters: list[dict[str, object]],
         encounter_type: EncounterType,
         allow_retreat: bool,
+        terrain_label: str = "Mission Node",
+        context_tags: list[str] | None = None,
     ):
         battle, resumed = self.battle_service.start_or_resume_mission_battle(
             player_id=player_id,
@@ -226,6 +228,8 @@ class BattleRuntimeService:
             enemy_characters=enemy_characters,
             encounter_type=encounter_type,
             allow_retreat=allow_retreat,
+            terrain_label=terrain_label,
+            context_tags=context_tags,
         )
         note = "Resumed mission battle." if resumed else None
         await self.render_battle(interaction, battle, note=note)

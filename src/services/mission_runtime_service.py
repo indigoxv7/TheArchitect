@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import io
 import random
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ from src.bot.views.mission_view import (
     MissionResultView,
 )
 from src.domain.Allegiance import AllegianceRelationship
+from src.domain.location_content import GeneratedNodeContent, SceneDescriptionMode
 from src.domain.character_io import character_from_state, character_to_state
 from src.domain.combat import BattleOutcome, EncounterType
 from src.domain.mission import (
@@ -31,8 +33,11 @@ from src.domain.mission import (
 )
 from src.services.mission_map import (
     MissionMapOverlay,
+    apply_overlay_to_node_contents,
     build_map_settings_from_range,
+    build_scene_description_prompt_packet,
     generate_all_map_features,
+    generate_node_content_preview,
     mission_map_from_dict,
     mission_map_to_dict,
     render_mission_map_image,
@@ -67,16 +72,21 @@ class MissionRuntimeService:
         mission_unit_populator,
         active_mission_store,
         battle_runtime_service=None,
+        openai_service=None,
+        memory_service=None,
     ):
         self.context = context
         self.player_service = player_service
         self.character_service = character_service
         self.mission_service = mission_service
+        self.environment_service = getattr(mission_service, 'environment_service', None)
         self.campaign_service = campaign_service
         self.allegiance_service = allegiance_service
         self.mission_unit_populator = mission_unit_populator
         self.store = active_mission_store
         self.battle_runtime_service = battle_runtime_service
+        self.openai_service = openai_service
+        self.memory_service = memory_service
         self._preparation_drafts: dict[int, MissionPreparationDraft] = {}
 
     def set_battle_runtime_service(self, battle_runtime_service):
@@ -228,6 +238,93 @@ class MissionRuntimeService:
         image.save(buffer, format="PNG")
         buffer.seek(0)
         return discord.File(buffer, filename=self.MISSION_IMAGE_FILENAME)
+
+    def _generation_profile_for_state(self, state: MissionRunState):
+        if self.environment_service is None:
+            return None
+        setting_context = getattr(state, "settingContextState", None)
+        profile_id = getattr(setting_context, "generationProfileId", "") if setting_context is not None else ""
+        return self.environment_service.get_generation_profile_by_id(profile_id) or self.environment_service.get_default_generation_profile()
+
+    def _node_content_for_state(self, state: MissionRunState, node_id: int | None = None) -> GeneratedNodeContent | None:
+        target_node_id = state.currentNodeId if node_id is None else node_id
+        if target_node_id is None:
+            return None
+        node_state = state.get_node(int(target_node_id))
+        if node_state is None:
+            return None
+        return node_state.nodeContentState if isinstance(node_state.nodeContentState, GeneratedNodeContent) else None
+
+    def _description_mode_for_state(self, state: MissionRunState) -> SceneDescriptionMode:
+        profile = self._generation_profile_for_state(state)
+        if profile is None:
+            return SceneDescriptionMode.LOCAL_ONLY
+        return getattr(profile, "rendererMode", SceneDescriptionMode.LOCAL_ONLY)
+
+    async def _ensure_node_openai_description(self, state: MissionRunState, node_state: MissionNodeState | None):
+        if node_state is None or node_state.nodeContentState is None or state.settingContextState is None:
+            return
+        if self._description_mode_for_state(state) == SceneDescriptionMode.LOCAL_ONLY:
+            return
+        if node_state.nodeContentState.openAIDescription:
+            return
+        if self.openai_service is None or not self.openai_service.is_configured():
+            return
+        packet = build_scene_description_prompt_packet(state.settingContextState, node_state.nodeContentState)
+        try:
+            description = await asyncio.to_thread(self.openai_service.describe_scene, packet)
+        except Exception:
+            return
+        node_state.nodeContentState.openAIDescription = str(description or "").strip()
+        self.save_active_mission(state)
+
+    def _preferred_node_description(self, state: MissionRunState, node_state: MissionNodeState | None) -> str:
+        if node_state is None or node_state.nodeContentState is None:
+            return ""
+        return node_state.nodeContentState.preferred_description(self._description_mode_for_state(state))
+
+    def _append_node_memory_event(self, state: MissionRunState, summary: str, node_state: MissionNodeState | None = None):
+        if self.memory_service is None:
+            return
+        if node_state is None and state.currentNodeId is not None:
+            node_state = state.get_node(int(state.currentNodeId))
+        if node_state is None:
+            return
+        participant_ids = list(state.partyState.selectedCharacterInstanceIds)
+        if not participant_ids:
+            return
+        node_content = node_state.nodeContentState
+        tags = ["mission", "node_event"]
+        location = state.missionName
+        if state.settingContextState is not None:
+            location = f"{state.settingContextState.terrainName} | Node {int(node_state.nodeId)}"
+        if node_content is not None:
+            tags.extend(node_content.canonicalTags)
+            location = node_content.sceneDisplayName or location
+        mission = self._mission_template(state)
+        try:
+            self.memory_service.append_manual_event(
+                player_id=state.playerId,
+                participant_ids=participant_ids,
+                summary=str(summary or "").strip(),
+                event_type="mission_node_event",
+                tags=tags,
+                location=location,
+                stakes=str(mission.objective.describe() if mission is not None else ""),
+            )
+        except Exception:
+            return
+
+    def _setting_summary_text(self, state: MissionRunState) -> str:
+        setting = state.settingContextState
+        if setting is None:
+            return "Unknown setting."
+        return (
+            f"Biome: {setting.biomeName}\n"
+            f"Terrain: {setting.terrainName}\n"
+            f"Climate: {setting.climateName}"
+        )
+
     def _summary_for_selected_party(self, player, selected_ids: list[str]) -> str:
         selected_set = {str(entry or "").strip() for entry in selected_ids if str(entry or "").strip()}
         if not selected_set:
@@ -327,7 +424,16 @@ class MissionRuntimeService:
             else:
                 neutral += 1
 
-        lines = [f"Node {int(state.currentNodeId)}"]
+        node_content = node_state.nodeContentState
+        title = node_content.sceneDisplayName if node_content is not None and node_content.sceneDisplayName else f"Node {int(state.currentNodeId)}"
+        lines = [title]
+        if node_content is not None:
+            for line in node_content.visibleSummaryLines[:4]:
+                lines.append(f"- {line}")
+            if node_content.hazardTags:
+                lines.append(f"- Hazards: {', '.join(node_content.hazardTags[:3])}")
+            if node_content.affordanceTags:
+                lines.append(f"- Affordances: {', '.join(node_content.affordanceTags[:3])}")
         if hostile:
             lines.append(f"- Hostile units: {hostile}")
         if allied:
@@ -364,30 +470,36 @@ class MissionRuntimeService:
             player.nano = int(getattr(player, "nano", 0) or 0) + amount
             node_state.treasureCollected = True
             self.player_service.persist_player(player)
+            event_text = f"You found {format_nano(amount)} nano at this location."
             self._append_node_event(
                 state,
                 MissionNodeEventType.TREASURE,
                 "Treasure Found",
-                f"You found {format_nano(amount)} nano at this location.",
+                event_text,
             )
+            self._append_node_memory_event(state, event_text, node_state)
 
         if not node_state.clueResolved and node_state.clueTargetNodeId is not None:
             target_node_id = self._resolve_clue_target(state, int(node_state.nodeId), int(node_state.clueTargetNodeId))
             if target_node_id is not None:
                 state.reveal_node(int(target_node_id))
+                clue_text = f"A clue points toward node {int(target_node_id)}."
                 self._append_node_event(
                     state,
                     MissionNodeEventType.CLUE,
                     "Clue Found",
-                    f"A clue points toward node {int(target_node_id)}.",
+                    clue_text,
                 )
+                self._append_node_memory_event(state, clue_text, node_state)
             else:
+                clue_text = "You found a clue, but it does not reveal a new location."
                 self._append_node_event(
                     state,
                     MissionNodeEventType.CLUE,
                     "Clue Found",
-                    "You found a clue, but it does not reveal a new location.",
+                    clue_text,
                 )
+                self._append_node_memory_event(state, clue_text, node_state)
             node_state.clueResolved = True
 
         non_hostile_units = [unit for unit in node_state.living_unit_states() if not self._is_hostile(unit.allegianceId)]
@@ -398,7 +510,10 @@ class MissionRuntimeService:
                 notes.append(f"You find {allied_count} allied unit(s) here.")
             if neutral_count:
                 notes.append(f"You spot {neutral_count} neutral unit(s) here.")
-        return " ".join(notes)
+        summary = " ".join(notes)
+        if summary:
+            self._append_node_memory_event(state, summary, node_state)
+        return summary
 
     def _build_node_event_embed(self, state: MissionRunState) -> discord.Embed:
         event = state.pendingNodeEvents[0]
@@ -449,6 +564,7 @@ class MissionRuntimeService:
             value=self._summary_for_selected_party(player, state.partyState.selectedCharacterInstanceIds),
             inline=False,
         )
+        embed.add_field(name="Setting", value=self._setting_summary_text(state), inline=True)
         embed.add_field(
             name="Mission Stats",
             value=(
@@ -457,9 +573,19 @@ class MissionRuntimeService:
                 f"Hours in Mission: {float(stats.timeInsideMissionHours or 0.0):.2f}\n"
                 f"Bosses Defeated: {stats.bossesDefeated}"
             ),
-            inline=False,
+            inline=True,
         )
         embed.add_field(name="Current Node", value=self._current_node_summary(state), inline=False)
+        current_node_state = state.get_node(int(state.currentNodeId)) if state.currentNodeId is not None else None
+        scene_text = self._preferred_node_description(state, current_node_state)
+        if scene_text:
+            embed.add_field(name="Scene", value=scene_text[:1024], inline=False)
+        if current_node_state is not None and current_node_state.nodeContentState is not None and current_node_state.nodeContentState.canonicalTags:
+            embed.add_field(
+                name="Context Tags",
+                value=", ".join(current_node_state.nodeContentState.canonicalTags[:20]),
+                inline=False,
+            )
         if state.lastBattleSummary:
             embed.add_field(name="Latest Event", value=state.lastBattleSummary, inline=False)
         embed.set_image(url=f"attachment://{self.MISSION_IMAGE_FILENAME}")
@@ -665,6 +791,13 @@ class MissionRuntimeService:
         mission_map = generate_mission_map(build_map_settings_from_range(mission.mapGenerationRange, seed=seed))
         populated = self.mission_unit_populator.populate(mission, seed=seed)
         overlay = generate_all_map_features(mission_map, mission, populated, seed=seed)
+        setting_context, node_contents = generate_node_content_preview(
+            self.environment_service,
+            mission_map,
+            mission,
+            seed=seed,
+        )
+        node_contents = apply_overlay_to_node_contents(node_contents, overlay)
         unit_metadata: dict[int, object] = {}
         for entry in populated.generatedUnits:
             unit_metadata[id(entry)] = entry
@@ -706,6 +839,7 @@ class MissionRuntimeService:
                         if node_id in overlay.clueTargetNodeByNode
                         else None
                     ),
+                    nodeContentState=node_contents.get(int(node_id)),
                 )
             )
 
@@ -724,6 +858,7 @@ class MissionRuntimeService:
             missionStatistics=self._build_initial_statistics(node_states),
             missionObjectiveStatus=MissionObjectiveStatus.IN_PROGRESS,
             campaignIds=list(campaign_ids or []),
+            settingContextState=setting_context,
         )
         self._update_ally_progress_metrics(state)
         self._refresh_objective_status(state)
@@ -907,6 +1042,13 @@ class MissionRuntimeService:
                     "is_elite": bool(unit.isElite),
                 }
             )
+        node_content = node_state.nodeContentState
+        terrain_label = (
+            node_content.battleTerrainLabel
+            if node_content is not None and node_content.battleTerrainLabel
+            else (node_content.sceneDisplayName if node_content is not None and node_content.sceneDisplayName else "Mission Node")
+        )
+        context_tags = list(node_content.canonicalTags) if node_content is not None else []
         await self.battle_runtime_service.start_or_resume_mission_battle(
             interaction=interaction,
             player_id=int(player.discordID),
@@ -916,6 +1058,8 @@ class MissionRuntimeService:
             enemy_characters=enemy_characters,
             encounter_type=encounter_type,
             allow_retreat=not bool(mission.portalMission if mission is not None else True),
+            terrain_label=terrain_label,
+            context_tags=context_tags,
         )
 
     async def _enter_current_node(self, interaction: discord.Interaction, state: MissionRunState):
@@ -931,6 +1075,7 @@ class MissionRuntimeService:
         self._update_ally_progress_metrics(state)
         node_state = state.get_node(int(state.currentNodeId))
         if node_state is not None:
+            await self._ensure_node_openai_description(state, node_state)
             hostile_units = [unit for unit in node_state.living_unit_states() if self._is_hostile(unit.allegianceId)]
             if hostile_units:
                 state.pendingBattleNodeId = int(node_state.nodeId)
@@ -941,6 +1086,8 @@ class MissionRuntimeService:
             notes = self._collect_node_events(player, state, node_state)
             if notes:
                 state.lastBattleSummary = notes
+            elif node_state.nodeContentState is not None and node_state.nodeContentState.sceneDisplayName:
+                state.lastBattleSummary = f"You arrive at {node_state.nodeContentState.sceneDisplayName}."
 
         self._refresh_objective_status(state)
         self._record_completed_mission_count(state, player)
@@ -955,6 +1102,8 @@ class MissionRuntimeService:
 
     async def render_active_mission(self, interaction: discord.Interaction, state: MissionRunState, page: int = 0):
         player = await self.player_service.get_player(int(state.playerId))
+        node_state = state.get_node(int(state.currentNodeId)) if state.currentNodeId is not None else None
+        await self._ensure_node_openai_description(state, node_state)
         embed = self._build_active_mission_embed(player, state)
         view = MissionActiveView(self, int(state.playerId), state, page=page)
         await self._edit_message(interaction, embed=embed, view=view, file=self._map_attachment(state))
@@ -1061,3 +1210,6 @@ class MissionRuntimeService:
                 self.player_service.persist_player(player)
             self.clear_active_mission(player_id)
         await self.show_mission_menu(interaction, player_id)
+
+
+

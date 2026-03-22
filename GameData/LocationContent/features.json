@@ -1,0 +1,251 @@
+[
+    {
+        "featureId": "BlackwaterStream0",
+        "name": "Blackwater Stream",
+        "category": "hydrology",
+        "description": "Dark water cuts through the area.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "stream",
+            "blackwater"
+        ],
+        "affordanceTags": [
+            "drink_if_filtered",
+            "cross"
+        ],
+        "hazardTags": [
+            "slippery_bank"
+        ],
+        "memoryTags": [
+            "stream"
+        ],
+        "visibleTags": [
+            "water"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "a blackwater stream threads through the ground"
+        ]
+    },
+    {
+        "featureId": "BrokenBridge0",
+        "name": "Broken Bridge",
+        "category": "traversal",
+        "description": "A collapsed crossing that still tempts passage.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "broken_bridge",
+            "gap"
+        ],
+        "affordanceTags": [
+            "cross",
+            "climb"
+        ],
+        "hazardTags": [
+            "fall_risk"
+        ],
+        "memoryTags": [
+            "bridge"
+        ],
+        "visibleTags": [
+            "bridge"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "a broken bridge leaves an awkward crossing"
+        ]
+    },
+    {
+        "featureId": "FungusLanterns0",
+        "name": "Fungus Lanterns",
+        "category": "flora",
+        "description": "Soft glow from strange fungus clusters.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "bioluminescent",
+            "fungal"
+        ],
+        "affordanceTags": [
+            "see_in_dark"
+        ],
+        "hazardTags": [],
+        "memoryTags": [
+            "glowing_fungus"
+        ],
+        "visibleTags": [
+            "glow"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "pale fungus lends the node an eerie light"
+        ]
+    },
+    {
+        "featureId": "PredatorSpoor0",
+        "name": "Predator Spoor",
+        "category": "fauna_sign",
+        "description": "Fresh signs that something territorial passed through.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "tracks",
+            "predator_sign"
+        ],
+        "affordanceTags": [],
+        "hazardTags": [
+            "ambush_risk"
+        ],
+        "memoryTags": [
+            "tracks"
+        ],
+        "visibleTags": [
+            "tracks"
+        ],
+        "hookTypeSuggestions": [
+            "Clue",
+            "Encounter"
+        ],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "fresh spoor suggests a predator patrols nearby"
+        ]
+    },
+    {
+        "featureId": "RuinedWatchtower0",
+        "name": "Ruined Watchtower",
+        "category": "structure",
+        "description": "A broken elevated post with good sightlines.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "watchtower",
+            "ruins"
+        ],
+        "affordanceTags": [
+            "observe",
+            "high_ground"
+        ],
+        "hazardTags": [
+            "rotting_supports"
+        ],
+        "memoryTags": [
+            "watchtower"
+        ],
+        "visibleTags": [
+            "tower"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "a ruined watchtower leans above the node"
+        ]
+    },
+    {
+        "featureId": "SupplyCache0",
+        "name": "Supply Cache",
+        "category": "resource",
+        "description": "A stash or crate hidden behind cover.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "cache",
+            "supplies"
+        ],
+        "affordanceTags": [
+            "loot"
+        ],
+        "hazardTags": [],
+        "memoryTags": [
+            "supplies"
+        ],
+        "visibleTags": [
+            "cache"
+        ],
+        "hookTypeSuggestions": [
+            "Treasure"
+        ],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "someone cached supplies here not long ago"
+        ]
+    },
+    {
+        "featureId": "ThornCurtain0",
+        "name": "Thorn Curtain",
+        "category": "flora",
+        "description": "Dense thorn growth narrows movement.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "thorns",
+            "dense_growth"
+        ],
+        "affordanceTags": [
+            "hide"
+        ],
+        "hazardTags": [
+            "scrapes",
+            "slow_travel"
+        ],
+        "memoryTags": [
+            "thorns"
+        ],
+        "visibleTags": [
+            "thorns"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "thorny growth closes in around the route"
+        ]
+    },
+    {
+        "featureId": "TotemMarkers0",
+        "name": "Totem Markers",
+        "category": "faction_sign",
+        "description": "Claim markers or warnings left by locals.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "totem_markers",
+            "territory"
+        ],
+        "affordanceTags": [],
+        "hazardTags": [
+            "territorial_response"
+        ],
+        "memoryTags": [
+            "warning_signs"
+        ],
+        "visibleTags": [
+            "markers"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {},
+        "payload": {},
+        "localDescriptionHints": [
+            "totem markers warn that someone claims this place"
+        ]
+    }
+]

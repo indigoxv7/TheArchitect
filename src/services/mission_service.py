@@ -1,4 +1,4 @@
-import re
+﻿import re
 
 from src.domain.mission import DeliveryObjective, EscortObjective, MissionTemplate
 from src.persistence.missionbook_store import MissionbookStore
@@ -6,9 +6,7 @@ from src.services.game_context import GameContext
 
 
 class MissionService:
-    def __init__(
-        self, missionbook_path: str, context: GameContext, allegiance_service, unit_service, environment_service
-    ):
+    def __init__(self, missionbook_path: str, context: GameContext, allegiance_service, unit_service, environment_service):
         self.context = context
         self.allegiance_service = allegiance_service
         self.unit_service = unit_service
@@ -46,6 +44,16 @@ class MissionService:
             raise ValueError("Mission must include an objective.")
         if mission.biomeId and self.environment_service.get_biome_by_id(mission.biomeId) is None:
             raise ValueError(f"Biome '{mission.biomeId}' does not exist.")
+        for terrain_id in mission.terrainPoolIds:
+            if self.environment_service.get_terrain_by_id(terrain_id) is None:
+                raise ValueError(f"Terrain '{terrain_id}' does not exist.")
+        for climate_id in mission.climatePoolIds:
+            if self.environment_service.get_climate_by_id(climate_id) is None:
+                raise ValueError(f"Climate '{climate_id}' does not exist.")
+        if mission.nodeGenerationProfileId and self.environment_service.get_generation_profile_by_id(mission.nodeGenerationProfileId) is None:
+            raise ValueError(f"Generation profile '{mission.nodeGenerationProfileId}' does not exist.")
+        if mission.descriptionPackId and self.environment_service.get_description_pack_by_id(mission.descriptionPackId) is None:
+            raise ValueError(f"Description pack '{mission.descriptionPackId}' does not exist.")
 
         if isinstance(mission.objective, DeliveryObjective):
             if not mission.objective.requiredItemId:
@@ -71,7 +79,6 @@ class MissionService:
             if self.allegiance_service.get_allegiance_by_id(allegiance_id) is None:
                 raise ValueError(f"Allegiance '{allegiance_id}' does not exist.")
             seen_allegiances.add(allegiance_id)
-
             seen_units: set[str] = set()
             for option in config.unitOptions:
                 unit_id = str(option.unitId or "").strip()
@@ -81,11 +88,7 @@ class MissionService:
                     raise ValueError(f"Mission allegiance '{allegiance_id}' includes duplicate unit '{unit_id}'.")
                 if self.unit_service.get_unit_by_id(unit_id) is None:
                     raise ValueError(f"Unit '{unit_id}' does not exist.")
-                if (
-                    option.capacityMin is not None
-                    and option.capacityMax is not None
-                    and option.capacityMin > option.capacityMax
-                ):
+                if option.capacityMin is not None and option.capacityMax is not None and option.capacityMin > option.capacityMax:
                     raise ValueError(f"Unit '{unit_id}' has capacity min greater than max.")
                 seen_units.add(unit_id)
 
@@ -93,7 +96,6 @@ class MissionService:
         payload = self.store.load()
         raw_missions = payload.get("missions", [])
         migrated = False
-
         self.context.all_missions.clear()
         for raw in raw_missions:
             try:
@@ -101,32 +103,22 @@ class MissionService:
                 self._validate_mission(mission)
             except Exception:
                 continue
-
-            if not mission.missionId:
+            if not mission.missionId or mission.missionId in self.context.all_missions:
                 mission.missionId = self._generate_mission_id(mission.name)
                 migrated = True
-            if mission.missionId in self.context.all_missions:
-                mission.missionId = self._generate_mission_id(mission.name)
-                migrated = True
-
             self.context.all_missions[mission.missionId] = mission
-
         if migrated:
             self.save_missionbook()
         else:
             self.context.missionbook_overview = self.build_missionbook_overview()
 
     def save_missionbook(self):
-        payload = {
-            "format_version": 4,
-            "missions": [mission.to_dict() for mission in self.list_missions()],
-        }
+        payload = {"format_version": 5, "missions": [mission.to_dict() for mission in self.list_missions()]}
         self.store.save(payload)
         self.context.missionbook_overview = self.build_missionbook_overview()
 
     def list_missions(self) -> list[MissionTemplate]:
-        missions = list(self.context.all_missions.values())
-        return sorted(missions, key=lambda mission: (mission.name.lower(), mission.missionId))
+        return sorted(list(self.context.all_missions.values()), key=lambda mission: (mission.name.lower(), mission.missionId))
 
     def get_mission_by_id(self, mission_id: str) -> MissionTemplate | None:
         return self.context.all_missions.get(str(mission_id or "").strip())
@@ -135,15 +127,11 @@ class MissionService:
         key = str(identifier or "").strip()
         if not key:
             return None
-
         by_id = self.get_mission_by_id(key)
         if by_id is not None:
             return by_id
-
         matches = [mission for mission in self.list_missions() if mission.name.strip().lower() == key.lower()]
-        if len(matches) == 1:
-            return matches[0]
-        return None
+        return matches[0] if len(matches) == 1 else None
 
     def create_mission_from_dict(self, data: dict):
         mission = MissionTemplate.from_dict(data)
@@ -160,13 +148,11 @@ class MissionService:
         existing = self.get_mission(mission_identifier)
         if existing is None:
             raise ValueError(f"Mission '{mission_identifier}' does not exist or is ambiguous.")
-
         merged = existing.to_dict()
         merged.update(patch or {})
         if not str(merged.get("name", "")).strip():
             merged["name"] = existing.name
         merged["missionId"] = existing.missionId
-
         updated = MissionTemplate.from_dict(merged)
         updated.missionId = existing.missionId
         self._validate_mission(updated)
@@ -178,16 +164,11 @@ class MissionService:
         missions = self.list_missions()
         if not missions:
             return "No missions in missionbook yet."
-
         lines = []
         for mission in missions[:max_lines]:
             objective_name = getattr(getattr(mission, "objective", None), "objectiveType", None)
             objective_text = getattr(objective_name, "value", "No Objective")
-            lines.append(
-                f"- {mission.name} [{mission.missionId}] ({objective_text}, {len(mission.allegianceConfigs)} allegiances)"
-            )
-
+            lines.append(f"- {mission.name} [{mission.missionId}] ({objective_text}, {len(mission.allegianceConfigs)} allegiances)")
         if len(missions) > max_lines:
             lines.append(f"... and {len(missions) - max_lines} more")
-
         return "\n".join(lines)

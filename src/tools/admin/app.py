@@ -37,6 +37,7 @@ class AdminEditorApp:
         memory_service,
         power_rating_service,
         combat_simulator_service,
+        openai_service=None,
     ):
         self.services = AdminServices(
             spell_service=spell_service,
@@ -53,6 +54,7 @@ class AdminEditorApp:
             memory_service=memory_service,
             power_rating_service=power_rating_service,
             combat_simulator_service=combat_simulator_service,
+            openai_service=openai_service,
         )
         for field in fields(AdminServices):
             setattr(self, field.name, getattr(self.services, field.name))
@@ -114,7 +116,7 @@ class AdminEditorApp:
             ("Edit Allegiances", self.show_allegiance_editor),
             ("Edit Missions", self.show_mission_editor),
             ("Edit Campaigns", self.show_campaign_editor),
-            ("Edit Environment", self.show_environment_editor),
+            ("Edit Location Content", self.show_environment_editor),
             ("Variable Tuning", self.show_variable_tuning_editor),
             ("Main Character Memory", self.show_memory_editor),
             ("Combat Simulator", self.show_combat_simulator),

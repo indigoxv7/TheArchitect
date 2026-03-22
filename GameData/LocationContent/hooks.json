@@ -1,0 +1,82 @@
+[
+    {
+        "hookId": "ForgottenShrineMurals0",
+        "name": "Forgotten Shrine Murals",
+        "hookType": "LORE",
+        "description": "Fragments of old meaning on surviving surfaces.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "lore",
+            "murals"
+        ],
+        "memoryTags": [
+            "lore"
+        ],
+        "visibleText": "Faded markings suggest a story worth studying.",
+        "payload": {
+            "kind": "lore"
+        }
+    },
+    {
+        "hookId": "FreshTracks0",
+        "name": "Fresh Tracks",
+        "hookType": "CLUE",
+        "description": "A clue that points toward nearby occupants.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "tracks",
+            "clue"
+        ],
+        "memoryTags": [
+            "clue"
+        ],
+        "visibleText": "Fresh tracks point deeper into the mission area.",
+        "payload": {
+            "kind": "clue"
+        }
+    },
+    {
+        "hookId": "HiddenNanoStash0",
+        "name": "Hidden Nano Stash",
+        "hookType": "TREASURE",
+        "description": "A concealed stash of Nano.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "treasure",
+            "nano"
+        ],
+        "memoryTags": [
+            "treasure"
+        ],
+        "visibleText": "Something valuable is tucked out of sight here.",
+        "payload": {
+            "kind": "treasure"
+        }
+    },
+    {
+        "hookId": "RivalPatrolSigns0",
+        "name": "Rival Patrol Signs",
+        "hookType": "ENCOUNTER",
+        "description": "Signs of a hostile group controlling the area.",
+        "weight": 1.0,
+        "requiredTags": [],
+        "excludedTags": [],
+        "tags": [
+            "hostile_presence",
+            "patrol"
+        ],
+        "memoryTags": [
+            "hostiles"
+        ],
+        "visibleText": "The place shows clear signs of hostile control.",
+        "payload": {
+            "kind": "encounter"
+        }
+    }
+]
