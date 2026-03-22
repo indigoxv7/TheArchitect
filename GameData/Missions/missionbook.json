@@ -1,5 +1,5 @@
 {
-    "format_version": 4,
+    "format_version": 5,
     "missions": [
         {
             "missionId": "GoblinAssassinAssassin1",
@@ -34,7 +34,11 @@
                     "levelMax": 0
                 }
             ],
-            "biomeId": "Jungle0",
+            "biomeId": "GoblinJungle0",
+            "terrainPoolIds": [],
+            "climatePoolIds": [],
+            "nodeGenerationProfileId": "GoblinJungleProfile0",
+            "descriptionPackId": "GoblinJungleArrival0",
             "portalMission": true,
             "mapGenerationRange": {
                 "totalNodesLow": 60,
@@ -76,19 +80,23 @@
                             "isBoss": false
                         }
                     ],
-                    "clusterProbability": 0.4,
+                    "clusterProbability": 0.5,
                     "clusterProbabilityVariance": 0.0,
                     "levelMin": 0,
                     "levelMax": 0
                 }
             ],
-            "biomeId": "Jungle0",
+            "biomeId": "GoblinJungle0",
+            "terrainPoolIds": [],
+            "climatePoolIds": [],
+            "nodeGenerationProfileId": "GoblinJungleProfile0",
+            "descriptionPackId": "GoblinJungleArrival0",
             "portalMission": true,
             "mapGenerationRange": {
-                "totalNodesLow": 20,
-                "totalNodesHigh": 25,
-                "narrownessLow": 0.3,
-                "narrownessHigh": 0.4,
+                "totalNodesLow": 10,
+                "totalNodesHigh": 10,
+                "narrownessLow": 0.2,
+                "narrownessHigh": 0.3,
                 "connectednessLow": 0.25,
                 "connectednessHigh": 0.25,
                 "deadEndLikelihoodLow": 0.1,

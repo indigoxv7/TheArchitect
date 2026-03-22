@@ -1,5 +1,51 @@
 [
     {
+        "climateId": "AfterRainSteam0",
+        "name": "After-Rain Steam",
+        "temperature": "Warm",
+        "humidity": "Saturated",
+        "description": "Rain has just passed, leaving steaming mud, slick bark, and dripping leaves.",
+        "canonicalTags": [
+            "after_rain",
+            "wet",
+            "steam_haze"
+        ],
+        "weatherTags": [
+            "dripping_canopy"
+        ],
+        "floodTags": [
+            "runoff_channels"
+        ],
+        "fogTags": [
+            "steam_haze"
+        ],
+        "seasonalityTags": [],
+        "effectIds": []
+    },
+    {
+        "climateId": "CanopySmoke0",
+        "name": "Canopy Smoke",
+        "temperature": "Hot",
+        "humidity": "Humid",
+        "description": "Damp charcoal smoke drifts under the canopy and clings to everything.",
+        "canonicalTags": [
+            "smoke_haze",
+            "humid",
+            "low_visibility"
+        ],
+        "weatherTags": [
+            "charcoal_reek"
+        ],
+        "floodTags": [],
+        "fogTags": [
+            "smoke_banks"
+        ],
+        "seasonalityTags": [],
+        "effectIds": [
+            "SmotheringCookfireSmoke0"
+        ]
+    },
+    {
         "climateId": "HotHumid0",
         "name": "Hot Humid",
         "temperature": "Hot",

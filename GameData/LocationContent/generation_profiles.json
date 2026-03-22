@@ -20,5 +20,32 @@
         "hazardBias": 1.0,
         "affordanceBias": 1.0,
         "hookBias": 1.0
+    },
+    {
+        "generationProfileId": "GoblinJungleProfile0",
+        "name": "Goblin Jungle Profile",
+        "description": "A role mix tuned for goblin-controlled jungle routes, camps, traps, and scavenged ritual ground.",
+        "rendererMode": "LOCAL_PRIMARY_OPENAI_CACHE",
+        "roleWeights": {
+            "GoblinSentryRoost0": 1.1,
+            "GoblinTrapNest0": 1.25,
+            "GoblinRaidCache0": 1.0,
+            "GoblinFetishShrine0": 0.85,
+            "GoblinSmokeCamp0": 1.05,
+            "AmbushCorridor0": 0.7,
+            "ResourceStop0": 0.6,
+            "LoreReveal0": 0.55,
+            "TraversalPuzzle0": 0.65,
+            "Landmark0": 0.45,
+            "SafePocket0": 0.35
+        },
+        "minFeatures": 2,
+        "maxFeatures": 4,
+        "minHooks": 1,
+        "maxHooks": 2,
+        "antiRepetitionStrength": 0.7,
+        "hazardBias": 1.25,
+        "affordanceBias": 1.1,
+        "hookBias": 1.15
     }
 ]

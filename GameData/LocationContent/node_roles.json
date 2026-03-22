@@ -23,6 +23,156 @@
         "maxFeatures": 3
     },
     {
+        "roleId": "GoblinFetishShrine0",
+        "name": "Goblin Fetish Shrine",
+        "description": "Totems, painted bones, and small offerings suggest goblin ritual importance.",
+        "weight": 0.85,
+        "roleTags": [
+            "ritual_site",
+            "lore",
+            "fetish_magic"
+        ],
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "study",
+            "observe"
+        ],
+        "desiredHazardTags": [
+            "hexed_ground"
+        ],
+        "desiredHookTypes": [
+            "Lore",
+            "Quest Seed",
+            "Clue"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "GoblinRaidCache0",
+        "name": "Goblin Raid Cache",
+        "description": "Spoils, ration bundles, and salvage are hidden in a place goblins expect to revisit.",
+        "weight": 1.05,
+        "roleTags": [
+            "loot_cache",
+            "scavenged_goods",
+            "opportunity"
+        ],
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "loot",
+            "forage",
+            "cut_down"
+        ],
+        "desiredHazardTags": [
+            "noisy_takedown"
+        ],
+        "desiredHookTypes": [
+            "Treasure",
+            "Quest Seed"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "GoblinSentryRoost0",
+        "name": "Goblin Sentry Roost",
+        "description": "A watched approach dominated by elevated goblin sightlines and warning posts.",
+        "weight": 1.15,
+        "roleTags": [
+            "goblin_sentry",
+            "ambush",
+            "elevated_threat"
+        ],
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "observe",
+            "climb",
+            "snipe"
+        ],
+        "desiredHazardTags": [
+            "arrow_crossfire",
+            "fall_risk"
+        ],
+        "desiredHookTypes": [
+            "Encounter",
+            "Clue"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 3
+    },
+    {
+        "roleId": "GoblinSmokeCamp0",
+        "name": "Goblin Smoke Camp",
+        "description": "A recently used goblin camp blends cookfires, salvage, and improvised shelter.",
+        "weight": 1.0,
+        "roleTags": [
+            "settlement",
+            "cookfires",
+            "pressure"
+        ],
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "eavesdrop",
+            "scout",
+            "rest"
+        ],
+        "desiredHazardTags": [
+            "hidden_watchers",
+            "smoke_haze"
+        ],
+        "desiredHookTypes": [
+            "Encounter",
+            "Lore",
+            "Faction"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 4
+    },
+    {
+        "roleId": "GoblinTrapNest0",
+        "name": "Goblin Trap Nest",
+        "description": "The route has been shaped into a layered trap belt that rewards slow, careful eyes.",
+        "weight": 1.25,
+        "roleTags": [
+            "trapworks",
+            "ambush",
+            "hazard_dense"
+        ],
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "desiredAffordanceTags": [
+            "disarm",
+            "sneak",
+            "probe_ground"
+        ],
+        "desiredHazardTags": [
+            "tripwire",
+            "pit_trap",
+            "entanglement"
+        ],
+        "desiredHookTypes": [
+            "Clue",
+            "Encounter"
+        ],
+        "minFeatures": 2,
+        "maxFeatures": 4
+    },
+    {
         "roleId": "Landmark0",
         "name": "Landmark",
         "description": "A visually distinctive place that anchors orientation.",

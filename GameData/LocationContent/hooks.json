@@ -1,5 +1,80 @@
 [
     {
+        "hookId": "CapturedMapScrap0",
+        "name": "Captured Map Scrap",
+        "hookType": "LORE",
+        "description": "A torn map scrap reveals what routes or targets matter to the goblins.",
+        "weight": 0.85,
+        "requiredTags": [
+            "stolen_markers"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "lore",
+            "raider_notes",
+            "routes"
+        ],
+        "memoryTags": [
+            "lore",
+            "routes"
+        ],
+        "visibleText": "A marked scrap of map shows what the goblins care about nearby.",
+        "payload": {
+            "kind": "lore",
+            "topic": "raid_routes"
+        }
+    },
+    {
+        "hookId": "ClanBoundaryWarning0",
+        "name": "Clan Boundary Warning",
+        "hookType": "FACTION",
+        "description": "Totems and paint marks indicate whose ground this is and how the clan thinks about intruders.",
+        "weight": 0.75,
+        "requiredTags": [
+            "totems"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "faction",
+            "territory",
+            "clan_markers"
+        ],
+        "memoryTags": [
+            "faction",
+            "territory"
+        ],
+        "visibleText": "The totems mark a clan boundary, not just a general warning.",
+        "payload": {
+            "kind": "faction",
+            "faction": "goblin_clans"
+        }
+    },
+    {
+        "hookId": "CutPurseStash0",
+        "name": "Cut-Purse Stash",
+        "hookType": "TREASURE",
+        "description": "A tucked-away goblin stash of coins, charms, and stripped valuables.",
+        "weight": 1.0,
+        "requiredTags": [
+            "loot_cache"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "treasure",
+            "stolen_salvage",
+            "nano"
+        ],
+        "memoryTags": [
+            "treasure",
+            "stolen_goods"
+        ],
+        "visibleText": "A goblin stash is hidden where only a habitual raider would think to look.",
+        "payload": {
+            "kind": "treasure",
+            "stash_style": "concealed"
+        }
+    },
+    {
         "hookId": "ForgottenShrineMurals0",
         "name": "Forgotten Shrine Murals",
         "hookType": "LORE",
@@ -40,6 +115,31 @@
         }
     },
     {
+        "hookId": "GoblinDrumSignal0",
+        "name": "Goblin Drum Signal",
+        "hookType": "ENCOUNTER",
+        "description": "Warning drums or tapped signals suggest goblins are coordinating nearby.",
+        "weight": 1.1,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "hostile_presence",
+            "war_drums",
+            "goblin_patrol"
+        ],
+        "memoryTags": [
+            "hostiles",
+            "war_drums"
+        ],
+        "visibleText": "A coded drumbeat suggests goblins are warning one another nearby.",
+        "payload": {
+            "kind": "encounter",
+            "signal": "drums"
+        }
+    },
+    {
         "hookId": "HiddenNanoStash0",
         "name": "Hidden Nano Stash",
         "hookType": "TREASURE",
@@ -77,6 +177,56 @@
         "visibleText": "The place shows clear signs of hostile control.",
         "payload": {
             "kind": "encounter"
+        }
+    },
+    {
+        "hookId": "ScoutArrowClue0",
+        "name": "Scout Arrow Clue",
+        "hookType": "CLUE",
+        "description": "Broken arrow shafts and scraped bark mark a scout route between watch points.",
+        "weight": 1.0,
+        "requiredTags": [
+            "lookout_platform"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "clue",
+            "scout_route",
+            "watch_posts"
+        ],
+        "memoryTags": [
+            "clue",
+            "patrol_routes"
+        ],
+        "visibleText": "Broken fletching and scraped bark hint at a nearby scout route.",
+        "payload": {
+            "kind": "clue",
+            "source": "scout_route"
+        }
+    },
+    {
+        "hookId": "WardstoneChallenge0",
+        "name": "Wardstone Challenge",
+        "hookType": "QUEST_SEED",
+        "description": "One of the goblin ward stones is active enough to hint at a larger ritual network.",
+        "weight": 0.8,
+        "requiredTags": [
+            "ritual_site"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "quest_seed",
+            "fetish_magic",
+            "warded_totems"
+        ],
+        "memoryTags": [
+            "quest_seed",
+            "rituals"
+        ],
+        "visibleText": "One of the ward stones looks active enough to matter beyond this node.",
+        "payload": {
+            "kind": "quest_seed",
+            "topic": "warded_totems"
         }
     }
 ]

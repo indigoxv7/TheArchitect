@@ -21,6 +21,86 @@
         "effectIds": []
     },
     {
+        "terrainId": "GoblinRopeWalks0",
+        "name": "Goblin Rope Walks",
+        "description": "Lashed bridges, hanging footholds, and lookout perches connect the trees into a nervous high road.",
+        "canonicalTags": [
+            "goblin_territory",
+            "rope_walks",
+            "canopy_routes"
+        ],
+        "landformTags": [
+            "elevated_routes"
+        ],
+        "traversalTags": [
+            "climb",
+            "precarious_steps"
+        ],
+        "visibilityTags": [
+            "high_vantage",
+            "arrow_lanes"
+        ],
+        "wetnessTags": [],
+        "obstacleTags": [
+            "missing_planks",
+            "swaying_rope"
+        ],
+        "effectIds": []
+    },
+    {
+        "terrainId": "GoblinScrapFort0",
+        "name": "Goblin Scrap Fort",
+        "description": "Scavenged barricades, stolen plating, and reclaimed ruin walls create a rough goblin strongpoint.",
+        "canonicalTags": [
+            "goblin_territory",
+            "scrapworks",
+            "barricades"
+        ],
+        "landformTags": [
+            "collapsed_structures",
+            "fortified_pocket"
+        ],
+        "traversalTags": [
+            "uneven_footing"
+        ],
+        "visibilityTags": [
+            "partial_cover",
+            "firing_slits"
+        ],
+        "wetnessTags": [],
+        "obstacleTags": [
+            "spike_fences",
+            "junk_piles"
+        ],
+        "effectIds": [
+            "SmotheringCookfireSmoke0"
+        ]
+    },
+    {
+        "terrainId": "GoblinSnareground0",
+        "name": "Goblin Snareground",
+        "description": "The undergrowth is threaded with hidden lines, bait paths, and camouflaged killing spots.",
+        "canonicalTags": [
+            "goblin_territory",
+            "trapworks",
+            "snareground"
+        ],
+        "landformTags": [],
+        "traversalTags": [
+            "cautious_steps"
+        ],
+        "visibilityTags": [
+            "broken_sightlines"
+        ],
+        "wetnessTags": [],
+        "obstacleTags": [
+            "tripwires",
+            "stake_pits",
+            "snap_snares"
+        ],
+        "effectIds": []
+    },
+    {
         "terrainId": "OvergrownPaths0",
         "name": "Overgrown Paths",
         "description": "Dense undergrowth and root-choked trails.",

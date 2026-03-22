@@ -1,1 +1,14 @@
-[]
+[
+    {
+        "effectId": "SmotheringCookfireSmoke0",
+        "name": "Smothering Cookfire Smoke",
+        "description": "Low cookfire smoke settles under the canopy and shortens sightlines.",
+        "counterplay": "Gain elevation, move with the wind, or clear the air before committing to a fight."
+    },
+    {
+        "effectId": "SporeChokedRot0",
+        "name": "Spore-Choked Rot",
+        "description": "Rotting fungal blooms kick up throat-catching spores when disturbed.",
+        "counterplay": "Use masks, fire, or fast movement to keep from lingering in the densest patches."
+    }
+]

@@ -76,5 +76,187 @@
                 "excludedTags": []
             }
         ]
+    },
+    {
+        "descriptionPackId": "GoblinJungleArrival0",
+        "name": "Goblin Jungle Arrival",
+        "description": "A more specific arrival grammar for goblin jungle nodes, tuned for tense, grounded scene-setting.",
+        "openaiHint": "Describe a goblin-controlled jungle node in 2-4 grounded sentences. Emphasize signs of goblin control, immediate hazards, and one concrete visual anchor.",
+        "openingFragments": [
+            {
+                "text": "The squad slips into #biome#, where #terrain# presses close beneath #climate#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "Everything about #terrain# suggests goblins have shaped this patch of #biome# to their liking.",
+                "weight": 0.95,
+                "requiredTags": [
+                    "goblin_territory"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Smoke clings under the canopy as the squad enters #terrain#, where goblin work hangs heavy in the air.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "smoke_haze"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "The jungle is still steaming from recent rain as the squad reaches #terrain#.",
+                "weight": 0.9,
+                "requiredTags": [
+                    "after_rain"
+                ],
+                "excludedTags": []
+            }
+        ],
+        "landmarkFragments": [
+            {
+                "text": "Most striking is #landmark#.",
+                "weight": 1.0,
+                "requiredTags": [],
+                "excludedTags": []
+            },
+            {
+                "text": "#landmark# reads less like decoration and more like a warning.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "ritual_site"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "#landmark# stands out immediately, half stash and half trap.",
+                "weight": 0.9,
+                "requiredTags": [
+                    "loot_cache"
+                ],
+                "excludedTags": []
+            }
+        ],
+        "atmosphereFragments": [
+            {
+                "text": "The place feels watched, with #feature_list# arranged to notice movement before you do.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "goblin_sentry"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Nothing here feels accidental; #feature_list# turn the ground into a test.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "trapworks"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "The node carries the tense order of a lived-in raider route, shaped by #feature_list#.",
+                "weight": 0.95,
+                "requiredTags": [
+                    "goblin_territory"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Even quiet, the area feels recently used, marked by #feature_list#.",
+                "weight": 0.8,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "hazardFragments": [
+            {
+                "text": "The immediate danger is #hazard#, especially if anyone breaks cover.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "arrow_crossfire"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "The immediate danger is #hazard#, the sort of threat that punishes a rushed step.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "pit_trap"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "The immediate danger is #hazard#, and the ground feels wrong in a way it should not.",
+                "weight": 0.95,
+                "requiredTags": [
+                    "hexed_ground"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "The main immediate risk is #hazard#.",
+                "weight": 0.8,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "affordanceFragments": [
+            {
+                "text": "If the squad takes its time, this looks like a place to #affordance#.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "loot"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "It also looks like a place to #affordance#, if someone can ignore the tension in the air.",
+                "weight": 0.95,
+                "requiredTags": [
+                    "study"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "With care, the node could be used to #affordance#.",
+                "weight": 0.8,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ],
+        "closingFragments": [
+            {
+                "text": "It feels like goblins expect to come back here.",
+                "weight": 1.0,
+                "requiredTags": [
+                    "goblin_territory"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Even when empty, the node feels recently occupied.",
+                "weight": 0.9,
+                "requiredTags": [
+                    "settlement"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Whatever power the goblins wanted here, they have not fully abandoned it.",
+                "weight": 0.9,
+                "requiredTags": [
+                    "ritual_site"
+                ],
+                "excludedTags": []
+            },
+            {
+                "text": "Nothing about the node invites carelessness.",
+                "weight": 0.7,
+                "requiredTags": [],
+                "excludedTags": []
+            }
+        ]
     }
 ]

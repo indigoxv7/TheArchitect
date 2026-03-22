@@ -1,5 +1,69 @@
 [
     {
+        "biomeId": "GoblinJungle0",
+        "name": "Goblin Jungle",
+        "description": "A humid jungle threaded with goblin raids, trapworks, scavenged scrap, and fetish-marked territory.",
+        "terrainCompatibilityMode": "SELECTED",
+        "compatibleTerrainIds": [
+            "GoblinRopeWalks0",
+            "GoblinSnareground0",
+            "GoblinScrapFort0",
+            "OvergrownPaths0",
+            "FloodedHollow0",
+            "RuinedFoundations0"
+        ],
+        "terrainIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleTerrainIds": [],
+        "climateCompatibilityMode": "SELECTED",
+        "compatibleClimateIds": [
+            "HotHumid0",
+            "StormWet0",
+            "CanopySmoke0",
+            "AfterRainSteam0"
+        ],
+        "climateIncompatibilityMode": "ALL_EXCEPT_COMPATIBLE",
+        "incompatibleClimateIds": [],
+        "canonicalBaseTags": [
+            "jungle",
+            "goblin_territory",
+            "raid_paths",
+            "trapworks"
+        ],
+        "civilizationPriors": [
+            "goblin_clans",
+            "scrap_barricades",
+            "watch_posts",
+            "stolen_camps"
+        ],
+        "threatPriors": [
+            "ambush_skirmishers",
+            "pit_traps",
+            "poison_darts",
+            "raiding_parties"
+        ],
+        "resourcePriors": [
+            "stolen_salvage",
+            "mushroom_farms",
+            "bone_charms",
+            "hidden_stashes"
+        ],
+        "mythicPriors": [
+            "fetish_magic",
+            "ancestor_masks",
+            "warded_totems"
+        ],
+        "ecologyPriors": [
+            "canopy",
+            "rot",
+            "fungal_bloom",
+            "vermin"
+        ],
+        "effectIds": [
+            "SmotheringCookfireSmoke0",
+            "SporeChokedRot0"
+        ]
+    },
+    {
         "biomeId": "Jungle0",
         "name": "Jungle",
         "description": "Dense, humid growth full of layered cover, territorial signs, and hidden movement lanes.",

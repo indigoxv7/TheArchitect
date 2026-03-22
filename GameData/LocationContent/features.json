@@ -32,6 +32,50 @@
         ]
     },
     {
+        "featureId": "BoneTotemFan0",
+        "name": "Bone Totem Fan",
+        "category": "ritual",
+        "description": "Animal bones, paint, and stitched trophies hang in a deliberate warning pattern.",
+        "weight": 0.9,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "totems",
+            "ancestor_masks",
+            "ritual_site"
+        ],
+        "affordanceTags": [
+            "study",
+            "read_signs"
+        ],
+        "hazardTags": [
+            "hexed_ground"
+        ],
+        "memoryTags": [
+            "totem_wards"
+        ],
+        "visibleTags": [
+            "totems",
+            "bones"
+        ],
+        "hookTypeSuggestions": [
+            "Lore",
+            "Quest Seed",
+            "Faction"
+        ],
+        "metrics": {
+            "ritual_intensity": 0.7
+        },
+        "payload": {
+            "ward_type": "ancestor_warning"
+        },
+        "localDescriptionHints": [
+            "painted bones and dangling charms spread like a fan of warnings"
+        ]
+    },
+    {
         "featureId": "BrokenBridge0",
         "name": "Broken Bridge",
         "category": "traversal",
@@ -64,6 +108,46 @@
         ]
     },
     {
+        "featureId": "CapturedWaystones0",
+        "name": "Captured Waystones",
+        "category": "lore",
+        "description": "Road markers and carved stones stolen from elsewhere have been repurposed as goblin route signs.",
+        "weight": 0.8,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "stolen_markers",
+            "route_signs",
+            "raid_paths"
+        ],
+        "affordanceTags": [
+            "navigate",
+            "study"
+        ],
+        "hazardTags": [],
+        "memoryTags": [
+            "waystones"
+        ],
+        "visibleTags": [
+            "stone_markers"
+        ],
+        "hookTypeSuggestions": [
+            "Clue",
+            "Lore"
+        ],
+        "metrics": {
+            "navigation_value": 0.7
+        },
+        "payload": {
+            "marker_origin": "captured_caravan_route"
+        },
+        "localDescriptionHints": [
+            "stolen waystones now point along goblin raid paths instead of safe roads"
+        ]
+    },
+    {
         "featureId": "FungusLanterns0",
         "name": "Fungus Lanterns",
         "category": "flora",
@@ -90,6 +174,89 @@
         "payload": {},
         "localDescriptionHints": [
             "pale fungus lends the node an eerie light"
+        ]
+    },
+    {
+        "featureId": "LootHammocks0",
+        "name": "Loot Hammocks",
+        "category": "resource",
+        "description": "Bundles of stolen goods hang above reach where goblins can cut them loose in a hurry.",
+        "weight": 1.05,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "loot_cache",
+            "suspended_bundles",
+            "stolen_salvage"
+        ],
+        "affordanceTags": [
+            "loot",
+            "cut_down",
+            "climb"
+        ],
+        "hazardTags": [
+            "noisy_takedown"
+        ],
+        "memoryTags": [
+            "loot_hammocks"
+        ],
+        "visibleTags": [
+            "bundles"
+        ],
+        "hookTypeSuggestions": [
+            "Treasure"
+        ],
+        "metrics": {
+            "loot_density": 0.85
+        },
+        "payload": {
+            "stash_style": "hanging"
+        },
+        "localDescriptionHints": [
+            "salvage bundles hang in rough hammocks overhead"
+        ]
+    },
+    {
+        "featureId": "MushroomPens0",
+        "name": "Mushroom Pens",
+        "category": "ecology",
+        "description": "Crude beds of cultivated fungi and vermin feed the goblin camp economy.",
+        "weight": 0.95,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "fungal_bloom",
+            "mushroom_farms",
+            "settlement"
+        ],
+        "affordanceTags": [
+            "forage",
+            "inspect"
+        ],
+        "hazardTags": [
+            "spore_cloud"
+        ],
+        "memoryTags": [
+            "mushroom_pens"
+        ],
+        "visibleTags": [
+            "fungus"
+        ],
+        "hookTypeSuggestions": [
+            "Faction"
+        ],
+        "metrics": {
+            "food_supply": 0.6
+        },
+        "payload": {
+            "crop": "glowcap"
+        },
+        "localDescriptionHints": [
+            "mushroom pens crowd one side of the node with damp, cultivated rot"
         ]
     },
     {
@@ -125,6 +292,51 @@
         ]
     },
     {
+        "featureId": "RopeLookoutPlatforms0",
+        "name": "Rope Lookout Platforms",
+        "category": "structure",
+        "description": "Light platforms sway between trees, just large enough for watchers and archers.",
+        "weight": 1.1,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "lookout_platform",
+            "rope_walks",
+            "elevated_nests"
+        ],
+        "affordanceTags": [
+            "observe",
+            "climb",
+            "high_ground"
+        ],
+        "hazardTags": [
+            "fall_risk",
+            "arrow_crossfire"
+        ],
+        "memoryTags": [
+            "lookout_platforms"
+        ],
+        "visibleTags": [
+            "platforms",
+            "ropes"
+        ],
+        "hookTypeSuggestions": [
+            "Encounter",
+            "Clue"
+        ],
+        "metrics": {
+            "height_advantage": 0.8
+        },
+        "payload": {
+            "cover": "light"
+        },
+        "localDescriptionHints": [
+            "rope-bound lookout platforms sway between the trees"
+        ]
+    },
+    {
         "featureId": "RuinedWatchtower0",
         "name": "Ruined Watchtower",
         "category": "structure",
@@ -154,6 +366,172 @@
         "payload": {},
         "localDescriptionHints": [
             "a ruined watchtower leans above the node"
+        ]
+    },
+    {
+        "featureId": "ScavengedBarricades0",
+        "name": "Scavenged Barricades",
+        "category": "fortification",
+        "description": "Broken plating, woven branches, and salvaged plates make a nasty firing position.",
+        "weight": 1.0,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "scrapworks",
+            "barricades",
+            "firing_slits"
+        ],
+        "affordanceTags": [
+            "take_cover",
+            "breach"
+        ],
+        "hazardTags": [
+            "arrow_crossfire"
+        ],
+        "memoryTags": [
+            "barricades"
+        ],
+        "visibleTags": [
+            "barricades"
+        ],
+        "hookTypeSuggestions": [
+            "Encounter"
+        ],
+        "metrics": {
+            "cover": 0.8
+        },
+        "payload": {
+            "fortification": "improvised"
+        },
+        "localDescriptionHints": [
+            "scavenged barricades carve the space into firing lanes"
+        ]
+    },
+    {
+        "featureId": "ScrapCookfireRing0",
+        "name": "Scrap Cookfire Ring",
+        "category": "camp",
+        "description": "Cookfires, dented pots, and scraps of stolen gear mark a recently occupied camp pocket.",
+        "weight": 1.0,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "cookfires",
+            "smoke_haze",
+            "settlement"
+        ],
+        "affordanceTags": [
+            "eavesdrop",
+            "rest",
+            "search_ashes"
+        ],
+        "hazardTags": [
+            "smoke_haze"
+        ],
+        "memoryTags": [
+            "cookfire_camps"
+        ],
+        "visibleTags": [
+            "smoke",
+            "cookfires"
+        ],
+        "hookTypeSuggestions": [
+            "Encounter",
+            "Faction"
+        ],
+        "metrics": {
+            "recent_activity": 0.8
+        },
+        "payload": {
+            "heat": "warm"
+        },
+        "localDescriptionHints": [
+            "scrap cookfires and blackened stones show the camp was used recently"
+        ]
+    },
+    {
+        "featureId": "SnareVines0",
+        "name": "Snare Vines",
+        "category": "trap",
+        "description": "Cut vines and hidden tension lines wait to snap around careless ankles and wrists.",
+        "weight": 1.15,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "tripwires",
+            "snare_vines",
+            "trapworks"
+        ],
+        "affordanceTags": [
+            "disarm",
+            "spot_traps"
+        ],
+        "hazardTags": [
+            "tripwire",
+            "entanglement"
+        ],
+        "memoryTags": [
+            "snare_traps"
+        ],
+        "visibleTags": [
+            "tripwires",
+            "cut_vines"
+        ],
+        "hookTypeSuggestions": [
+            "Clue"
+        ],
+        "metrics": {
+            "trap_density": 0.75
+        },
+        "payload": {
+            "trap_kind": "snare"
+        },
+        "localDescriptionHints": [
+            "cut vines and bent branches show where snares were set"
+        ]
+    },
+    {
+        "featureId": "StakePitMouth0",
+        "name": "Stake Pit Mouth",
+        "category": "trap",
+        "description": "Leaves and brush barely conceal a deep pit lined with sharpened stakes.",
+        "weight": 0.95,
+        "requiredTags": [
+            "trapworks"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "stake_pits",
+            "camouflaged_ground"
+        ],
+        "affordanceTags": [
+            "probe_ground",
+            "go_around"
+        ],
+        "hazardTags": [
+            "pit_trap"
+        ],
+        "memoryTags": [
+            "stake_pits"
+        ],
+        "visibleTags": [
+            "disturbed_leaves"
+        ],
+        "hookTypeSuggestions": [],
+        "metrics": {
+            "lethality": 0.9
+        },
+        "payload": {
+            "trap_kind": "pit"
+        },
+        "localDescriptionHints": [
+            "a suspicious spread of leaves hides the mouth of a pit"
         ]
     },
     {
@@ -246,6 +624,46 @@
         "payload": {},
         "localDescriptionHints": [
             "totem markers warn that someone claims this place"
+        ]
+    },
+    {
+        "featureId": "VerminTunnels0",
+        "name": "Vermin Tunnels",
+        "category": "ecology",
+        "description": "Small burrows and runs show how pests and scavenger beasts move through the goblin routes.",
+        "weight": 0.75,
+        "requiredTags": [
+            "goblin_territory"
+        ],
+        "excludedTags": [],
+        "tags": [
+            "vermin_runs",
+            "burrows"
+        ],
+        "affordanceTags": [
+            "track",
+            "squeeze_through"
+        ],
+        "hazardTags": [
+            "swarm_bite"
+        ],
+        "memoryTags": [
+            "vermin_tunnels"
+        ],
+        "visibleTags": [
+            "burrows"
+        ],
+        "hookTypeSuggestions": [
+            "Clue"
+        ],
+        "metrics": {
+            "traffic": 0.5
+        },
+        "payload": {
+            "beasts": "jungle_rats"
+        },
+        "localDescriptionHints": [
+            "vermin runs score the mud and roots underfoot"
         ]
     }
 ]
