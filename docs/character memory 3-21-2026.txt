@@ -1,0 +1,256 @@
+Here’s the current state of the character memory / player-history system as it exists today.
+
+**Bottom Line**
+- There is a real memory subsystem in place.
+- It is **player-scoped**, stored in SQLite, and keyed by `player_id` plus `player-owned character instance id`.
+- There are really **two layers**:
+  1. a richer LLM-backed memory pipeline
+  2. a simpler event log pipeline
+- The richer pipeline is currently used mainly through the **admin memory tool**, not normal Discord character interaction yet.
+- Battle/mission play currently writes into the **event log**, but those combat events are **not automatically distilled into memories/facts/relationships** afterward.
+
+**Core Models**
+The memory domain is defined in [main_character_memory.py:13](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\domain\main_character_memory.py:13).
+
+It contains:
+- `EventRecord`: raw history event
+- `CharacterMemory`: episodic memory for one character
+- `SemanticFact`: durable fact/belief for one character
+- `Relationship`: directional relationship values from one character to another
+- `LLMTurnLog`: stored prompt/output log for generated turns
+
+Important detail:
+- `Relationship` is **directional**, not shared. `A -> B` and `B -> A` are separate records.
+- `CharacterMemory`, `SemanticFact`, and `Relationship` all belong to a specific player-owned character instance, not a global template character.
+
+**Where It Lives**
+Startup wiring is in [main.py:62](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\main.py:62), [main.py:134](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\main.py:134), [main.py:143](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\main.py:143), and [main.py:208](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\main.py:208).
+
+Current DB path:
+- `GameData/PlayerMemory/player_memory.sqlite`
+
+So the system is not conceptual only; it is actually initialized at runtime.
+
+**Persistence Layer**
+The SQLite facade is [store.py:20](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:20).
+
+Key store APIs:
+- events: [store.py:72](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:72), [store.py:110](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:110)
+- memories: [store.py:128](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:128), [store.py:164](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:164)
+- facts: [store.py:221](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:221), [store.py:250](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:250)
+- relationships: [store.py:307](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:307)
+- turn logs: [store.py:337](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:337), [store.py:362](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\store.py:362)
+
+Schema is in [schema.py:6](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:6).
+
+Tables:
+- `events` at [schema.py:28](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:28)
+- `memories` at [schema.py:55](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:55)
+- `facts` at [schema.py:75](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:75)
+- `relationships` at [schema.py:93](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:93)
+- `llm_turn_logs` at [schema.py:105](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\persistence\player_memory\schema.py:105)
+
+Important detail:
+- every primary key starts with `player_id`
+- embeddings are stored as JSON arrays in SQLite
+- tags are normalized into separate tag tables
+
+**What Counts as “Player History Log” Right Now**
+I did **not** find a separate `PlayerHistoryLog` class or a dedicated player-wide history service.
+
+What exists instead:
+- `EventRecord` in the `events` table is effectively the current player-scoped history log.
+- But the public read API is **per character participant**, not “list all history for player”.
+- The current store has `list_events_for_character(...)`, not a player-wide `list_events_for_player(...)`.
+
+So the current “player history log” is:
+- real in storage
+- player-scoped
+- but exposed mostly through character-participant queries
+
+**MainCharacter Integration**
+`MainCharacter` carries the personality/control surface used by the memory system in [main_character.py:15](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\domain\main_character.py:15), [main_character.py:149](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\domain\main_character.py:149), and [main_character.py:188](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\domain\main_character.py:188).
+
+That includes:
+- `characterInfo`
+- `llmControlProfile`
+- `stats`
+- `hobbies`
+
+The memory service uses `characterInfo` and `llmControlProfile` when building prompt packets, especially `knowledgeBoundaryNotes`.
+
+**Memory Service**
+The main orchestration layer is [main_character_memory_service.py:20](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:20).
+
+The major entry points are:
+- `list_player_main_characters(...)` at [main_character_memory_service.py:113](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:113)
+- `build_prompt_packet(...)` at [main_character_memory_service.py:231](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:231)
+- `generate_turn(...)` at [main_character_memory_service.py:458](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:458)
+- `append_manual_event(...)` at [main_character_memory_service.py:589](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:589)
+- `build_character_snapshot(...)` at [main_character_memory_service.py:614](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\main_character_memory_service.py:614)
+
+**How the Rich LLM Memory Flow Works**
+`generate_turn(...)` is the full pipeline.
+
+Flow:
+1. verify OpenAI is configured
+2. load the player-owned `MainCharacter`
+3. build a prompt packet from:
+   - character sheet
+   - scene frame
+   - relationships
+   - recalled memories
+   - semantic facts
+   - knowledge constraints
+4. call OpenAI for the character turn
+5. store an `EventRecord`
+6. distill memories for participants
+7. create/update:
+   - `CharacterMemory`
+   - `SemanticFact`
+   - `Relationship`
+8. optionally reflect into higher-level facts
+9. store an `LLMTurnLog`
+
+This is the only place where the full memory stack is created automatically.
+
+**How Retrieval Works**
+`build_prompt_packet(...)` is already fairly real.
+
+It:
+- embeds the current scene query
+- loads recent memories
+- loads tag-matched memories
+- scores memories by:
+  - cosine similarity
+  - recency decay
+  - importance
+  - small participant/relationship boosts
+- does the same for facts
+- marks recalled memories with `last_recalled_at` and increments `recall_count`
+
+Important limitation:
+- prompt retrieval uses **memories/facts/relationships**
+- it does **not** directly retrieve raw `EventRecord`s into the prompt
+
+So if something only exists as an event and was never distilled, it is basically history storage, not active memory.
+
+**OpenAI Dependency**
+The LLM wrapper is [openai_narrative_service.py:49](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\openai_narrative_service.py:49).
+
+Relevant methods:
+- embeddings: [openai_narrative_service.py:114](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\openai_narrative_service.py:114)
+- turn generation: [openai_narrative_service.py:124](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\openai_narrative_service.py:124)
+- memory distillation: [openai_narrative_service.py:151](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\openai_narrative_service.py:151)
+- reflection: [openai_narrative_service.py:185](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\openai_narrative_service.py:185)
+
+So the richer memory system is explicitly designed around:
+- embeddings
+- structured memory distillation
+- structured reflection
+
+**What Is Actually In Use Today**
+There are two live usage paths.
+
+1. **Admin memory tool**
+- UI is [main_character_memory.py:10](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\tools\admin\features\main_character_memory.py:10)
+- it can:
+  - select player
+  - select player-owned `MainCharacter`
+  - inspect events/memories/facts/relationships
+  - submit a scene and call `generate_turn(...)`
+- this is currently the main live surface for the full memory pipeline
+
+2. **Battle integration**
+- combat bridge is [memory.py:7](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\memory.py:7)
+- battle start appends an event at [battle_setup.py:383](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\battle_setup.py:383) and [battle_setup.py:454](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\battle_setup.py:454)
+- exchange summaries append events at [exchange_flow.py:96](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\exchange_flow.py:96) and [exchange_flow.py:205](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\exchange_flow.py:205)
+- battle end appends an event at [mission_tracking.py:127](D:\Documents\programming\Scion%20of%20Humanity\TheArchitect\TheArchitect\src\services\battle\mission_tracking.py:127)
+
+Important limitation:
+- battle uses `append_manual_event(...)`
+- that stores only an `EventRecord`
+- it does **not** run distillation, fact extraction, relationship updates, or reflection
+
+So today, combat contributes to history storage, but not really to active character memory.
+
+**Who Gets Battle Memory Events**
+Only allied player-owned `MainCharacter`s get included in battle memory logging.
+
+The bridge filters participants by:
+- ally side only
+- must resolve back to a player-owned source character
+- must be a `MainCharacter`
+
+So currently:
+- player `MainCharacter`s get combat event history
+- enemy NPCs do not
+- ordinary non-main characters do not
+- non-player NPC allies do not
+
+**What Is Not Yet Wired Into Normal Discord Character Interaction**
+I did not find any normal Discord character-interaction runtime using `generate_turn(...)`.
+
+In practice:
+- the full memory/LLM turn system is **not yet driving mission conversations, social scenes, or overworld character interactions**
+- the main active runtime consumer is still the admin GUI
+- Discord battle runtime uses only the separate combat-strategy judge, not character-memory turn generation
+
+**What This Means Today**
+Right now the system is best understood as:
+
+- **Implemented and real**
+  - player-scoped storage
+  - episodic memories
+  - facts
+  - relationships
+  - turn logs
+  - retrieval/ranking
+  - admin inspection/testing UI
+
+- **Partially integrated**
+  - battle writes history events
+  - those events are stored correctly
+  - but they are not yet converted into actual recalled memories/facts automatically
+
+- **Not yet a full gameplay-facing interaction system**
+  - no normal Discord “talk to character” flow is using this
+  - no player-wide history browsing API
+  - no background/event distillation worker for external events
+
+**Most Important Gaps / Decision Points**
+These are the main places we’ll need decisions next.
+
+1. **Should `EventRecord` become the true player history log?**
+- Right now it already serves that role implicitly.
+- But it lacks a dedicated player-wide query/read surface.
+
+2. **Should external events auto-distill?**
+- Currently only `generate_turn()` creates memories/facts/relationships.
+- Combat/mission events do not.
+- If we want gameplay to shape memory naturally, this is the biggest missing step.
+
+3. **Should memory stay `MainCharacter`-only?**
+- Current service explicitly restricts v1 to `MainCharacter`s.
+- That keeps it manageable, but it’s a hard boundary.
+
+4. **How much of the prompt should use raw events vs distilled memories?**
+- Current retrieval ignores raw events.
+- That keeps prompts cleaner, but means fresh combat events are inert until distilled.
+
+5. **Do we want a true player-wide narrative history view?**
+- Current admin tool is character-centric.
+- There is no dedicated “show me this player’s narrative timeline” tool.
+
+**My Read**
+The groundwork is better than “half-built.” The storage model and service boundaries are solid. The real missing piece is that the system currently splits into:
+- `generate_turn()` = rich memory path
+- `append_manual_event()` = raw log path
+
+That split is why the feature feels present but not yet fully alive in gameplay.
+
+If you want, next I can turn this into a concrete improvement plan with phases like:
+1. make combat/mission events distill into memories
+2. add a player-wide history/timeline view
+3. wire `generate_turn()` into live Discord character interaction
+4. decide when relationships/facts should update automatically vs only in authored scenes
