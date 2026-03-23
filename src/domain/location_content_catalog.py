@@ -583,6 +583,7 @@ class NodeGenerationProfile:
     name: str
     description: str = ""
     rendererMode: SceneDescriptionMode = SceneDescriptionMode.LOCAL_ONLY
+    localRendererKey: str = ""
     roleWeights: dict[str, float] = field(default_factory=dict)
     minFeatures: int = 1
     maxFeatures: int = 3
@@ -598,6 +599,7 @@ class NodeGenerationProfile:
         self.name = clean_text(self.name)
         self.description = str(self.description or "")
         self.rendererMode = coerce_enum(SceneDescriptionMode, self.rendererMode, SceneDescriptionMode.LOCAL_ONLY)
+        self.localRendererKey = clean_text(self.localRendererKey)
         self.roleWeights = normalize_string_map(self.roleWeights)
         self.minFeatures = max(0, int(self.minFeatures or 0))
         self.maxFeatures = max(self.minFeatures, int(self.maxFeatures or self.minFeatures))
@@ -615,6 +617,7 @@ class NodeGenerationProfile:
             "name": self.name,
             "description": self.description,
             "rendererMode": self.rendererMode.name,
+            "localRendererKey": self.localRendererKey,
             "roleWeights": dict(self.roleWeights),
             "minFeatures": int(self.minFeatures),
             "maxFeatures": int(self.maxFeatures),
@@ -637,6 +640,7 @@ class NodeGenerationProfile:
             name=name,
             description=str(data.get("description", "") or ""),
             rendererMode=data.get("rendererMode", SceneDescriptionMode.LOCAL_ONLY.name),
+            localRendererKey=clean_text(data.get("localRendererKey", "")),
             roleWeights=data.get("roleWeights", {}),
             minFeatures=int(data.get("minFeatures", 1) or 1),
             maxFeatures=int(data.get("maxFeatures", 3) or 3),

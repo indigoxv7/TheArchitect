@@ -11,6 +11,8 @@ import main as game
 from src.domain.player_functions import Player
 from src.domain.items import Weapon
 from src.domain.character_util import EquipSlot
+from src.domain.location_content import NodeGenerationProfile, SceneDescriptionMode
+from src.services.local_scene_description_service import LocalSceneRenderResult
 from src.persistence.menu_store import load_menus_from_directory
 from src.services.menu_runtime import ConsoleMenuInterface, OriginalMessage
 from src.ui.menu import MenuContext, MenuState
@@ -197,6 +199,70 @@ class TestMenuRuntime(unittest.TestCase):
         self.assertIn("spike trap", discoveries[0].lower())
         self.assertIn("spike_trap", node_state.revealedHazardTags)
         self.assertIn("spike_trap", game.mission_runtime_service._visible_node_tags(node_state))
+
+
+    def test_mission_runtime_prefetches_local_descriptions_from_start_outward(self):
+        player = game.player_service.get_player_sync(191980469670248448)
+        mission = game.mission_service.get_mission_by_id("GoblinEliminationlvl00")
+
+        self.assertIsNotNone(player)
+        self.assertIsNotNone(mission)
+
+        state = game.mission_runtime_service._generate_state(player, mission, ["TheApocalypseBegins0"])
+        game.context.active_missions[int(state.playerId)] = state
+
+        profile = NodeGenerationProfile(
+            name="Test Runtime Local",
+            rendererMode=SceneDescriptionMode.LOCAL_ONLY,
+            localRendererKey="ollama:test-local",
+            generationProfileId="TestRuntimeLocal0",
+        )
+
+        class FakeLocalSceneService:
+            def __init__(self):
+                self.calls = []
+
+            def default_runtime_option_key(self):
+                return "ollama:test-local"
+
+            def describe_scene_with_history(self, prompt_packet, option_key, render_state=None):
+                node_packet = dict(prompt_packet.get("node") or {})
+                node_id = int(node_packet.get("node_id", 0) or 0)
+                self.calls.append(node_id)
+                next_turn = int(dict(render_state or {}).get("turn", 0) or 0) + 1
+                return LocalSceneRenderResult(
+                    text=f"Rendered node {node_id}",
+                    render_state={"turn": next_turn},
+                    node_signature=str(node_id),
+                    style_variant="landmark_first",
+                    telemetry={},
+                )
+
+        fake_service = FakeLocalSceneService()
+        runtime = game.mission_runtime_service
+        old_local_scene_service = runtime.local_scene_service
+        old_profile_getter = runtime._generation_profile_for_state
+        old_save_active_mission = runtime.save_active_mission
+        try:
+            runtime.local_scene_service = fake_service
+            runtime._generation_profile_for_state = lambda _state: profile
+            runtime.save_active_mission = lambda _state: None
+
+            current_node_state = state.get_node(int(state.currentNodeId))
+            asyncio.run(runtime._ensure_runtime_local_description(state, current_node_state))
+            expected_prefetch_order = runtime._ordered_prefetch_node_ids(state, exclude_current=True)
+            asyncio.run(runtime._prefetch_runtime_local_descriptions_for_state(state, exclude_current=True))
+
+            self.assertEqual(fake_service.calls[0], int(state.currentNodeId))
+            self.assertEqual(fake_service.calls[1:], expected_prefetch_order)
+            for node_state in state.nodeStates:
+                self.assertEqual(node_state.nodeContentState.localDescriptionRendererKey, "ollama:test-local")
+                self.assertTrue(node_state.nodeContentState.localDescription.startswith("Rendered node"))
+        finally:
+            runtime.local_scene_service = old_local_scene_service
+            runtime._generation_profile_for_state = old_profile_getter
+            runtime.save_active_mission = old_save_active_mission
+            game.context.active_missions.pop(int(state.playerId), None)
 
 
 if __name__ == "__main__":

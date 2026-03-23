@@ -215,6 +215,7 @@ class GeneratedNodeContent:
     hookStates: list[GeneratedHookState] = field(default_factory=list)
     visibleSummaryLines: list[str] = field(default_factory=list)
     localDescription: str = ""
+    localDescriptionRendererKey: str = "tracery"
     openAIDescription: str = ""
 
     def __post_init__(self):
@@ -235,6 +236,7 @@ class GeneratedNodeContent:
         self.hookStates = [entry if isinstance(entry, GeneratedHookState) else GeneratedHookState.from_dict(entry) for entry in (self.hookStates or []) if entry is not None]
         self.visibleSummaryLines = normalize_text_list(self.visibleSummaryLines)
         self.localDescription = str(self.localDescription or "")
+        self.localDescriptionRendererKey = clean_text(self.localDescriptionRendererKey) or "tracery"
         self.openAIDescription = str(self.openAIDescription or "")
 
     def preferred_description(self, renderer_mode: SceneDescriptionMode | str | None = None) -> str:
@@ -278,6 +280,7 @@ class GeneratedNodeContent:
             "hookStates": [entry.to_dict() for entry in self.hookStates],
             "visibleSummaryLines": list(self.visibleSummaryLines),
             "localDescription": self.localDescription,
+            "localDescriptionRendererKey": self.localDescriptionRendererKey,
             "openAIDescription": self.openAIDescription,
         }
 
@@ -303,5 +306,6 @@ class GeneratedNodeContent:
             hookStates=data.get("hookStates", []),
             visibleSummaryLines=data.get("visibleSummaryLines", []),
             localDescription=data.get("localDescription", ""),
+            localDescriptionRendererKey=data.get("localDescriptionRendererKey", "tracery"),
             openAIDescription=data.get("openAIDescription", ""),
         )

@@ -57,6 +57,7 @@ class MissionEditorFrame(ttk.Frame):
         self._description_pack_ids_by_label = {}
         self._local_renderer_keys_by_label = {}
         self._local_model_description_cache = {}
+        self._local_model_render_state_by_option = {}
         map_defaults = MissionMapGenerationRange()
         self.map_range_vars = {
             "totalNodes": {
@@ -451,6 +452,7 @@ class MissionEditorFrame(ttk.Frame):
         self.current_setting_context = None
         self.current_node_contents = {}
         self._local_model_description_cache = {}
+        self._local_model_render_state_by_option = {}
         self.sampled_setting_var.set("No sampled setting yet.")
         self.selected_node_var.set("")
         self.selected_node_pick["values"] = []
@@ -890,6 +892,7 @@ class MissionEditorFrame(ttk.Frame):
             )
             self.current_setting_context = setting_context
             self._local_model_description_cache = {}
+            self._local_model_render_state_by_option = {}
             self.current_node_contents = apply_overlay_to_node_contents(node_contents, self.current_map_overlay)
             self.sampled_setting_var.set(
                 f"Sampled Setting: {setting_context.biomeName} | {setting_context.terrainName} | {setting_context.climateName}"
@@ -936,7 +939,13 @@ class MissionEditorFrame(ttk.Frame):
                 self.current_setting_context,
                 self.current_node_contents[node_id],
             )
-            description = service.describe_scene(prompt_packet, option_key)
+            render_state = dict(self._local_model_render_state_by_option.get(option_key, {}) or {})
+            if hasattr(service, "describe_scene_with_history"):
+                result = service.describe_scene_with_history(prompt_packet, option_key, render_state=render_state)
+                description = getattr(result, "text", "")
+                self._local_model_render_state_by_option[option_key] = dict(getattr(result, "render_state", {}) or {})
+            else:
+                description = service.describe_scene(prompt_packet, option_key)
             self._local_model_description_cache[(node_id, option_key)] = str(description or "").strip()
             self._render_selected_node_preview()
         except Exception as exc:

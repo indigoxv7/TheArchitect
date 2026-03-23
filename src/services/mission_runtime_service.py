@@ -75,6 +75,7 @@ class MissionRuntimeService:
         battle_runtime_service=None,
         openai_service=None,
         memory_service=None,
+        local_scene_service=None,
     ):
         self.context = context
         self.player_service = player_service
@@ -88,7 +89,10 @@ class MissionRuntimeService:
         self.battle_runtime_service = battle_runtime_service
         self.openai_service = openai_service
         self.memory_service = memory_service
+        self.local_scene_service = local_scene_service
         self._preparation_drafts: dict[int, MissionPreparationDraft] = {}
+        self._description_prefetch_tasks: dict[int, asyncio.Task] = {}
+        self._scene_render_locks: dict[int, asyncio.Lock] = {}
 
     def set_battle_runtime_service(self, battle_runtime_service):
         self.battle_runtime_service = battle_runtime_service
@@ -126,6 +130,10 @@ class MissionRuntimeService:
 
     def clear_active_mission(self, player_id: int):
         player_id = int(player_id)
+        task = self._description_prefetch_tasks.pop(player_id, None)
+        if task is not None and not task.done():
+            task.cancel()
+        self._scene_render_locks.pop(player_id, None)
         self.store.delete_mission_file(player_id)
         getattr(self.context, "active_missions", {}).pop(player_id, None)
 
@@ -329,6 +337,136 @@ class MissionRuntimeService:
         if profile is None:
             return SceneDescriptionMode.LOCAL_ONLY
         return getattr(profile, "rendererMode", SceneDescriptionMode.LOCAL_ONLY)
+
+    def _runtime_local_renderer_key_for_state(self, state: MissionRunState) -> str:
+        profile = self._generation_profile_for_state(state)
+        configured = str(getattr(profile, "localRendererKey", "") or "").strip() if profile is not None else ""
+        if configured:
+            return configured
+        if self.local_scene_service is not None and hasattr(self.local_scene_service, "default_runtime_option_key"):
+            fallback = str(self.local_scene_service.default_runtime_option_key() or "").strip()
+            if fallback:
+                return fallback
+        return "tracery"
+
+    def _uses_runtime_local_llm(self, state: MissionRunState) -> bool:
+        return self._description_mode_for_state(state) in {
+            SceneDescriptionMode.LOCAL_ONLY,
+            SceneDescriptionMode.LOCAL_PRIMARY_OPENAI_CACHE,
+        } and self.local_scene_service is not None and self._runtime_local_renderer_key_for_state(state) != "tracery"
+
+    def _node_needs_runtime_local_description(
+        self,
+        state: MissionRunState,
+        node_state: MissionNodeState | None,
+    ) -> bool:
+        if node_state is None or node_state.nodeContentState is None:
+            return False
+        desired_key = self._runtime_local_renderer_key_for_state(state)
+        if desired_key == "tracery":
+            return False
+        current_key = str(getattr(node_state.nodeContentState, "localDescriptionRendererKey", "") or "tracery").strip() or "tracery"
+        current_text = str(getattr(node_state.nodeContentState, "localDescription", "") or "").strip()
+        return current_key != desired_key or not current_text
+
+    def _scene_render_lock(self, player_id: int) -> asyncio.Lock:
+        player_id = int(player_id)
+        lock = self._scene_render_locks.get(player_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._scene_render_locks[player_id] = lock
+        return lock
+
+    def _ordered_prefetch_node_ids(self, state: MissionRunState, *, exclude_current: bool = True) -> list[int]:
+        current_node_id = int(state.currentNodeId) if state.currentNodeId is not None else None
+        ordered = sorted(
+            (int(node_state.nodeId) for node_state in state.nodeStates),
+            key=lambda node_id: (self._distance_from_start(state, int(node_id)), int(node_id)),
+        )
+        if exclude_current and current_node_id is not None:
+            ordered = [node_id for node_id in ordered if int(node_id) != current_node_id]
+        return ordered
+
+    async def _ensure_runtime_local_description(self, state: MissionRunState, node_state: MissionNodeState | None):
+        if not self._uses_runtime_local_llm(state):
+            return
+        if node_state is None or node_state.nodeContentState is None or state.settingContextState is None:
+            return
+        if not self._node_needs_runtime_local_description(state, node_state):
+            return
+        if self.local_scene_service is None or not hasattr(self.local_scene_service, "describe_scene_with_history"):
+            return
+        desired_key = self._runtime_local_renderer_key_for_state(state)
+        async with self._scene_render_lock(int(state.playerId)):
+            live_state = self.get_active_mission(int(state.playerId))
+            if isinstance(live_state, MissionRunState) and live_state.missionId == state.missionId:
+                state = live_state
+                node_state = state.get_node(int(node_state.nodeId)) if node_state is not None else None
+            if node_state is None or node_state.nodeContentState is None or state.settingContextState is None:
+                return
+            if not self._node_needs_runtime_local_description(state, node_state):
+                return
+            prompt_packet = build_scene_description_prompt_packet(state.settingContextState, node_state.nodeContentState)
+            try:
+                result = await asyncio.to_thread(
+                    self.local_scene_service.describe_scene_with_history,
+                    prompt_packet,
+                    desired_key,
+                    dict(state.sceneRenderState or {}),
+                )
+            except Exception:
+                return
+            description_text = str(getattr(result, "text", "") or "").strip()
+            if not description_text:
+                return
+            node_state.nodeContentState.localDescription = description_text
+            node_state.nodeContentState.localDescriptionRendererKey = desired_key
+            state.sceneRenderState = dict(getattr(result, "render_state", {}) or {})
+            self.save_active_mission(state)
+
+    def _schedule_runtime_local_prefetch(self, state: MissionRunState):
+        if not self._uses_runtime_local_llm(state):
+            return
+        if state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
+            return
+        player_id = int(state.playerId)
+        existing = self._description_prefetch_tasks.get(player_id)
+        if existing is not None and not existing.done():
+            return
+        self._description_prefetch_tasks[player_id] = asyncio.create_task(
+            self._prefetch_runtime_local_descriptions(player_id, state.missionId)
+        )
+
+    async def _prefetch_runtime_local_descriptions_for_state(
+        self,
+        state: MissionRunState,
+        *,
+        exclude_current: bool = True,
+    ):
+        for node_id in self._ordered_prefetch_node_ids(state, exclude_current=exclude_current):
+            current_state = self.get_active_mission(int(state.playerId)) or state
+            if current_state.missionId != state.missionId:
+                return
+            if current_state.status in {MissionRunStatus.SUCCESS, MissionRunStatus.FAILED, MissionRunStatus.FORCED_RETREAT}:
+                return
+            node_state = current_state.get_node(int(node_id))
+            if not self._node_needs_runtime_local_description(current_state, node_state):
+                continue
+            await self._ensure_runtime_local_description(current_state, node_state)
+            await asyncio.sleep(0)
+
+    async def _prefetch_runtime_local_descriptions(self, player_id: int, mission_id: str):
+        try:
+            state = self.get_active_mission(int(player_id))
+            if state is None or state.missionId != str(mission_id or ""):
+                return
+            await self._prefetch_runtime_local_descriptions_for_state(state, exclude_current=True)
+        except asyncio.CancelledError:
+            raise
+        finally:
+            current_task = asyncio.current_task()
+            if self._description_prefetch_tasks.get(int(player_id)) is current_task:
+                self._description_prefetch_tasks.pop(int(player_id), None)
 
     async def _ensure_node_openai_description(self, state: MissionRunState, node_state: MissionNodeState | None):
         if node_state is None or node_state.nodeContentState is None or state.settingContextState is None:
@@ -600,6 +738,7 @@ class MissionRuntimeService:
         if not state.pendingNodeEvents:
             await self.render_active_mission(interaction, state)
             return
+        self._schedule_runtime_local_prefetch(state)
         embed = self._build_node_event_embed(state)
         view = MissionNodeEventView(self, int(state.playerId))
         await self._edit_message(interaction, embed=embed, view=view)
@@ -1154,7 +1293,9 @@ class MissionRuntimeService:
             hazard_notes = self._attempt_hazard_spotting(player, state, node_state)
             if hazard_notes:
                 self._append_node_memory_event(state, " ".join(hazard_notes), node_state)
+            await self._ensure_runtime_local_description(state, node_state)
             await self._ensure_node_openai_description(state, node_state)
+            self._schedule_runtime_local_prefetch(state)
             hostile_units = [unit for unit in node_state.living_unit_states() if self._is_hostile(unit.allegianceId)]
             if hostile_units:
                 if hazard_notes:
@@ -1189,7 +1330,9 @@ class MissionRuntimeService:
     async def render_active_mission(self, interaction: discord.Interaction, state: MissionRunState, page: int = 0):
         player = await self.player_service.get_player(int(state.playerId))
         node_state = state.get_node(int(state.currentNodeId)) if state.currentNodeId is not None else None
+        await self._ensure_runtime_local_description(state, node_state)
         await self._ensure_node_openai_description(state, node_state)
+        self._schedule_runtime_local_prefetch(state)
         embed = self._build_active_mission_embed(player, state)
         view = MissionActiveView(self, int(state.playerId), state, page=page)
         await self._edit_message(interaction, embed=embed, view=view, file=self._map_attachment(state))

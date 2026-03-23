@@ -178,6 +178,7 @@ mission_runtime_service = MissionRuntimeService(
     battle_runtime_service=battle_runtime_service,
     openai_service=openai_narrative_service,
     memory_service=memory_service,
+    local_scene_service=local_scene_description_service,
 )
 battle_runtime_service.set_mission_runtime_service(mission_runtime_service)
 battle_service.set_mission_runtime_service(mission_runtime_service)

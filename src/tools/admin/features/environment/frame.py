@@ -422,6 +422,7 @@ class GenerationProfileTab(_CatalogTabBase):
         {"name": "name", "label": "Name", "kind": "entry"},
         {"name": "description", "label": "Description", "kind": "text", "height": 4},
         {"name": "rendererMode", "label": "Renderer Mode", "kind": "enum", "values": [entry.name for entry in SceneDescriptionMode]},
+        {"name": "localRendererKey", "label": "Local Renderer Key", "kind": "entry"},
         {"name": "roleWeights", "label": "Role Weights JSON", "kind": "json", "height": 5, "default": {}},
         {"name": "minFeatures", "label": "Min Features", "kind": "int", "default": 1},
         {"name": "maxFeatures", "label": "Max Features", "kind": "int", "default": 3},

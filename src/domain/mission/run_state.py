@@ -191,6 +191,7 @@ class MissionRunState:
     lastBattleSummary: str = ""
     resultSummary: str = ""
     settingContextState: SettingContext | None = None
+    sceneRenderState: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         self.playerId = int(self.playerId)
@@ -244,6 +245,7 @@ class MissionRunState:
         self.resultSummary = str(self.resultSummary or "")
         if self.settingContextState is not None and not isinstance(self.settingContextState, SettingContext):
             self.settingContextState = SettingContext.from_dict(self.settingContextState)
+        self.sceneRenderState = dict(self.sceneRenderState or {})
 
     def get_node(self, node_id: int) -> MissionNodeState | None:
         target = int(node_id)
@@ -286,6 +288,7 @@ class MissionRunState:
             "lastBattleSummary": self.lastBattleSummary,
             "resultSummary": self.resultSummary,
             "settingContextState": self.settingContextState.to_dict() if self.settingContextState is not None else None,
+            "sceneRenderState": dict(self.sceneRenderState),
         }
 
     @classmethod
@@ -330,4 +333,5 @@ class MissionRunState:
                 if isinstance(data.get("settingContextState"), dict)
                 else None
             ),
+            sceneRenderState=dict(data.get("sceneRenderState", {}) or {}),
         )
