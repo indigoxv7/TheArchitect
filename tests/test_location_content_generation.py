@@ -1,17 +1,21 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
+from src.domain.location_content import DescriptionPack, GeneratedFeatureState, GeneratedNodeContent, SettingContext
 from src.domain.mission import MissionRunState, MissionTemplate
 from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.mission_map import (
     MissionMapOverlay,
+    apply_overlay_to_node_contents,
     build_map_settings_from_range,
+    build_scene_description_prompt_packet,
     generate_mission_map,
     generate_node_content_preview,
-    apply_overlay_to_node_contents,
     mission_map_to_dict,
+    render_local_node_description,
 )
 
 
@@ -133,6 +137,69 @@ class TestLocationContentGeneration(unittest.TestCase):
             self.assertEqual(round_trip.settingContextState.terrainId, setting_context.terrainId)
             self.assertEqual(round_trip.nodeStates[0].nodeContentState.sceneDisplayName, sample_node.sceneDisplayName)
             self.assertEqual(round_trip.nodeStates[0].nodeContentState.canonicalTags, sample_node.canonicalTags)
+
+
+    def test_scene_prompt_and_local_renderer_hide_unrevealed_hazards(self):
+        setting_context = SettingContext(
+            biomeId="GoblinJungle0",
+            biomeName="Goblin Jungle",
+            terrainId="GoblinRopeWalks0",
+            terrainName="Rope Walks",
+            climateId="CanopySmoke0",
+            climateName="Canopy Smoke",
+            settingContextTags=["jungle", "goblin_territory"],
+        )
+        node_content = GeneratedNodeContent(
+            nodeId=1,
+            sceneDisplayName="Rope Walks | Sentry Roost",
+            battleTerrainLabel="Rope Walks | Sentry Roost",
+            roleId="SentryRoost0",
+            roleName="Sentry Roost",
+            roleTags=["lookout"],
+            settingContextTags=["jungle", "goblin_territory"],
+            featureTags=["spike_trap", "totem_marker"],
+            affordanceTags=["observe"],
+            hazardTags=["spike_trap"],
+            hookTags=["clue"],
+            memoryTags=["spike_trap", "totem_marker"],
+            canonicalTags=["jungle", "lookout", "spike_trap", "totem_marker", "clue"],
+            featureStates=[
+                GeneratedFeatureState(
+                    featureId="HiddenTrap0",
+                    name="Spike Trap",
+                    category="hazard",
+                    tags=["spike_trap"],
+                    hazardTags=["spike_trap"],
+                    visibleTags=[],
+                ),
+                GeneratedFeatureState(
+                    featureId="Totem0",
+                    name="Totem Marker",
+                    category="marker",
+                    tags=["totem_marker"],
+                    visibleTags=["totem marker"],
+                ),
+            ],
+            visibleSummaryLines=["Role: Sentry Roost", "Features: totem marker"],
+        )
+        pack = DescriptionPack(
+            name="Test Pack",
+            descriptionPackId="TestPack0",
+            openingFragments=[{"text": "The squad arrives in #terrain#."}],
+            landmarkFragments=[{"text": "A glance catches #landmark#."}],
+            atmosphereFragments=[{"text": "The place shows #feature_list#."}],
+            hazardFragments=[{"text": "A hidden hazard waits: #hazard#."}],
+            closingFragments=[{"text": "They slow to study it."}],
+        )
+
+        rendered = render_local_node_description(setting_context, node_content, pack)
+        prompt_packet = build_scene_description_prompt_packet(setting_context, node_content)
+        prompt_text = json.dumps(prompt_packet, ensure_ascii=False)
+
+        self.assertNotIn("spike trap", rendered.lower())
+        self.assertNotIn("spike_trap", prompt_text)
+        self.assertIn("totem marker", prompt_text)
+        self.assertEqual(prompt_packet["node"]["canonical_tags"], ["jungle", "lookout", "totem_marker", "clue"])
 
 
 if __name__ == "__main__":

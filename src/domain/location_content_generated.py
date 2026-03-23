@@ -247,6 +247,18 @@ class GeneratedNodeContent:
             return self.localDescription or self.openAIDescription
         return self.localDescription or self.openAIDescription
 
+    def visible_hazard_tags(self, revealed_hazard_tags: list[str] | None = None) -> list[str]:
+        revealed = set(normalize_tag_list(revealed_hazard_tags or []))
+        return [tag for tag in self.hazardTags if tag in revealed]
+
+    def visible_memory_tags(self, revealed_hazard_tags: list[str] | None = None) -> list[str]:
+        hidden_hazards = set(self.hazardTags) - set(self.visible_hazard_tags(revealed_hazard_tags))
+        return [tag for tag in self.memoryTags if tag not in hidden_hazards]
+
+    def visible_canonical_tags(self, revealed_hazard_tags: list[str] | None = None) -> list[str]:
+        hidden_hazards = set(self.hazardTags) - set(self.visible_hazard_tags(revealed_hazard_tags))
+        return [tag for tag in self.canonicalTags if tag not in hidden_hazards]
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "nodeId": int(self.nodeId),

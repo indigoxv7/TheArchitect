@@ -60,6 +60,7 @@ class MissionRuntimeService:
     CHARACTER_BUTTONS_PER_PAGE = 6
     MISSION_BUTTONS_PER_PAGE = 6
     MOVE_BUTTONS_PER_PAGE = 6
+    HAZARD_SPOT_CHANCE = 0.2
 
     def __init__(
         self,
@@ -255,6 +256,74 @@ class MissionRuntimeService:
             return None
         return node_state.nodeContentState if isinstance(node_state.nodeContentState, GeneratedNodeContent) else None
 
+    @staticmethod
+    def _display_tag(tag: str) -> str:
+        return " ".join(str(tag or "").replace("_", " ").replace("-", " ").split()).strip().lower()
+
+    def _selected_party_characters(self, player, state: MissionRunState) -> list:
+        selected_ids = set(state.partyState.selectedCharacterInstanceIds)
+        return [
+            character
+            for character in getattr(player, "characters", []) or []
+            if self._character_identity(character) in selected_ids
+        ]
+
+    def _visible_node_tags(self, node_state: MissionNodeState | None) -> list[str]:
+        if node_state is None or node_state.nodeContentState is None:
+            return []
+        return node_state.nodeContentState.visible_canonical_tags(getattr(node_state, "revealedHazardTags", []))
+
+    def _revealed_hazard_entries(self, node_state: MissionNodeState | None) -> list[str]:
+        if node_state is None or node_state.nodeContentState is None:
+            return []
+        entries: list[str] = []
+        spotters = dict(getattr(node_state, "hazardSpottersByTag", {}) or {})
+        for hazard_tag in node_state.nodeContentState.visible_hazard_tags(getattr(node_state, "revealedHazardTags", [])):
+            label = self._display_tag(hazard_tag)
+            spotter = str(spotters.get(hazard_tag, "") or "").strip()
+            entries.append(f"{label} ({spotter})" if spotter else label)
+        return entries
+
+    def _revealed_hazard_addendum(self, node_state: MissionNodeState | None) -> str:
+        entries = self._revealed_hazard_entries(node_state)
+        if not entries:
+            return ""
+        return "Revealed hazards here: " + ", ".join(entries[:3]) + "."
+
+    def _attempt_hazard_spotting(self, player, state: MissionRunState, node_state: MissionNodeState, rng: Any | None = None) -> list[str]:
+        node_content = node_state.nodeContentState
+        if node_content is None or not node_content.hazardTags:
+            return []
+        party_characters = self._selected_party_characters(player, state)
+        if not party_characters:
+            return []
+        rng = rng or random
+        discoveries: list[str] = []
+        revealed = set(getattr(node_state, "revealedHazardTags", []) or [])
+        for hazard_tag in node_content.hazardTags:
+            if hazard_tag in revealed:
+                continue
+            for character in party_characters:
+                if float(rng.random()) > float(self.HAZARD_SPOT_CHANCE):
+                    continue
+                name = str(getattr(character, "name", "Someone") or "Someone").strip() or "Someone"
+                node_state.hazardSpottersByTag[hazard_tag] = name
+                node_state.revealedHazardTags.append(hazard_tag)
+                revealed.add(hazard_tag)
+                discoveries.append(f"{name} spots a hazard: {self._display_tag(hazard_tag)}.")
+                break
+        if discoveries:
+            normalized: list[str] = []
+            seen: set[str] = set()
+            for entry in node_state.revealedHazardTags:
+                tag = str(entry or "").strip().lower()
+                if not tag or tag in seen:
+                    continue
+                seen.add(tag)
+                normalized.append(tag)
+            node_state.revealedHazardTags = normalized
+        return discoveries
+
     def _description_mode_for_state(self, state: MissionRunState) -> SceneDescriptionMode:
         profile = self._generation_profile_for_state(state)
         if profile is None:
@@ -299,7 +368,7 @@ class MissionRuntimeService:
         if state.settingContextState is not None:
             location = f"{state.settingContextState.terrainName} | Node {int(node_state.nodeId)}"
         if node_content is not None:
-            tags.extend(node_content.canonicalTags)
+            tags.extend(self._visible_node_tags(node_state))
             location = node_content.sceneDisplayName or location
         mission = self._mission_template(state)
         try:
@@ -429,9 +498,12 @@ class MissionRuntimeService:
         lines = [title]
         if node_content is not None:
             for line in node_content.visibleSummaryLines[:4]:
+                if str(line or "").lower().startswith("hazards:"):
+                    continue
                 lines.append(f"- {line}")
-            if node_content.hazardTags:
-                lines.append(f"- Hazards: {', '.join(node_content.hazardTags[:3])}")
+            revealed_hazards = self._revealed_hazard_entries(node_state)
+            if revealed_hazards:
+                lines.append(f"- Revealed Hazards: {', '.join(revealed_hazards[:3])}")
             if node_content.affordanceTags:
                 lines.append(f"- Affordances: {', '.join(node_content.affordanceTags[:3])}")
         if hostile:
@@ -578,12 +650,16 @@ class MissionRuntimeService:
         embed.add_field(name="Current Node", value=self._current_node_summary(state), inline=False)
         current_node_state = state.get_node(int(state.currentNodeId)) if state.currentNodeId is not None else None
         scene_text = self._preferred_node_description(state, current_node_state)
+        hazard_addendum = self._revealed_hazard_addendum(current_node_state)
+        if hazard_addendum:
+            scene_text = f"{scene_text}\n\n{hazard_addendum}" if scene_text else hazard_addendum
         if scene_text:
             embed.add_field(name="Scene", value=scene_text[:1024], inline=False)
-        if current_node_state is not None and current_node_state.nodeContentState is not None and current_node_state.nodeContentState.canonicalTags:
+        visible_tags = self._visible_node_tags(current_node_state)
+        if visible_tags:
             embed.add_field(
                 name="Context Tags",
-                value=", ".join(current_node_state.nodeContentState.canonicalTags[:20]),
+                value=", ".join(visible_tags[:20]),
                 inline=False,
             )
         if state.lastBattleSummary:
@@ -1048,7 +1124,7 @@ class MissionRuntimeService:
             if node_content is not None and node_content.battleTerrainLabel
             else (node_content.sceneDisplayName if node_content is not None and node_content.sceneDisplayName else "Mission Node")
         )
-        context_tags = list(node_content.canonicalTags) if node_content is not None else []
+        context_tags = self._visible_node_tags(node_state)
         await self.battle_runtime_service.start_or_resume_mission_battle(
             interaction=interaction,
             player_id=int(player.discordID),
@@ -1075,17 +1151,27 @@ class MissionRuntimeService:
         self._update_ally_progress_metrics(state)
         node_state = state.get_node(int(state.currentNodeId))
         if node_state is not None:
+            hazard_notes = self._attempt_hazard_spotting(player, state, node_state)
+            if hazard_notes:
+                self._append_node_memory_event(state, " ".join(hazard_notes), node_state)
             await self._ensure_node_openai_description(state, node_state)
             hostile_units = [unit for unit in node_state.living_unit_states() if self._is_hostile(unit.allegianceId)]
             if hostile_units:
+                if hazard_notes:
+                    state.lastBattleSummary = " ".join(hazard_notes)
                 state.pendingBattleNodeId = int(node_state.nodeId)
                 self.save_active_mission(state)
                 await self._start_node_battle(interaction, player, state, node_state, hostile_units)
                 return
 
             notes = self._collect_node_events(player, state, node_state)
+            combined_notes = []
+            if hazard_notes:
+                combined_notes.append(" ".join(hazard_notes))
             if notes:
-                state.lastBattleSummary = notes
+                combined_notes.append(notes)
+            if combined_notes:
+                state.lastBattleSummary = " ".join(combined_notes)
             elif node_state.nodeContentState is not None and node_state.nodeContentState.sceneDisplayName:
                 state.lastBattleSummary = f"You arrive at {node_state.nodeContentState.sceneDisplayName}."
 

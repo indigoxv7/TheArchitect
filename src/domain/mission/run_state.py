@@ -90,7 +90,38 @@ class MissionNodeState:
     clueTargetNodeId: int | None = None
     treasureCollected: bool = False
     clueResolved: bool = False
+    revealedHazardTags: list[str] = field(default_factory=list)
+    hazardSpottersByTag: dict[str, str] = field(default_factory=dict)
     nodeContentState: GeneratedNodeContent | None = None
+
+    def __post_init__(self):
+        self.nodeId = int(self.nodeId)
+        self.unitStates = [
+            entry if isinstance(entry, MissionNodeUnitState) else MissionNodeUnitState.from_dict(entry)
+            for entry in (self.unitStates or [])
+            if entry is not None
+        ]
+        self.nanoAmount = max(0, int(self.nanoAmount or 0))
+        self.clueTargetNodeId = int(self.clueTargetNodeId) if self.clueTargetNodeId is not None else None
+        revealed: list[str] = []
+        seen: set[str] = set()
+        for entry in self.revealedHazardTags or []:
+            tag = str(entry or '').strip().lower()
+            if not tag or tag in seen:
+                continue
+            seen.add(tag)
+            revealed.append(tag)
+        self.revealedHazardTags = revealed
+        normalized_spotters: dict[str, str] = {}
+        for key, value in dict(self.hazardSpottersByTag or {}).items():
+            tag = str(key or '').strip().lower()
+            name = str(value or '').strip()
+            if not tag or not name:
+                continue
+            normalized_spotters[tag] = name
+        self.hazardSpottersByTag = normalized_spotters
+        if self.nodeContentState is not None and not isinstance(self.nodeContentState, GeneratedNodeContent):
+            self.nodeContentState = GeneratedNodeContent.from_dict(self.nodeContentState)
 
     def living_unit_states(self) -> list[MissionNodeUnitState]:
         return [unit for unit in self.unitStates if not unit.defeated]
@@ -103,6 +134,8 @@ class MissionNodeState:
             "clueTargetNodeId": self.clueTargetNodeId,
             "treasureCollected": bool(self.treasureCollected),
             "clueResolved": bool(self.clueResolved),
+            "revealedHazardTags": list(self.revealedHazardTags),
+            "hazardSpottersByTag": dict(self.hazardSpottersByTag),
             "nodeContentState": self.nodeContentState.to_dict() if self.nodeContentState is not None else None,
         }
 
@@ -126,6 +159,8 @@ class MissionNodeState:
             ),
             treasureCollected=bool(data.get("treasureCollected", False)),
             clueResolved=bool(data.get("clueResolved", False)),
+            revealedHazardTags=data.get("revealedHazardTags", []),
+            hazardSpottersByTag=data.get("hazardSpottersByTag", {}),
             nodeContentState=(
                 GeneratedNodeContent.from_dict(node_content_raw)
                 if isinstance(node_content_raw, dict)

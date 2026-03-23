@@ -1,0 +1,348 @@
+# Mitigating Repetition in Local-LLM Scene Rendering from Procedural NodeModels
+
+## Executive summary
+
+Repetition in local LLM scene descriptions shows up at three levels: **token/phrase loops** (same words), **structural sameness** (same sentence frames), and **campaign-level déjà vu** (similar nodes read the same). The most reliable, implementation-friendly mitigation is a **two-stage renderer**: generate a **structured “scene facts” JSON** (high control, low creativity), then optionally run a **controlled variation layer** (grammar fragments + light LLM embellishment) while enforcing constraints and doing post-generation repair. citeturn7search2turn2search0turn2search1
+
+For decoding, use **modern anti-degeneration sampling**:
+- Prefer **nucleus/top‑p** over greedy to avoid “text degeneration” and repetitive blandness. citeturn0search0
+- Consider **locally typical sampling** to reduce degenerate repetition while keeping quality competitive. citeturn0search13turn0search1
+- If you use llama.cpp (directly or via bindings), use its built-in **repeat penalty**, **DRY repetition penalty**, and (optionally) **Mirostat** to avoid boredom traps over longer generations. citeturn1view0turn6search3
+
+Finally, treat repetition as a controllable system property: keep **usage counters**, **cooldowns/shuffle-bags**, **expressive-range logs**, and **automated diversity regression tests** (distinct‑n, self‑BLEU, SBERT similarity). citeturn6search2turn3search3turn3search1
+
+## Pipeline architecture
+
+### Modules and data flow
+
+1. **Node Canonicalizer**
+   - Input: `NodeModel`
+   - Output: `canonical_node` (sorted tags, normalized fields), `node_signature` (hash)
+
+2. **Salience Planner**
+   - Input: `canonical_node`, `player_state`, `global_stats`
+   - Output: `ScenePlan` (selected “headline” facts + ordering)
+
+3. **Template/Grammar Assembler**
+   - Input: `ScenePlan`, fragment pools, cooldown state
+   - Output: `DraftSkeleton` (sentence frames + slot values)
+
+4. **LLM Renderer (Structured)**
+   - Input: `ScenePlan` (and/or `DraftSkeleton`) + JSON schema/grammar
+   - Output: `SceneJSON` (validated structured output)
+
+5. **Variation Layer (Optional)**
+   - Input: `SceneJSON` + style knobs + anti-repetition schedule
+   - Output: `SceneText` (final prose)
+
+6. **Post-Generation Repair**
+   - Input: `SceneJSON`, `SceneText`, constraints
+   - Output: `FinalScene` (safe, deduped, consistent)
+
+7. **State Store + Telemetry**
+   - Updates: fragment usage, phrase hashes, per-player cache, expressive-range logs, metric summaries
+
+Why this works: structured generation is enforced with schema/grammar constrained decoding (GBNF, JSON schema token filtering, etc.), then variation is applied only where safe—reducing both hallucination and repetitive boilerplate. citeturn2search0turn2search1turn7search2
+
+### Interfaces (implementation-ready)
+
+- `render_scene(node: NodeModel, player_id: str) -> FinalScene`
+- `plan_salience(node_sig, node, memory) -> ScenePlan`
+- `select_fragments(plan, fragment_state) -> DraftSkeleton`
+- `llm_generate_structured(prompt, schema_or_grammar, decode_opts) -> SceneJSON`
+- `llm_paraphrase(text, constraints, decode_opts) -> text`
+- `repair(scene_json, text, rules) -> FinalScene`
+- `state_store.get(player_id) / state_store.put(player_id, diff)`
+
+## Algorithms and techniques with pseudocode
+
+### Salience selection
+
+Goal: mention **1–3 “headline” details** (landmark + hazard + affordance) and rotate what “wins” across similar nodes.
+
+```python
+def plan_salience(node, memory):
+    # candidates are facts derived from tags/vars/affordances
+    candidates = extract_facts(node)  # each has: key, type, importance, rarity, descriptors
+
+    for c in candidates:
+        c.recency_penalty = memory.fact_recentness(c.key)  # 0..1
+        c.global_overuse = memory.global_overuse(c.key)    # 0..1
+        c.novelty = 1.0 - max(
+            memory.similarity_to_recent_nodes(node.signature),
+            memory.fact_recentness(c.key),
+        )
+
+        c.score = (
+            1.4 * c.importance
+            + 0.8 * c.rarity
+            + 0.9 * c.novelty
+            - 1.0 * c.recency_penalty
+            - 0.6 * c.global_overuse
+        )
+
+    picked = constrained_topk(candidates, k=3, constraints=[
+        "at_most_one_landmark",
+        "at_most_one_major_hazard",
+        "must_include_one_affordance_or_interactable",
+    ])
+    return ScenePlan(headlines=picked, supporting=pick_supporting(node, picked))
+```
+
+### Fragment cooldowns and shuffle-bags
+
+Use “deck”-style selection so you don’t see the same fragment cluster repeatedly.
+
+```python
+class ShuffleBag:
+    def __init__(self, items, rng):
+        self.all = list(items)
+        self.deck = []
+        self.rng = rng
+
+    def draw(self):
+        if not self.deck:
+            self.deck = self.all[:]
+            self.rng.shuffle(self.deck)
+        return self.deck.pop()
+
+def choose_fragment(pool_id, state, rng):
+    bag = state.bags.setdefault(pool_id, ShuffleBag(load_pool(pool_id), rng))
+    for _ in range(10):
+        frag = bag.draw()
+        if state.cooldown_ok(frag.id):
+            state.apply_cooldown(frag.id, half_life_turns=25)
+            return frag
+    return frag  # fallback if everything is on cooldown
+```
+
+Cooldown decay (fast and stable):
+
+```python
+def cooldown_factor(turns_since_use, half_life):
+    # 1.0 immediately after use -> approaches 0 over time
+    return 0.5 ** (turns_since_use / half_life)
+```
+
+### Diversity-aware sampling and schedules
+
+Base insight: decoding strategy strongly affects repetition/degeneration even with the same model. Nucleus sampling trims the unreliable tail; locally typical sampling reduces degenerate repetition; Mirostat targets a stable entropy to avoid boredom/confusion traps. citeturn0search0turn0search13turn6search3
+
+In llama.cpp-style engines you also have repeat penalties, DRY sampling (long-range repetition), and experimental samplers like XTC (exclude top choices). citeturn1view0
+
+**Adaptive schedule** (raise penalties when repetition risk is high):
+
+```python
+def decode_options(repetition_risk: float, visit_count: int):
+    # repetition_risk in [0,1] from heuristics (see below)
+    temp = lerp(0.65, 0.95, repetition_risk)
+    top_p = lerp(0.85, 0.93, 1 - repetition_risk)  # lower top_p if drifting
+    repeat_penalty = lerp(1.10, 1.25, repetition_risk)
+    repeat_last_n = 128 if visit_count > 0 else 64
+
+    # If supported (llama.cpp / some runners)
+    typical_p = 0.90 if repetition_risk > 0.6 else 1.0
+    dry_multiplier = 0.8 if repetition_risk > 0.7 else 0.0
+
+    return {
+        "temperature": temp,
+        "top_p": top_p,
+        "top_k": 40,
+        "repeat_penalty": repeat_penalty,
+        "repeat_last_n": repeat_last_n,
+        "typical_p": typical_p,
+        "dry_multiplier": dry_multiplier,
+    }
+```
+
+Notes:
+- llama.cpp documents `--repeat-penalty`, `--repeat-last-n`, and DRY sampling knobs, including a typical recommended DRY multiplier value around 0.8. citeturn1view0
+- Hugging Face `generate()` supports `temperature`, `top_p`, `typical_p`, `repetition_penalty`, and `no_repeat_ngram_size` (hard blocking of repeated n-grams). citeturn5view0
+
+### Constrained decoding for structure and anti-repetition
+
+Use constrained decoding to force a **structured IR**, which sharply reduces “LLM falls into repetitive prose loops” because you bound the space.
+
+**GBNF (llama.cpp) for JSON / DSL**  
+GBNF is explicitly designed to constrain outputs in llama.cpp (e.g., to valid JSON). citeturn2search0
+
+```python
+# llama.cpp CLI conceptually:
+# llama-cli -m model.gguf --grammar-file scene_json.gbnf -p "<prompt>"
+
+# In code: generate SceneJSON first, then render.
+```
+
+**Guidance / llguidance (CFG / regex constrained decoding)**  
+Guidance supports regex and CFG constraints; llguidance focuses on fast structured outputs via CFG. citeturn2search6turn2search2
+
+**LM Format Enforcer (token filtering against JSON Schema/regex)**  
+LM Format Enforcer filters allowed tokens each step to guarantee format compliance (but warns semantic correctness still needs validation). citeturn2search1
+
+```python
+# High-level approach
+allowed_tokens = build_schema_token_filter(json_schema, tokenizer)
+for step in range(max_tokens):
+    logits = model(next_input)
+    logits = mask_disallowed(logits, allowed_tokens)
+    token = sample(logits, options)
+```
+
+### Paraphrase/variation layers
+
+Use paraphrase only after you have canonical facts.
+
+**Template + LLM hybrid (recommended)**
+1) Grammar/template produces `DraftSkeleton` (stable structure).  
+2) LLM paraphrases only the “style layer,” with a strict instruction: “do not add/remove facts; keep named entities identical.”
+
+**Back-translation (optional, offline)**
+Back-translation is a standard technique for generating alternative surface forms by translating to an intermediate language and back. citeturn6search0  
+(Implementation can be heavy locally unless you already ship MT models; treat as optional.)
+
+**Local LLM paraphrase with constraints**
+```python
+def paraphrase_with_guardrails(scene_json, draft_text):
+    prompt = f"""
+Rewrite the following scene description with fresh wording.
+Do NOT add new objects/creatures. Keep all facts identical.
+
+FACTS (authoritative):
+{scene_json}
+
+TEXT (rewrite):
+{draft_text}
+"""
+    # Use schema output: return {"text": "..."} so you can validate + repair
+    return llm_generate_structured(prompt, schema={"type":"object","properties":{"text":{"type":"string"}}, "required":["text"]})
+```
+
+### Post-generation repair (must-have)
+
+```python
+def repair(scene_json, text, rules, memory):
+    validate_schema(scene_json)  # hard fail -> regenerate
+    text = normalize_whitespace(text)
+    text = enforce_length(text, min_words=70, max_words=140)
+
+    # Fact-check: forbid mentions not supported by scene_json
+    text = drop_unsupported_nouns(text, allowed=scene_json_vocab(scene_json))
+
+    # Mutual exclusions: e.g., "dry" vs "soaking", "pristine" vs "ruined"
+    if violates_mutual_exclusion(scene_json, rules):
+        scene_json = fix_scene_json(scene_json, rules)
+
+    # Dedup: remove repeated sentences / near-duplicate clauses
+    text = dedupe_sentences(text, similarity_threshold=0.92)
+
+    # Update memory with phrase hashes to avoid repeats later
+    memory.record_output(text, scene_json)
+    return FinalScene(json=scene_json, prose=text)
+```
+
+Training-time option (advanced): unlikelihood training explicitly reduces repetition by lowering probability of repeated patterns, but it’s a model training pipeline (not a drop-in). citeturn6search1
+
+## State management and persistence
+
+### What to store
+
+- **Per-player**
+  - `recent_node_signatures` (rolling window)
+  - `recent_fact_keys`
+  - `recent_phrase_hashes` (sentence-level)
+  - `fragment_cooldowns`
+  - `visit_counts_by_node_signature`
+
+- **Global**
+  - `fragment_usage_counts`
+  - `fact_global_overuse`
+  - expressive-range histograms: `{biome -> template_id -> count}`
+
+### Persistence schema (minimal JSON)
+
+```json
+{
+  "player_id": "p123",
+  "turn": 1842,
+  "recent_nodes": [{"sig":"abc", "t":1831}, {"sig":"def","t":1836}],
+  "fact_recency": {"landmark:vine_bridge": {"last_t":1836, "uses":5}},
+  "fragment_cooldowns": {"frag:ominous_opening_07": {"last_t":1836}},
+  "phrase_hashes": [{"h":"9f2c...", "t":1836}],
+  "global": {
+    "fragment_uses": {"frag:ominous_opening_07": 912},
+    "template_uses": {"tpl:3sent_landmark_hazard_hook": 18412}
+  }
+}
+```
+
+## Evaluation metrics and automated tests
+
+### Metrics
+
+- **distinct‑n** (lexical diversity): proportion of unique n-grams; widely used; distinct‑1/2 are common. citeturn6search2turn3search10
+- **self‑BLEU** (diversity across samples): BLEU of each sample against the rest; higher self‑BLEU implies lower diversity. citeturn3search3
+- **SBERT similarity** (semantic overlap): cosine similarity of sentence embeddings to detect “same meaning different words.” citeturn3search1
+
+### Automated regression tests (examples)
+
+1) **Highly similar nodes**: same biome/terrain/climate, only one feature differs → ensure output changes meaningfully and mentions the differing salience.
+2) **Repeated visits**: same node signature visited 5 times → ensure descriptions rotate focus (different headline each time) and avoid repeating identical sentences.
+3) **Long campaign drift**: 5k node renders → enforce upper bound on template reuse and lower bound on distinct‑2.
+
+Pseudo-test:
+
+```python
+def test_repeated_visit_rotates_salience():
+    node = sample_node(sig="X", tags=["feature:ruins","hazard:leeches","landmark:arch"])
+    outputs = [render_scene(node, player_id="p").prose for _ in range(5)]
+    assert distinct_n(outputs, n=2) > 0.35
+    assert max_pairwise_sbert_sim(outputs) < 0.92
+```
+
+## Parameter recommendations for your hardware
+
+Assumptions: i9‑10900K, 32GB RAM, RTX 3080 10GB; CPU-only acceptable; GPU helpful for latency and for generating multiple candidates for reranking.
+
+Starting profiles (tune per model):
+
+| Situation | temperature | top_p | typical_p | repeat_penalty | no_repeat_ngram_size |
+|---|---:|---:|---:|---:|---:|
+| Default scene (new node) | 0.75 | 0.90 | 1.0 | 1.12 | 0–3 |
+| High repetition risk | 0.85 | 0.88 | 0.90 | 1.20 | 3–4 |
+| Repeat visit (same node) | 0.80 | 0.90 | 0.95 | 1.18 | 3 |
+
+These knobs are standard in Transformers generation configs (including `typical_p`, `repetition_penalty`, `no_repeat_ngram_size`). citeturn5view0  
+In llama.cpp you can additionally enable DRY sampling and Mirostat; llama.cpp documents DRY parameters and Mirostat flags. citeturn1view0turn6search3  
+If you use Mirostat, it is explicitly designed to control perplexity and avoid boredom traps caused by excessive repetition. citeturn6search3turn1view0
+
+## Implementation checklist and effort estimate
+
+Assumptions: Python program, local runner is Ollama or llama.cpp; OS/driver versions unspecified.
+
+| Task | Priority | Est. hours |
+|---|---:|---:|
+| Canonicalize NodeModel + stable signature hashing | P0 | 2–4 |
+| Salience planner with novelty/recency scoring | P0 | 6–10 |
+| Fragment pools + shuffle-bag + cooldown store | P0 | 6–12 |
+| Structured-output generation (JSON schema) + validation | P0 | 4–8 |
+| Post-generation repair: dedupe, length clamp, mutual-exclusion | P0 | 8–14 |
+| State store + persistence (per-player + global) | P0 | 6–12 |
+| Diversity-aware decode scheduler (risk-based knobs) | P1 | 4–8 |
+| Metrics + regression tests (distinct-n/self-BLEU/SBERT) | P1 | 10–18 |
+| Optional: constrained decoding via GBNF / LMFE / Guidance | P1 | 8–20 |
+| Optional: contrastive decoding (expert+amateur) | P2 | 20–40 |
+
+Contrastive decoding is powerful but requires two models and specific decoding logic; it is described as optimizing a contrastive objective with plausibility constraints, and is often treated as a heavier integration. citeturn0search30
+
+### Primary references
+
+- Nucleus sampling and “text degeneration” analysis. citeturn0search0  
+- Locally typical sampling for reduced degenerate repetition. citeturn0search13  
+- Mirostat (perplexity-controlled decoding; boredom/confusion traps). citeturn6search3  
+- llama.cpp decoding knobs (repeat penalty, DRY sampling, typical, mirostat, XTC). citeturn1view0  
+- llama.cpp GBNF grammar constrained decoding guide. citeturn2search0  
+- LM Format Enforcer (token filtering for JSON schema / regex). citeturn2search1  
+- Guidance / llguidance for CFG/regex constrained generation. citeturn2search6turn2search2  
+- Transformers generation parameters (temperature/top_p/typical_p/repetition_penalty/no_repeat_ngram_size). citeturn5view0  
+- Self‑BLEU (Texygen). citeturn3search3  
+- SBERT for semantic similarity measurement. citeturn3search1

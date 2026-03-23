@@ -201,11 +201,28 @@ def _render_tokens(template: str, values: dict[str, str]) -> str:
     return TOKEN_PATTERN.sub(_replace, template).replace("  ", " ").strip()
 
 
+def _humanize_scene_label(value: str) -> str:
+    return " ".join(str(value or "").replace("_", " ").replace("-", " ").split()).strip().lower()
+
+
+def _scene_feature_labels(feature: GeneratedFeatureState) -> list[str]:
+    labels = [_humanize_scene_label(tag) for tag in getattr(feature, "visibleTags", []) or [] if str(tag or "").strip()]
+    if labels:
+        return labels
+    if getattr(feature, "hazardTags", []):
+        return []
+    name = str(getattr(feature, "name", "") or "").strip().lower()
+    return [name] if name else []
+
+
 def render_local_node_description(setting_context: SettingContext, node_content: GeneratedNodeContent, description_pack: DescriptionPack, rng: random.Random | None = None) -> str:
     rng = rng or random.Random()
-    tags = list(node_content.canonicalTags)
-    landmark = next((feature.name.lower() for feature in node_content.featureStates if feature.visibleTags), "the node itself")
-    feature_names = [feature.name.lower() for feature in node_content.featureStates[:3]] or [node_content.roleName.lower()]
+    tags = list(node_content.visible_canonical_tags([]))
+    safe_feature_labels: list[str] = []
+    for feature in node_content.featureStates:
+        safe_feature_labels.extend(_scene_feature_labels(feature))
+    landmark = safe_feature_labels[0] if safe_feature_labels else "the node itself"
+    feature_names = safe_feature_labels[:3] or [node_content.roleName.lower()]
     tokens = {
         "biome": setting_context.biomeName.lower(),
         "terrain": setting_context.terrainName.lower(),
@@ -214,7 +231,6 @@ def render_local_node_description(setting_context: SettingContext, node_content:
         "role_mood": node_content.roleName.lower(),
         "landmark": landmark,
         "feature_list": ", ".join(feature_names),
-        "hazard": ", ".join(node_content.hazardTags[:2]) or "uncertain footing",
         "affordance": ", ".join(node_content.affordanceTags[:2]) or "get your bearings",
     }
     fragments = []
@@ -222,7 +238,6 @@ def render_local_node_description(setting_context: SettingContext, node_content:
         description_pack.openingFragments,
         description_pack.landmarkFragments,
         description_pack.atmosphereFragments,
-        description_pack.hazardFragments if node_content.hazardTags else [],
         description_pack.affordanceFragments if node_content.affordanceTags else [],
         description_pack.closingFragments,
     ):
@@ -240,10 +255,11 @@ def render_local_node_description(setting_context: SettingContext, node_content:
 
 def _build_visible_summary(role: NodeRoleTemplate, features: list[GeneratedFeatureState], hooks: list[GeneratedHookState], node_content: GeneratedNodeContent) -> list[str]:
     lines = [f"Role: {role.name}"]
-    if features:
-        lines.append("Features: " + ", ".join(feature.name for feature in features[:4]))
-    if node_content.hazardTags:
-        lines.append("Hazards: " + ", ".join(node_content.hazardTags[:3]))
+    feature_labels: list[str] = []
+    for feature in features:
+        feature_labels.extend(_scene_feature_labels(feature))
+    if feature_labels:
+        lines.append("Features: " + ", ".join(feature_labels[:4]))
     if node_content.affordanceTags:
         lines.append("Affordances: " + ", ".join(node_content.affordanceTags[:3]))
     for hook in hooks[:2]:
@@ -345,9 +361,52 @@ def apply_overlay_to_node_contents(node_contents: dict[int, GeneratedNodeContent
 
 
 def build_scene_description_prompt_packet(setting_context: SettingContext, node_content: GeneratedNodeContent) -> dict[str, Any]:
+    visible_features = []
+    for feature in node_content.featureStates:
+        labels = _scene_feature_labels(feature)
+        if not labels:
+            continue
+        visible_features.append(
+            {
+                "feature_id": feature.featureId,
+                "category": feature.category,
+                "visible_labels": labels[:3],
+            }
+        )
+
+    visible_hooks = []
+    for hook in node_content.hookStates:
+        visible_text = str(getattr(hook, "visibleText", "") or "").strip()
+        if not visible_text:
+            continue
+        visible_hooks.append(
+            {
+                "hook_id": hook.hookId,
+                "hook_type": hook.hookType,
+                "visible_text": visible_text,
+                "tags": list(hook.tags),
+            }
+        )
+
+    node_packet = {
+        "node_id": int(node_content.nodeId),
+        "scene_display_name": node_content.sceneDisplayName,
+        "battle_terrain_label": node_content.battleTerrainLabel,
+        "role_id": node_content.roleId,
+        "role_name": node_content.roleName,
+        "role_tags": list(node_content.roleTags),
+        "setting_context_tags": list(node_content.settingContextTags),
+        "feature_tags": [tag for tag in node_content.featureTags if tag not in node_content.hazardTags],
+        "affordance_tags": list(node_content.affordanceTags),
+        "hook_tags": list(node_content.hookTags),
+        "canonical_tags": list(node_content.visible_canonical_tags([])),
+        "visible_summary_lines": [line for line in node_content.visibleSummaryLines if not str(line or "").lower().startswith("hazards:")],
+        "visible_features": visible_features,
+        "visible_hooks": visible_hooks,
+    }
     return {
         "setting_context": setting_context.to_dict(),
-        "node": node_content.to_dict(),
+        "node": node_packet,
         "instructions": {
             "max_sentences": 4,
             "focus": "arrival_description",

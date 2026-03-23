@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import asyncio
@@ -154,6 +155,48 @@ class TestMenuRuntime(unittest.TestCase):
             sum(1 for node_state in state.nodeStates if node_state.living_unit_states()),
             0,
         )
+
+
+    def test_mission_runtime_reveals_hazards_only_after_spotting_roll(self):
+        player = game.player_service.get_player_sync(191980469670248448)
+        mission = game.mission_service.get_mission_by_id("GoblinEliminationlvl00")
+
+        self.assertIsNotNone(player)
+        self.assertIsNotNone(mission)
+        if not getattr(player, "characters", []):
+            template_character = copy.deepcopy(next(iter(game.context.all_characters.values())))
+            template_character.playerInstanceId = "HazardSpotter0"
+            if not getattr(template_character, "name", ""):
+                template_character.name = "Hazard Spotter"
+            ensure_defaults = getattr(template_character, "EnsureRuntimeDefaults", None)
+            if callable(ensure_defaults):
+                ensure_defaults()
+            player.characters = [template_character]
+
+        state = game.mission_runtime_service._generate_state(player, mission, ["TheApocalypseBegins0"])
+        state.partyState.selectedCharacterInstanceIds = [str(getattr(player.characters[0], "playerInstanceId", "") or "")]
+        node_state = state.get_node(int(state.currentNodeId))
+
+        self.assertIsNotNone(node_state)
+        self.assertIsNotNone(node_state.nodeContentState)
+
+        node_state.nodeContentState.hazardTags = ["spike_trap"]
+        node_state.nodeContentState.canonicalTags = ["jungle", "lookout", "spike_trap"]
+        node_state.revealedHazardTags = []
+        node_state.hazardSpottersByTag = {}
+
+        class AlwaysSpot:
+            @staticmethod
+            def random():
+                return 0.0
+
+        self.assertNotIn("spike_trap", game.mission_runtime_service._visible_node_tags(node_state))
+        discoveries = game.mission_runtime_service._attempt_hazard_spotting(player, state, node_state, rng=AlwaysSpot())
+
+        self.assertTrue(discoveries)
+        self.assertIn("spike trap", discoveries[0].lower())
+        self.assertIn("spike_trap", node_state.revealedHazardTags)
+        self.assertIn("spike_trap", game.mission_runtime_service._visible_node_tags(node_state))
 
 
 if __name__ == "__main__":
