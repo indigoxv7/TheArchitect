@@ -1,0 +1,69 @@
+Project-specific local scene preview setup
+
+This project now supports local mission-node scene description rendering in the Mission Editor GUI through Ollama.
+
+Where it appears
+- Admin GUI -> Edit Missions
+- Node Content Preview -> Local Renderer dropdown
+- Options:
+  - Tracery (Built-in)
+  - Ollama - qwen3:8b
+  - Ollama - gemma3:12b
+  - Ollama - gpt-oss:20b
+
+Recommended install order for this machine
+1. qwen3:8b
+2. gemma3:12b
+3. gpt-oss:20b
+
+Install Ollama on Windows
+```powershell
+irm https://ollama.com/install.ps1 | iex
+```
+
+Pull the models
+```powershell
+ollama pull qwen3:8b
+ollama pull gemma3:12b
+ollama pull gpt-oss:20b
+```
+
+Quick checks
+```powershell
+ollama run qwen3:8b
+ollama ps
+```
+
+Environment variables this project understands
+- OLLAMA_BASE_URL
+  - default: http://localhost:11434
+- OLLAMA_SCENE_TIMEOUT_SECONDS
+  - default: 120
+- OLLAMA_LOCAL_SCENE_QWEN_MODEL
+  - default: qwen3:8b
+- OLLAMA_LOCAL_SCENE_GEMMA_MODEL
+  - default: gemma3:12b
+- OLLAMA_LOCAL_SCENE_GPT_OSS_MODEL
+  - default: gpt-oss:20b
+
+Example .env entries
+```dotenv
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_SCENE_TIMEOUT_SECONDS=120
+OLLAMA_LOCAL_SCENE_QWEN_MODEL=qwen3:8b
+OLLAMA_LOCAL_SCENE_GEMMA_MODEL=gemma3:12b
+OLLAMA_LOCAL_SCENE_GPT_OSS_MODEL=gpt-oss:20b
+```
+
+How to use in the mission editor
+1. Generate a map preview.
+2. Generate node content.
+3. Pick a node.
+4. Select a Local Renderer option.
+5. Click Generate Local For Selected.
+6. Compare the local model output against the Tracery output and the OpenAI output.
+
+Design note
+- Structured node generation remains the source of truth.
+- Local models are used only as renderers for scene text.
+- The mission editor currently generates local-model text for the selected node only, which keeps preview latency manageable.

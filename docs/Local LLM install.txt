@@ -1,0 +1,176 @@
+I’d start with `qwen3:8b`, not `gpt-oss:20b`.
+
+`qwen3:8b` is 5.2 GB in Ollama, and Qwen’s official model card explicitly says Qwen3 excels at creative writing, role-playing, multi-turn dialogue, and instruction following. For your use case—turning structured node data into vivid scene descriptions—that is a very good match, and it should fit much more comfortably on a 10 GB RTX 3080 than the heavier options. ([Ollama][1])
+
+My second choice is `gemma3:12b`. Ollama lists it at 8.1 GB, and Google says Gemma 3’s 12B class has a 128K context window and support for 140+ languages. It is the “try this next if you want somewhat richer output” option, but it is heavier than Qwen3 8B, so I would not make it your first install target. ([Ollama][2])
+
+`gpt-oss:20b` is absolutely worth trying because you asked for it, but I would treat it as an experiment on this machine rather than the default renderer. OpenAI describes it as a medium-sized open-weight model for low-latency local or specialized use, with 21B parameters and 3.6B active parameters, and Ollama packages the local model at 14 GB. OpenAI also says the smaller gpt-oss model can run within 16 GB of memory, but Ollama recommends avoiding CPU offload for best performance; with only 10 GB of VRAM, the practical expectation is mixed GPU/CPU execution or CPU-heavy fallback unless you keep context small. ([OpenAI Platform][3])
+
+The good news is that local `gpt-oss` does fit your “no paid API” requirement. OpenAI’s help center says the open-weight `gpt-oss` models run on infrastructure you control and are not served through the OpenAI API or ChatGPT. ([OpenAI Help Center][4])
+
+## What I recommend on your exact PC
+
+Use this order:
+
+1. `qwen3:8b` as your daily scene renderer. ([Ollama][1])
+2. `gemma3:12b` as your higher-quality comparison model. Be careful: `gemma3:latest` is only the 4B model, so use the explicit `:12b` tag. ([Ollama][2])
+3. `gpt-oss:20b` as a deliberate test run. Do **not** pull `gpt-oss:20b-cloud`; that is the cloud variant. Use the local `gpt-oss:20b` tag. ([Ollama][5])
+
+If you later want a “stretch” option between Qwen 8B and GPT-OSS 20B, `qwen3:14b` is plausible, but it is 9.3 GB in Ollama, which is close enough to your VRAM ceiling that I would only try it after the first three. ([Ollama][6])
+
+## Ollama setup
+
+Your RTX 3080 is on Ollama’s supported NVIDIA list. Ollama supports NVIDIA GPUs with compute capability 5.0+, and the 3080 is explicitly listed under the RTX 30xx family. Also, on cards with under 24 GiB of VRAM, Ollama defaults to a 4k context window; that is actually a good default for you because increasing context length increases memory use. ([Ollama Docs][7])
+
+### 1) Install or update your NVIDIA driver
+
+On Windows, Ollama’s docs call for NVIDIA driver 452.39 or newer. On Linux, Ollama’s GPU docs call for NVIDIA driver 531 or newer and suggest verifying with `nvidia-smi`. ([Ollama Docs][8])
+
+### 2) Install Ollama
+
+If you are on Windows, the shortest route is:
+
+```powershell
+irm https://ollama.com/install.ps1 | iex
+```
+
+If you are on Linux:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+On Windows, Ollama runs as a native app in the background and serves its API at `http://localhost:11434`. On Linux, you can run `ollama serve` manually or set it up as a systemd service. ([Ollama][9])
+
+### 3) Pull the exact models you want
+
+Use exact tags so you do not accidentally download the wrong size:
+
+```bash
+ollama pull qwen3:8b
+ollama pull gemma3:12b
+ollama pull gpt-oss:20b
+```
+
+That gives you approximately 5.2 GB, 8.1 GB, and 14 GB local models, respectively. Plan on roughly 30 GB of disk once all three are present. ([Ollama][1])
+
+### 4) Test them from the terminal
+
+```bash
+ollama run qwen3:8b
+ollama run gemma3:12b
+ollama run gpt-oss:20b
+```
+
+For `gpt-oss`, Ollama also exposes the plain `gpt-oss` tag, but I would still use `gpt-oss:20b` explicitly so there is no ambiguity. ([Ollama][5])
+
+### 5) Check whether the model is really staying on GPU
+
+```bash
+ollama ps
+```
+
+Ollama’s docs say to inspect the `PROCESSOR` column there and avoid CPU offloading for best performance. If you see `100% GPU`, great. If you see a mixed split or mostly CPU, that explains sluggish generation. ([Ollama Docs][10])
+
+### 6) Keep context small at first
+
+With your 10 GB GPU, do **not** raise context length early. Ollama defaults to 4k context on sub-24 GB cards, and larger context requires more memory. For scene rendering from a compact node JSON, 4k is plenty. ([Ollama Docs][11])
+
+### 7) Install the Python client
+
+```bash
+pip install ollama pydantic
+```
+
+Ollama has an official Python library, and its local API is exposed at `http://localhost:11434/api`. The structured-output docs also show using Pydantic schemas with the Python client, which is ideal for your node-rendering workflow. ([GitHub][12])
+
+## Python integration for your map-node renderer
+
+For your game, I would keep the LLM as a **renderer**, not the source of truth. Let your deterministic generator build the node data, then ask the model to turn that into a stable scene package.
+
+```python
+import json
+from typing import List
+
+from ollama import chat
+from pydantic import BaseModel
+
+
+class SceneRender(BaseModel):
+    title: str
+    short_description: str
+    sensory_details: List[str]
+    interactables: List[str]
+    hazards: List[str]
+
+
+def render_location(node_model: dict, model_name: str = "qwen3:8b") -> SceneRender:
+    system_prompt = (
+        "You render locations for a text-based RPG. "
+        "Use only facts present in the supplied node model. "
+        "Do not contradict biome, terrain, climate, structures, factions, hazards, or tags. "
+        "Be vivid, concrete, and concise."
+    )
+
+    user_prompt = (
+        "Render the following map node into the requested JSON schema.\n\n"
+        f"{json.dumps(node_model, indent=2)}"
+    )
+
+    response = chat(
+        model=model_name,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        format=SceneRender.model_json_schema(),
+        options={"temperature": 0},
+    )
+
+    return SceneRender.model_validate_json(response.message.content)
+```
+
+Ollama’s structured-output docs show exactly this pattern: pass either `"json"` or a JSON schema to `format`, and use a low temperature for deterministic completions. ([Ollama Docs][13])
+
+Once that is working, you can add a second pass for prettier prose. Keep the first pass structured and conservative; make the second pass stylistic.
+
+## Model-specific advice for your use case
+
+For `qwen3:8b`, I would use it as the main renderer. Qwen’s official card explicitly emphasizes creative writing and role-play, which maps nicely to atmospheric scene description. ([Hugging Face][14])
+
+For `gemma3:12b`, I would use it when you want slightly denser or more polished prose and can accept more latency. Because `gemma3` without a tag resolves to the 4B model in Ollama, always use `gemma3:12b` explicitly. ([Ollama][2])
+
+For `gpt-oss:20b`, I would use it for A/B testing against Qwen and Gemma, or for more careful instruction-heavy transformations. OpenAI says it supports adjustable reasoning effort, and Ollama’s API supports a `think` field. For scene description, keep reasoning off or low; save higher reasoning effort for tasks like checking contradictions between tags, validating generated content, or producing richer lore summaries. ([OpenAI Platform][3])
+
+If `gpt-oss:20b` feels too slow, either drop back to `qwen3:8b` or force a CPU-only comparison run. Ollama’s GPU docs say you can ignore GPUs by setting an invalid GPU id such as `-1`. ([Ollama Docs][15])
+
+PowerShell:
+
+```powershell
+$env:CUDA_VISIBLE_DEVICES="-1"
+ollama run gpt-oss:20b
+```
+
+bash:
+
+```bash
+CUDA_VISIBLE_DEVICES=-1 ollama run gpt-oss:20b
+```
+
+My practical recommendation is: get `qwen3:8b` working first, compare it against `gemma3:12b`, then try `gpt-oss:20b` with the exact same prompt and node JSON so you can judge whether the extra latency buys you anything.
+
+[1]: https://ollama.com/library/qwen3%3A8b?utm_source=chatgpt.com "qwen3:8b"
+[2]: https://www.ollama.com/library/gemma3?utm_source=chatgpt.com "gemma3"
+[3]: https://platform.openai.com/docs/models/gpt-oss-20b?utm_source=chatgpt.com "gpt-oss-20b Model | OpenAI API"
+[4]: https://help.openai.com/es-es/articles/11870455-openai-open-weight-models-gpt-oss?utm_source=chatgpt.com "OpenAI open-weight models (gpt-oss) | OpenAI Help Center"
+[5]: https://ollama.com/library/gpt-oss?utm_source=chatgpt.com "gpt-oss"
+[6]: https://ollama.com/library/qwen3%3A14b?utm_source=chatgpt.com "qwen3:14b"
+[7]: https://docs.ollama.com/gpu?utm_source=chatgpt.com "Hardware support - Ollama"
+[8]: https://docs.ollama.com/windows?utm_source=chatgpt.com "Windows - Ollama"
+[9]: https://ollama.com/download/windows?utm_source=chatgpt.com "Download Ollama on Windows"
+[10]: https://docs.ollama.com/context-length "Context length - Ollama"
+[11]: https://docs.ollama.com/context-length?utm_source=chatgpt.com "Context length - Ollama"
+[12]: https://github.com/ollama/ollama-python?utm_source=chatgpt.com "GitHub - ollama/ollama-python: Ollama Python library"
+[13]: https://docs.ollama.com/capabilities/structured-outputs?utm_source=chatgpt.com "Structured Outputs - Ollama"
+[14]: https://huggingface.co/Qwen/Qwen3-8B?utm_source=chatgpt.com "Qwen/Qwen3-8B · Hugging Face"
+[15]: https://docs.ollama.com/gpu "Hardware support - Ollama"

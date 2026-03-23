@@ -38,6 +38,7 @@ class AdminEditorApp:
         power_rating_service,
         combat_simulator_service,
         openai_service=None,
+        local_scene_service=None,
     ):
         self.services = AdminServices(
             spell_service=spell_service,
@@ -55,6 +56,7 @@ class AdminEditorApp:
             power_rating_service=power_rating_service,
             combat_simulator_service=combat_simulator_service,
             openai_service=openai_service,
+            local_scene_service=local_scene_service,
         )
         for field in fields(AdminServices):
             setattr(self, field.name, getattr(self.services, field.name))

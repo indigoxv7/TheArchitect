@@ -18,6 +18,7 @@ class AdminServices:
     power_rating_service: object
     combat_simulator_service: object
     openai_service: object | None = None
+    local_scene_service: object | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)

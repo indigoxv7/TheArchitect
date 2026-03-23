@@ -24,6 +24,7 @@ from src.services.environment_service import EnvironmentService
 from src.services.game_context import GameContext
 from src.services.item_service import ItemService
 from src.services.main_character_memory_service import MainCharacterMemoryService
+from src.services.local_scene_description_service import LocalSceneDescriptionService
 from src.services.mission_runtime_service import MissionRuntimeService
 from src.services.mission_service import MissionService
 from src.services.menu_runtime import ConsoleMenuInterface as ConsoleMenuInterface, MenuRuntimeService
@@ -132,6 +133,7 @@ menu_service = MenuService(
     context=context,
 )
 openai_narrative_service = OpenAINarrativeService()
+local_scene_description_service = LocalSceneDescriptionService()
 player_memory_store = PlayerMemoryStore(db_path=PLAYER_MEMORY_DB_PATH)
 active_battle_store = ActiveBattleStore(battles_directory=ACTIVE_BATTLES_DIRECTORY)
 active_mission_store = ActiveMissionStore(missions_directory=ACTIVE_MISSIONS_DIRECTORY)
@@ -287,5 +289,6 @@ if __name__ == "__main__":
         power_rating_service=power_rating_service,
         combat_simulator_service=combat_simulator_service,
         openai_service=openai_narrative_service,
+        local_scene_service=local_scene_description_service,
     )
     bot.run(TOKEN)

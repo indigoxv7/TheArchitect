@@ -52,8 +52,11 @@ class MissionEditorFrame(ttk.Frame):
         self.selected_node_var = tk.StringVar(value="")
         self.generation_profile_var = tk.StringVar(value="<Default>")
         self.description_pack_var = tk.StringVar(value="<Default>")
+        self.local_renderer_var = tk.StringVar(value="Tracery (Built-in)")
         self._generation_profile_ids_by_label = {}
         self._description_pack_ids_by_label = {}
+        self._local_renderer_keys_by_label = {}
+        self._local_model_description_cache = {}
         map_defaults = MissionMapGenerationRange()
         self.map_range_vars = {
             "totalNodes": {
@@ -236,10 +239,18 @@ class MissionEditorFrame(ttk.Frame):
         node_preview_frame.pack(fill=tk.BOTH, expand=False, pady=6)
         ttk.Label(node_preview_frame, textvariable=self.sampled_setting_var, justify=tk.LEFT).pack(fill=tk.X, padx=6, pady=(6, 4))
 
+        local_renderer_row = ttk.Frame(node_preview_frame)
+        local_renderer_row.pack(fill=tk.X, padx=6, pady=(0, 4))
+        ttk.Label(local_renderer_row, text="Local Renderer", width=18).pack(side=tk.LEFT)
+        self.local_renderer_pick = ttk.Combobox(local_renderer_row, state="readonly", textvariable=self.local_renderer_var)
+        self.local_renderer_pick.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.local_renderer_pick.bind("<<ComboboxSelected>>", lambda _evt: self._render_selected_node_preview())
+
         node_actions = ttk.Frame(node_preview_frame)
         node_actions.pack(fill=tk.X, padx=6, pady=(0, 4))
         ttk.Button(node_actions, text="Generate Node Content", command=self._generate_node_content_preview).pack(side=tk.LEFT)
         ttk.Button(node_actions, text="Regenerate Selected Node", command=self._regenerate_selected_node_content).pack(side=tk.LEFT, padx=6)
+        ttk.Button(node_actions, text="Generate Local For Selected", command=self._generate_selected_local_description).pack(side=tk.LEFT, padx=6)
         ttk.Button(node_actions, text="Generate OpenAI For Selected", command=self._generate_openai_for_selected_node).pack(side=tk.LEFT, padx=6)
 
         node_pick_row = ttk.Frame(node_preview_frame)
@@ -398,9 +409,48 @@ class MissionEditorFrame(ttk.Frame):
         self._description_pack_ids_by_label[label] = pack.descriptionPackId
         self.description_pack_var.set(label)
 
+    def _refresh_local_renderer_options(self):
+        options = []
+        service = getattr(self.app, "local_scene_service", None)
+        if service is not None and hasattr(service, "list_options"):
+            options = list(service.list_options())
+        if not options:
+            options = []
+        labels = []
+        self._local_renderer_keys_by_label = {}
+        for option in options:
+            labels.append(option.label)
+            self._local_renderer_keys_by_label[option.label] = option.key
+        if not labels:
+            labels = ["Tracery (Built-in)"]
+            self._local_renderer_keys_by_label["Tracery (Built-in)"] = "tracery"
+        self.local_renderer_pick["values"] = labels
+        if self.local_renderer_var.get() not in labels:
+            self.local_renderer_var.set(labels[0])
+
+    def _selected_local_renderer_key(self) -> str:
+        selected = str(self.local_renderer_var.get() or "").strip()
+        return self._local_renderer_keys_by_label.get(selected, "tracery")
+
+    def _selected_local_renderer_label(self) -> str:
+        selected = str(self.local_renderer_var.get() or "").strip()
+        return selected or "Tracery (Built-in)"
+
+    def _selected_local_description_text(self, node_content) -> str:
+        option_key = self._selected_local_renderer_key()
+        label = self._selected_local_renderer_label()
+        if option_key == "tracery":
+            description = node_content.localDescription or "<No Tracery description>"
+            return f"Renderer: {label}\n\n{description}"
+        cached = self._local_model_description_cache.get((int(node_content.nodeId), option_key), "")
+        if cached:
+            return f"Renderer: {label}\n\n{cached}"
+        return f"Renderer: {label}\n\n<No cached local-model description for this node yet>"
+
     def _clear_node_content_preview(self):
         self.current_setting_context = None
         self.current_node_contents = {}
+        self._local_model_description_cache = {}
         self.sampled_setting_var.set("No sampled setting yet.")
         self.selected_node_var.set("")
         self.selected_node_pick["values"] = []
@@ -445,7 +495,7 @@ class MissionEditorFrame(ttk.Frame):
             *(f"- {line}" for line in node_content.visibleSummaryLines[:6]),
         ]
         self._set_text_widget(self.node_summary_text, "\n".join(summary_lines))
-        self._set_text_widget(self.node_local_text, node_content.localDescription or "<No local description>")
+        self._set_text_widget(self.node_local_text, self._selected_local_description_text(node_content))
         self._set_text_widget(self.node_openai_text, node_content.openAIDescription or "<No OpenAI description cached>")
 
     def _filtered_missions(self):
@@ -460,6 +510,7 @@ class MissionEditorFrame(ttk.Frame):
         self._refresh_biome_options()
         self._refresh_generation_profile_options()
         self._refresh_description_pack_options()
+        self._refresh_local_renderer_options()
         labels = ["<New Mission>"] + [
             self.app.mission_service.get_mission_label(mission) for mission in self._filtered_missions()
         ]
@@ -838,6 +889,7 @@ class MissionEditorFrame(ttk.Frame):
                 seed=self.current_map.settings.seed,
             )
             self.current_setting_context = setting_context
+            self._local_model_description_cache = {}
             self.current_node_contents = apply_overlay_to_node_contents(node_contents, self.current_map_overlay)
             self.sampled_setting_var.set(
                 f"Sampled Setting: {setting_context.biomeName} | {setting_context.terrainName} | {setting_context.climateName}"
@@ -862,6 +914,33 @@ class MissionEditorFrame(ttk.Frame):
         if selected_node_id is not None:
             self.selected_node_var.set(str(selected_node_id))
         self._render_selected_node_preview()
+
+    def _generate_selected_local_description(self):
+        node_id = self._selected_node_id()
+        if node_id is None:
+            messagebox.showerror("Mission Editor", "Select a node first.")
+            return
+        if self.current_setting_context is None or node_id not in self.current_node_contents:
+            messagebox.showerror("Mission Editor", "Generate node content first.")
+            return
+        option_key = self._selected_local_renderer_key()
+        if option_key == "tracery":
+            self._render_selected_node_preview()
+            return
+        service = getattr(self.app, "local_scene_service", None)
+        if service is None:
+            messagebox.showerror("Mission Editor", "Local scene generation service is not configured.")
+            return
+        try:
+            prompt_packet = build_scene_description_prompt_packet(
+                self.current_setting_context,
+                self.current_node_contents[node_id],
+            )
+            description = service.describe_scene(prompt_packet, option_key)
+            self._local_model_description_cache[(node_id, option_key)] = str(description or "").strip()
+            self._render_selected_node_preview()
+        except Exception as exc:
+            messagebox.showerror("Mission Editor", f"Failed to generate local scene description: {exc}")
 
     def _generate_openai_for_selected_node(self):
         node_id = self._selected_node_id()
