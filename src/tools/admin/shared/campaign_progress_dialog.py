@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Campaign import CampaignProgress
+from src.domain.campaign import CampaignProgress
 from src.tools.admin.shared.pickers import MissionSelectDialog
 
 

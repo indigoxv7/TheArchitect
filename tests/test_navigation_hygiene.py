@@ -11,10 +11,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_IMPORT_SNIPPETS = [
     "from src.domain.character import",
     "from src.domain.race import",
-    "from src.domain.spells import",
-    "from src.domain.allegiance import",
+    "from src.domain.Spells import",
+    "from src.domain.Allegiance import",
     "from src.domain.environment import",
-    "from src.domain.campaign import",
+    "from src.domain.Campaign import",
     "from src.domain.unit import",
     "from src.services.main_character_generator import",
     "from src.ui.menu_functions import",
@@ -44,9 +44,9 @@ class TestNavigationHygiene(unittest.TestCase):
 
     def test_legacy_module_map_points_old_names_to_canonical_modules(self):
         self.assertEqual(LEGACY_MODULE_MAP["Character"], "src.domain.Character")
-        self.assertEqual(LEGACY_MODULE_MAP["Campaign"], "src.domain.Campaign")
+        self.assertEqual(LEGACY_MODULE_MAP["Campaign"], "src.domain.campaign")
         self.assertEqual(LEGACY_MODULE_MAP["Items"], "src.domain.items")
-        self.assertEqual(LEGACY_MODULE_MAP["Spells"], "src.domain.Spells")
+        self.assertEqual(LEGACY_MODULE_MAP["Spells"], "src.domain.spells")
         self.assertEqual(LEGACY_MODULE_MAP["MainCharacter"], "src.domain.main_character")
         self.assertEqual(LEGACY_MODULE_MAP["Mission"], "src.domain.mission")
         self.assertEqual(LEGACY_MODULE_MAP["menu_functions"], "src.ui.menu")

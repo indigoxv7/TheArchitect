@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.domain.Allegiance import AllegianceDefaultPolicy, AllegianceRelationship
+from src.domain.allegiance import AllegianceDefaultPolicy, AllegianceRelationship
 from src.services.allegiance_service import AllegianceService
 from src.services.game_context import GameContext
 

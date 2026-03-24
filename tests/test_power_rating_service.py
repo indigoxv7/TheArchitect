@@ -2,7 +2,7 @@ import unittest
 
 from src.domain.Character import Character
 from src.domain.items import Weapon
-from src.domain.Spells import AffinityTypes, Spell
+from src.domain.spells import AffinityTypes, Spell
 from src.services.power_rating_service import PowerRatingService
 
 

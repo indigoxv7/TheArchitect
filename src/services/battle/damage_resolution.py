@@ -8,7 +8,7 @@ from src.domain.character_io import character_from_state
 from src.domain.Character import Character, HealthState
 from src.domain.character_util import Attributes, EquipSlot, HitLocation, ItemType
 from src.domain.items import Weapon
-from src.domain.Spells import Spell
+from src.domain.spells import Spell
 from src.domain.combat.enums import BattleTeam, CombatRole
 from src.domain.combat.state import BattleState, CommanderOrders
 from src.domain.combat_timing import (

@@ -15,7 +15,7 @@ from src.domain.character_util import (
 )
 from src.domain.items import Gear
 from src.domain.general_skills import GeneralSkills
-from src.domain.Spells import Spell
+from src.domain.spells import Spell
 from src.domain.combat_timing import (
     BASELINE_STAMINA_LIMIT,
     speed_factor_from_attributes,

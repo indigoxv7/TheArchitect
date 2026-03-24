@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Spells import AffinityTypes, Spell
+from src.domain.spells import AffinityTypes, Spell
 from src.tools.admin.shared.forms import _safe_float
 
 

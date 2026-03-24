@@ -16,7 +16,7 @@ from src.bot.views.mission_view import (
     MissionPreparationView,
     MissionResultView,
 )
-from src.domain.Allegiance import AllegianceRelationship
+from src.domain.allegiance import AllegianceRelationship
 from src.domain.location_content import GeneratedNodeContent, SceneDescriptionMode
 from src.domain.character_io import character_from_state, character_to_state
 from src.domain.combat import BattleOutcome, EncounterType

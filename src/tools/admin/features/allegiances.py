@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from src.domain.Allegiance import AllegianceDefaultPolicy, AllegianceRelationship
+from src.domain.allegiance import AllegianceDefaultPolicy, AllegianceRelationship
 from src.tools.admin.shared.pickers import AllegianceSelectDialog
 
 

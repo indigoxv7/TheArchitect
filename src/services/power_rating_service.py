@@ -18,7 +18,7 @@ from src.domain.character_util import (
     ItemType,
 )
 from src.domain.items import Armor, Consumable, Gear, Item, Weapon
-from src.domain.Spells import Spell
+from src.domain.spells import Spell
 from src.domain.combat_timing import (
     CombatRuntimeState,
     accuracy_bonus_for_exertion,

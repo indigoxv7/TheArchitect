@@ -6,7 +6,7 @@ import time
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from src.domain.Campaign import CampaignProgress
+from src.domain.campaign import CampaignProgress
 from src.domain.faction_functions import Faction
 from src.domain.character_util import TitlePreference
 
@@ -16,24 +16,24 @@ LEGACY_MODULE_MAP = {
     "Character": "src.domain.Character",
     "CharacterUtil": "src.domain.character_util",
     "Items": "src.domain.items",
-    "Spells": "src.domain.Spells",
+    "Spells": "src.domain.spells",
     "faction_functions": "src.domain.faction_functions",
     "GeneralSkills": "src.domain.general_skills",
     "Globals": "src.config",
-    "Campaign": "src.domain.Campaign",
+    "Campaign": "src.domain.campaign",
     "Mission": "src.domain.mission",
     "combat": "src.domain.combat",
     "character_io": "src.domain.character_io",
     "main_character_generator": "src.services.character_generation",
     "src.thearchitect.domain.player_functions": "src.domain.player_functions",
     "src.thearchitect.ui.menu_functions": "src.ui.menu",
-    "src.thearchitect.domain.Campaign": "src.domain.Campaign",
+    "src.thearchitect.domain.Campaign": "src.domain.campaign",
     "MainCharacter": "src.domain.main_character",
     "src.thearchitect.domain.MainCharacter": "src.domain.main_character",
     "src.thearchitect.domain.Character": "src.domain.Character",
     "src.thearchitect.domain.CharacterUtil": "src.domain.character_util",
     "src.thearchitect.domain.Items": "src.domain.items",
-    "src.thearchitect.domain.Spells": "src.domain.Spells",
+    "src.thearchitect.domain.Spells": "src.domain.spells",
     "src.thearchitect.domain.GeneralSkills": "src.domain.general_skills",
     "src.thearchitect.domain.Mission": "src.domain.mission",
     "src.thearchitect.domain.combat": "src.domain.combat",
